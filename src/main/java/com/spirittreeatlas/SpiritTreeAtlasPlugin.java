@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -31,6 +32,7 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.PostMenuSort;
 import net.runelite.api.events.ResizeableChanged;
 import net.runelite.api.events.ScriptPostFired;
@@ -38,6 +40,7 @@ import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.gameval.ObjectID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -51,6 +54,7 @@ import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.JagexColors;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
+import net.runelite.client.util.Text;
 
 /**
  * Spirit Tree Atlas (DESIGN 4): while the spirit tree menu is open, a zoomable map of every
@@ -69,6 +73,24 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private static final int REOPEN_TICKS = 3;
 	/** About 30 s after the menu closes, its caches are released. */
 	private static final int TRIM_TICKS = 50;
+	/** Except the overview tiles it opens on: they stay about 5 minutes, for the next tree of a run. */
+	private static final int OVERVIEW_TICKS = 500;
+	/** Levels z <= this are the overview the menu opens on (FIT_ALL is z=0 at most). */
+	private static final int OVERVIEW_LEVEL = 0;
+	/**
+	 * Objects whose "Travel" opens the menu: the travel locs, and the world trees whose menu
+	 * entries name them by their multiloc parent (an entry carries the parent's id).
+	 */
+	private static final Set<Integer> TRAVEL_TREES = Set.of(
+		ObjectID.SPIRITTREE_BIG_2OPS, ObjectID.SPIRITTREE_BIG_2OPS_ORBS, ObjectID.SPIRITTREE_SMALL_2OPS,
+		ObjectID.SPIRITTREE_PRIF_2OPS, ObjectID.POG_SPIRIT_TREE_ALIVE_STATIC, ObjectID.SPIRIT_TREE_FULLYGROWN,
+		ObjectID.POH_SPIRIT_TREE, ObjectID.LEAGUE_5_POH_SPIRIT_TREE, ObjectID.XMAS20_POH_SPIRIT_TREE,
+		ObjectID.ENT, ObjectID.STRONGHOLD_ENT, ObjectID.SPIRITTREE_SMALL, ObjectID.SPIRITTREE_PRIF,
+		ObjectID.POG_SPIRIT_TREE_MULTI, ObjectID.FARMING_SPIRIT_TREE_PATCH_1, ObjectID.FARMING_SPIRIT_TREE_PATCH_2,
+		ObjectID.FARMING_SPIRIT_TREE_PATCH_3, ObjectID.FARMING_SPIRIT_TREE_PATCH_4, ObjectID.FARMING_SPIRIT_TREE_PATCH_5);
+	/** Spiritual fairy trees, whose "Tree" opens the menu. */
+	private static final Set<Integer> FAIRY_TREES = Set.of(
+		ObjectID.POH_SPIRIT_RING, ObjectID.LEAGUE_5_POH_SPIRIT_RING, ObjectID.XMAS20_POH_SPIRIT_RING);
 	private static final long ANIM_MS = 250;
 	private static final String TELEPORT_MAPS = "com.mjhylkema.TeleportMaps.TeleportMapsPlugin";
 	/** Teleport Maps' config group; its {@code showSpiritTreeMap} key turns its spirit tree map on and off. */
@@ -170,6 +192,10 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private final ModalSlot modalSlot = new ModalSlot();
 	/** Whether the decoded tiles and map-sized caches were released since the menu closed. */
 	private boolean trimmed = true;
+	/** Whether all but the overview tiles (and the map-sized caches) were released. */
+	private boolean fineTrimmed = true;
+	/** When a click on a tree last started loading the map ahead of the menu. */
+	private int warmTick = -100;
 
 	@Provides
 	SpiritTreeAtlasConfig provideConfig(ConfigManager configManager)
@@ -324,6 +350,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		boolean reopen = tick >= closedTick && tick - closedTick <= REOPEN_TICKS;
 		open = true;
 		trimmed = false;
+		fineTrimmed = false;
 		mode = reopen ? closedMode : config.openInMapMode() ? Mode.MAP : Mode.LIST;
 		if (!reopen)
 		{
@@ -377,8 +404,101 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private void trimCaches()
 	{
 		trimmed = true;
+		fineTrimmed = true;
 		tiles.trim();
 		overlay.releaseCaches();
+	}
+
+	/**
+	 * Client thread, while the menu is closed: releases its caches as {@link #trimCaches} does in
+	 * two steps (DESIGN 4.9). The overview tiles it opens on stay longest, so the next tree of a
+	 * farming run opens at once; the login screen still releases everything.
+	 */
+	private void trimWhileClosed()
+	{
+		int tick = client.getTickCount();
+		int since = tick - Math.max(closedTick, warmTick);
+		boolean reset = tick < closedTick || tick < warmTick;
+		if (!trimmed && (since >= OVERVIEW_TICKS || reset))
+		{
+			trimCaches();
+		}
+		else if (!fineTrimmed && since >= TRIM_TICKS)
+		{
+			fineTrimmed = true;
+			tiles.trimFinerThan(OVERVIEW_LEVEL);
+			overlay.releaseCaches();
+		}
+	}
+
+	/**
+	 * DESIGN 4.9: "Travel" on a spirit tree (or "Tree" on a spiritual fairy tree) opens the menu once
+	 * the player gets there, so the map it will open on starts loading now, from our own bundled
+	 * tiles. The click itself is left alone.
+	 */
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked e)
+	{
+		if (!open && config.openInMapMode() && opensTreeMenu(e.getMenuAction(), e.getId(), e.getMenuOption(), e.getMenuTarget()))
+		{
+			prewarm();
+		}
+	}
+
+	/** Whether a clicked menu entry is a spirit tree's "Travel" (or a spiritual fairy tree's "Tree"). */
+	static boolean opensTreeMenu(MenuAction action, int id, String option, String target)
+	{
+		if (action != MenuAction.GAME_OBJECT_FIRST_OPTION && action != MenuAction.GAME_OBJECT_SECOND_OPTION
+			&& action != MenuAction.GAME_OBJECT_THIRD_OPTION && action != MenuAction.GAME_OBJECT_FOURTH_OPTION
+			&& action != MenuAction.GAME_OBJECT_FIFTH_OPTION)
+		{
+			return false;
+		}
+		// by name too, should an id change
+		String name = target == null ? "" : Text.removeTags(target).trim();
+		if ("Travel".equalsIgnoreCase(option))
+		{
+			return TRAVEL_TREES.contains(id) || "Spirit tree".equalsIgnoreCase(name);
+		}
+		return "Tree".equalsIgnoreCase(option) && (FAIRY_TREES.contains(id) || "Spiritual Fairy Tree".equalsIgnoreCase(name));
+	}
+
+	/**
+	 * Queues the tiles of the view the menu will open on: the initial view (4.7) on the last map
+	 * rect of the session or, before the first open, the rect the layout would give now.
+	 */
+	private void prewarm()
+	{
+		if (!tiles.hasImagery())
+		{
+			return;
+		}
+		MapView last = view;
+		Rectangle rect = last != null ? last.rect() : expectedRect();
+		locatePlayer();
+		MapRenderer.prefetch(initialView(rect), tiles);
+		trimmed = false;
+		fineTrimmed = false;
+		warmTick = client.getTickCount();
+	}
+
+	/** The map rect before the first open: the slot in fixed mode; else the free space as the caps and the layout allow. */
+	private Rectangle expectedRect()
+	{
+		int w = ModalSlot.SLOT_W;
+		int h = ModalSlot.SLOT_H;
+		if (!client.isResized())
+		{
+			return new Rectangle(0, 0, w, h);
+		}
+		Rectangle canvas = MapLayout.canvas(client);
+		List<Rectangle> obstacles = MapLayout.obstacles(client);
+		int maxW = config.mapMaxWidth();
+		int maxH = config.mapMaxHeight();
+		java.awt.Point corner = config.useFreeSpace() ? MapLayout.slotCorner(canvas, canvas, w, h, obstacles, maxW, maxH) : null;
+		Rectangle slot = corner != null ? new Rectangle(corner.x - w, corner.y - h, w, h)
+			: new Rectangle(canvas.x + (canvas.width - w) / 2, canvas.y + (canvas.height - h) / 2, w, h);
+		return MapLayout.compute(canvas, slot, obstacles, maxW, maxH);
 	}
 
 	private void locatePlayer()
@@ -508,11 +628,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 			}
 			// free the decoded tiles and map-sized buffers once the menu has been left alone for a
 			// while; a quick reopen stays warm
-			int tick = client.getTickCount();
-			if (!trimmed && (tick - closedTick >= TRIM_TICKS || tick < closedTick))
-			{
-				trimCaches();
-			}
+			trimWhileClosed();
 		}
 	}
 
