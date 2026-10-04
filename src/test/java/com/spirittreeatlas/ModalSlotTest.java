@@ -28,8 +28,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * "Use free space": where the dials' slot goes ({@link MapLayout#slotCorner}), the guards that keep
- * us off a slot that is not ours, and the move / restore paths against a fake toplevel.
+ * "Use free space": where the menu's slot goes ({@link MapLayout#slotCorner}), the guards that keep
+ * us off a slot that is not ours, and the move / restore paths against a fake toplevel, with the
+ * menu's root that must fill the slot (modern INFINITE, classic LJ_LAYER2).
  */
 public class ModalSlotTest
 {
@@ -45,7 +46,7 @@ public class ModalSlotTest
 	private static final List<Rectangle> CLASSIC_OBSTACLES = Arrays.asList(
 		new Rectangle(0, 735, 519, 165), new Rectangle(1359, 565, 241, 335), new Rectangle(1384, 602, 190, 261));
 
-	private static Rectangle dialsAt(Point corner)
+	private static Rectangle menuAt(Point corner)
 	{
 		return new Rectangle(corner.x - 512, corner.y - 334, 512, 334);
 	}
@@ -55,9 +56,9 @@ public class ModalSlotTest
 	{
 		Point c = MapLayout.slotCorner(CANVAS, HUD, 512, 334, CLASSIC_OBSTACLES, 2000, 1400);
 		assertEquals(new Point(1344, 729), c);
-		Rectangle dials = dialsAt(c);
-		assertTrue(HUD.contains(dials));
-		Rectangle map = MapLayout.compute(CANVAS, dials, CLASSIC_OBSTACLES, 2000, 1400);
+		Rectangle menu = menuAt(c);
+		assertTrue(HUD.contains(menu));
+		Rectangle map = MapLayout.compute(CANVAS, menu, CLASSIC_OBSTACLES, 2000, 1400);
 		// all of the HUD area but its 6 px inset: before the move it was 1100x601 at most
 		assertEquals(new Rectangle(6, 6, 1338, 723), map);
 		for (Rectangle o : CLASSIC_OBSTACLES)
@@ -71,7 +72,7 @@ public class ModalSlotTest
 	{
 		Point c = MapLayout.slotCorner(CANVAS, HUD, 512, 334, CLASSIC_OBSTACLES, 1100, 720);
 		assertNotNull(c);
-		Rectangle map = MapLayout.compute(CANVAS, dialsAt(c), CLASSIC_OBSTACLES, 1100, 720);
+		Rectangle map = MapLayout.compute(CANVAS, menuAt(c), CLASSIC_OBSTACLES, 1100, 720);
 		assertEquals(1100, map.width);
 		assertEquals(720, map.height);
 		int leftGap = map.x - 6;
@@ -80,15 +81,15 @@ public class ModalSlotTest
 		int bottomGap = 729 - (map.y + map.height);
 		assertTrue(leftGap + " / " + rightGap, Math.abs(leftGap - rightGap) <= 1);
 		assertTrue(topGap + " / " + bottomGap, Math.abs(topGap - bottomGap) <= 1);
-		// the dials, with Teleport and close in their corner, are the map's bottom-right
+		// the menu, with the Travel row and close in its corner, is the map's bottom-right
 		assertEquals(c.x, map.x + map.width);
 		assertEquals(c.y, map.y + map.height);
 	}
 
 	@Test
-	public void noMoveWhenTheDialsDoNotFit()
+	public void noMoveWhenTheMenuDoesNotFit()
 	{
-		// the smallest resizable window: the HUD area is barely larger than the dials
+		// the smallest resizable window: the HUD area is barely larger than the slot
 		Rectangle canvas = new Rectangle(0, 0, 765, 503);
 		Rectangle hud = new Rectangle(0, 0, 515, 338);
 		assertNull(MapLayout.slotCorner(canvas, hud, 512, 334, Collections.emptyList(), 2000, 1400));
@@ -97,7 +98,7 @@ public class ModalSlotTest
 	@Test
 	public void noMoveForASmallGain()
 	{
-		// the free corner is within a few pixels of where the game centres the dials
+		// the free corner is within a few pixels of where the game centres the slot
 		Rectangle canvas = new Rectangle(0, 0, 2000, 2000);
 		Rectangle hud = new Rectangle(0, 0, 530, 350);
 		assertNull(MapLayout.slotCorner(canvas, hud, 512, 334, Collections.emptyList(), 2000, 1400));
@@ -106,7 +107,7 @@ public class ModalSlotTest
 	}
 
 	@Test
-	public void modernLayoutKeepsTheDialsOffTheSidePanel()
+	public void modernLayoutKeepsTheMenuOffTheSidePanel()
 	{
 		// toplevel 164, wide window: the side panel and one-row tab bar reach into the HUD area
 		Rectangle canvas = new Rectangle(0, 0, 1920, 1080);
@@ -114,12 +115,12 @@ public class ModalSlotTest
 		List<Rectangle> obstacles = Arrays.asList(new Rectangle(0, 915, 519, 165), new Rectangle(1480, 740, 440, 340));
 		Point c = MapLayout.slotCorner(canvas, hud, 512, 334, obstacles, 2000, 1400);
 		assertNotNull(c);
-		Rectangle dials = dialsAt(c);
-		assertTrue(hud.contains(dials));
-		Rectangle map = MapLayout.compute(canvas, dials, obstacles, 2000, 1400);
+		Rectangle menu = menuAt(c);
+		assertTrue(hud.contains(menu));
+		Rectangle map = MapLayout.compute(canvas, menu, obstacles, 2000, 1400);
 		for (Rectangle o : obstacles)
 		{
-			assertFalse(o + " under the dials", dials.intersects(o));
+			assertFalse(o + " under the menu", menu.intersects(o));
 			assertFalse(o + " under the map", map.intersects(o));
 		}
 		// the cut keeps the most room: left of the side panel, full height
@@ -128,7 +129,7 @@ public class ModalSlotTest
 	}
 
 	@Test
-	public void manyWindowSizesKeepTheDialsInsideAndClear()
+	public void manyWindowSizesKeepTheMenuInsideAndClear()
 	{
 		int[][] sizes = {{765, 503}, {800, 600}, {1024, 768}, {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {1000, 1400}};
 		for (int[] s : sizes)
@@ -137,18 +138,17 @@ public class ModalSlotTest
 			int h = s[1];
 			Rectangle canvas = new Rectangle(0, 0, w, h);
 			Rectangle hud = new Rectangle(0, 0, w - 250, h - 165);
-			List<Rectangle> obstacles = Arrays.asList(new Rectangle(0, h - 165, 519, 165), new Rectangle(w - 241, h - 335, 241, 335),
-				new Rectangle(w - 216, h - 298, 190, 261));
+			List<Rectangle> obstacles = Arrays.asList(new Rectangle(0, h - 165, 519, 165), new Rectangle(w - 241, h - 335, 241, 335));
 			Point c = MapLayout.slotCorner(canvas, hud, 512, 334, obstacles, 2000, 1400);
 			if (c == null)
 			{
 				continue;
 			}
 			String at = w + "x" + h + " gave " + c;
-			Rectangle dials = dialsAt(c);
-			assertTrue(at, hud.contains(dials));
-			Rectangle map = MapLayout.compute(canvas, dials, obstacles, 2000, 1400);
-			assertTrue(at, map.contains(dials));
+			Rectangle menu = menuAt(c);
+			assertTrue(at, hud.contains(menu));
+			Rectangle map = MapLayout.compute(canvas, menu, obstacles, 2000, 1400);
+			assertTrue(at, map.contains(menu));
 			assertTrue(at, canvas.contains(map));
 			for (Rectangle o : obstacles)
 			{
@@ -160,7 +160,7 @@ public class ModalSlotTest
 	// ------------------------------------------------------------------ pure guards
 
 	@Test
-	public void fitsOnlyTheDefinedSlotFilledByTheDials()
+	public void fitsOnlyTheDefinedSlotFilledByTheMenuRoot()
 	{
 		int a = WidgetSizeMode.ABSOLUTE;
 		Rectangle filled = new Rectangle(0, 0, 512, 334);
@@ -171,7 +171,7 @@ public class ModalSlotTest
 		// another plugin resized it
 		assertFalse(ModalSlot.fits(a, a, 512, 500, 512, 500, filled));
 		assertFalse(ModalSlot.fits(a, a, 512, 334, 512, 500, filled));
-		// the dials are not exactly the slot
+		// the root is not exactly the slot (Better Teleport Menu's classic resize, a moved root)
 		assertFalse(ModalSlot.fits(a, a, 512, 334, 512, 334, new Rectangle(1, 0, 512, 334)));
 		assertFalse(ModalSlot.fits(a, a, 512, 334, 512, 334, new Rectangle(0, 0, 0, 0)));
 	}
@@ -275,14 +275,17 @@ public class ModalSlotTest
 	private final Map<Integer, Fake> live = new HashMap<>();
 	private Fake hud;
 	private Fake slot;
-	/** The dials' root rect: it fills whatever slot it is mounted in. */
-	private Fake dialsMountedIn;
-	private Widget dials;
+	/** The menu's root (INFINITE unless a test says otherwise): it fills whatever slot it is mounted in. */
+	private int rootId = InterfaceID.MenuNew.INFINITE;
+	private Fake rootMountedIn;
+	private Widget root;
+	/** The root's place in its slot, when a test moves it off (0, 0). */
+	private int rootX;
 	private Client client;
 	private ModalSlot modal;
 	private Rectangle canvas = new Rectangle(CANVAS);
-	/** The dials' drawn bounds as the game reports them before their first frame, when set. */
-	private Rectangle dialsDrawn;
+	/** The root's drawn bounds as the game reports them before their first frame, when set. */
+	private Rectangle rootDrawn;
 
 	private Widget proxy(Fake f)
 	{
@@ -361,27 +364,27 @@ public class ModalSlotTest
 		proxy(hud);
 		live.put(hud.id, hud);
 		slot = slot(CLASSIC);
-		dialsMountedIn = slot;
-		Fake d = new Fake(InterfaceID.Fairyrings.ROOT_RECT0);
-		dials = (Widget) Proxy.newProxyInstance(Widget.class.getClassLoader(), new Class<?>[]{Widget.class}, (p, m, args) ->
+		rootMountedIn = slot;
+		root = (Widget) Proxy.newProxyInstance(Widget.class.getClassLoader(), new Class<?>[]{Widget.class}, (p, m, args) ->
 		{
 			switch (m.getName())
 			{
 				case "getParent":
-					return dialsMountedIn == null ? null : dialsMountedIn.proxy;
+					return rootMountedIn == null ? null : rootMountedIn.proxy;
 				case "getBounds":
-					if (dialsDrawn != null)
+					if (rootDrawn != null)
 					{
-						return new Rectangle(dialsDrawn);
+						return new Rectangle(rootDrawn);
 					}
-					return dialsMountedIn == null ? null : new Rectangle(dialsMountedIn.bounds);
+					return rootMountedIn == null ? null : new Rectangle(rootMountedIn.bounds);
 				case "getRelativeX":
+					return rootX;
 				case "getRelativeY":
 					return 0;
 				case "getWidth":
-					return dialsMountedIn == null ? 0 : dialsMountedIn.w;
+					return rootMountedIn == null ? 0 : rootMountedIn.w;
 				case "getHeight":
-					return dialsMountedIn == null ? 0 : dialsMountedIn.h;
+					return rootMountedIn == null ? 0 : rootMountedIn.h;
 				case "isHidden":
 					return false;
 				case "equals":
@@ -397,9 +400,9 @@ public class ModalSlotTest
 			switch (m.getName())
 			{
 				case "getWidget":
-					if (args.length == 1 && (int) args[0] == d.id)
+					if (args.length == 1 && (int) args[0] == rootId)
 					{
-						return dialsMountedIn == null ? null : dials;
+						return rootMountedIn == null ? null : root;
 					}
 					Fake f = args.length == 1 ? live.get((int) args[0]) : null;
 					return f == null ? null : f.proxy;
@@ -423,7 +426,7 @@ public class ModalSlotTest
 	@Test
 	public void movesAPristineSlotAndPutsItBack()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertTrue(modal.holds());
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_RIGHT, WidgetPositionMode.ABSOLUTE_BOTTOM, 6, 6}, slot.position());
 		assertEquals(new Rectangle(1344 - 512, 729 - 334, 512, 334), slot.bounds);
@@ -432,7 +435,7 @@ public class ModalSlotTest
 		assertEquals(1, slot.revalidations);
 
 		// the per-tick recompute writes nothing while nothing changed
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertEquals(1, slot.revalidations);
 
 		modal.restore(client);
@@ -443,28 +446,28 @@ public class ModalSlotTest
 	}
 
 	@Test
-	public void movesAtWidgetLoadedBeforeTheDialsAreDrawn()
+	public void movesBeforeTheMenuIsDrawn()
 	{
-		// a reopened 398 is a new widget: laid out but not drawn, so its bounds are at -1,-1
-		dialsDrawn = new Rectangle(-1, -1, 512, 334);
-		modal.update(client, true, 2000, 1400);
+		// a menu just set up is laid out but not drawn, so its bounds are at -1,-1
+		rootDrawn = new Rectangle(-1, -1, 512, 334);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertTrue(modal.holds());
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_RIGHT, WidgetPositionMode.ABSOLUTE_BOTTOM, 6, 6}, slot.position());
 	}
 
 	@Test
-	public void aTravelLogNotDrawnYetIsNoObstacle()
+	public void anObstacleNotDrawnYetIsNoObstacle()
 	{
-		// loaded in the same batch as the dials: laid out, but its drawn bounds are still -1,-1
-		Fake log = new Fake(InterfaceID.FairyringsLog.UNIVERSE);
+		// laid out, but its drawn bounds are still -1,-1
+		Fake log = new Fake(InterfaceID.ToplevelOsrsStretch.CHAT_CONTAINER);
 		log.bounds = new Rectangle(-1, -1, 200, 300);
 		proxy(log);
 		live.put(log.id, log);
-		modal.update(client, true, 1100, 720);
+		modal.update(client, rootId, true, 1100, 720);
 		assertArrayEquals(ModalSlot.target(HUD, MapLayout.slotCorner(CANVAS, HUD, 512, 334, Collections.emptyList(), 1100, 720)), slot.position());
 		// once drawn it is one
 		log.bounds = new Rectangle(6, 6, 200, 300);
-		modal.update(client, true, 1100, 720);
+		modal.update(client, rootId, true, 1100, 720);
 		assertArrayEquals(ModalSlot.target(HUD, MapLayout.slotCorner(CANVAS, HUD, 512, 334,
 			Collections.singletonList(new Rectangle(6, 6, 200, 300)), 1100, 720)), slot.position());
 	}
@@ -472,17 +475,17 @@ public class ModalSlotTest
 	@Test
 	public void keepsTheSlotWhileTheWindowShrinksUntilTheHudIsLaidOutAgain()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		int[] moved = slot.position();
 		int revalidated = slot.revalidations;
 		// CanvasSizeChanged / a tick in between: new canvas, old HUD bounds
 		canvas = new Rectangle(0, 0, 1000, 600);
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertTrue(modal.holds());
 		assertArrayEquals(moved, slot.position());
 		assertEquals(revalidated, slot.revalidations);
 		// still restored when no longer wanted
-		modal.update(client, false, 2000, 1400);
+		modal.update(client, rootId, false, 2000, 1400);
 		assertFalse(modal.holds());
 		assertArrayEquals(PRISTINE, slot.position());
 	}
@@ -490,12 +493,12 @@ public class ModalSlotTest
 	@Test
 	public void followsTheFreeSpaceAndRestoresWhenNoLongerWanted()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		// a smaller cap: the corner moves to centre the map
-		modal.update(client, true, 1100, 720);
+		modal.update(client, rootId, true, 1100, 720);
 		assertArrayEquals(ModalSlot.target(HUD, MapLayout.slotCorner(CANVAS, HUD, 512, 334, Collections.emptyList(), 1100, 720)), slot.position());
-		// dial mode, or the option turned off
-		modal.update(client, false, 1100, 720);
+		// List mode, or the option turned off
+		modal.update(client, rootId, false, 1100, 720);
 		assertFalse(modal.holds());
 		assertArrayEquals(PRISTINE, slot.position());
 	}
@@ -507,7 +510,7 @@ public class ModalSlotTest
 		slot.yMode = WidgetPositionMode.ABSOLUTE_TOP;
 		slot.y = 10;
 		slot.layOut();
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertFalse(modal.holds());
 		assertEquals(WidgetPositionMode.ABSOLUTE_CENTER, slot.xMode);
 		assertEquals(0, slot.revalidations);
@@ -516,7 +519,7 @@ public class ModalSlotTest
 	@Test
 	public void doesNotRestoreOverAChangeMadeAfterOurs()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		slot.yMode = WidgetPositionMode.ABSOLUTE_TOP;
 		slot.y = 10;
 		int[] theirs = slot.position();
@@ -524,7 +527,7 @@ public class ModalSlotTest
 		assertFalse(modal.holds());
 		assertArrayEquals(theirs, slot.position());
 		// and the per-tick update lets it go rather than moving it again
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertFalse(modal.holds());
 		assertArrayEquals(theirs, slot.position());
 	}
@@ -532,10 +535,10 @@ public class ModalSlotTest
 	@Test
 	public void restoresWhenTheSlotIsResizedUnderUs()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		slot.hMode = WidgetSizeMode.MINUS;
 		slot.h = 0;
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		assertFalse(modal.holds());
 		assertArrayEquals(PRISTINE, slot.position());
 	}
@@ -543,14 +546,14 @@ public class ModalSlotTest
 	@Test
 	public void toplevelSwitchRestoresTheOldSlotAndMovesTheNewOne()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		Fake old = slot;
 		int revalidated = old.revalidations;
-		// classic to modern: the old toplevel is unloaded and the dials are mounted in the new slot
+		// classic to modern layout: the old toplevel is unloaded and the menu is mounted in the new slot
 		live.remove(CLASSIC);
 		Fake modern = slot(MODERN);
-		dialsMountedIn = modern;
-		modal.update(client, true, 2000, 1400);
+		rootMountedIn = modern;
+		modal.update(client, rootId, true, 2000, 1400);
 		assertArrayEquals(PRISTINE, old.position());
 		// the orphaned slot is written back but not laid out again
 		assertEquals(revalidated, old.revalidations);
@@ -561,10 +564,10 @@ public class ModalSlotTest
 	@Test
 	public void fixedModeSlotIsNeverMoved()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		Fake fixed = slot(InterfaceID.Toplevel.MAINMODAL);
-		dialsMountedIn = fixed;
-		modal.update(client, true, 2000, 1400);
+		rootMountedIn = fixed;
+		modal.update(client, rootId, true, 2000, 1400);
 		assertFalse(modal.holds());
 		assertArrayEquals(PRISTINE, slot.position());
 		assertArrayEquals(PRISTINE, fixed.position());
@@ -572,12 +575,12 @@ public class ModalSlotTest
 	}
 
 	@Test
-	public void closedDialsPutTheSlotBack()
+	public void aClosedMenuPutsTheSlotBack()
 	{
-		modal.update(client, true, 2000, 1400);
-		// 398 is gone (a missed close) and another interface loads
-		dialsMountedIn = null;
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
+		// the menu is gone (a missed close) and another interface loads
+		rootMountedIn = null;
+		modal.update(client, rootId, true, 2000, 1400);
 		assertFalse(modal.holds());
 		assertArrayEquals(PRISTINE, slot.position());
 	}
@@ -585,14 +588,46 @@ public class ModalSlotTest
 	@Test
 	public void logoutRestoresTheHeldObject()
 	{
-		modal.update(client, true, 2000, 1400);
+		modal.update(client, rootId, true, 2000, 1400);
 		// at the login screen the toplevel is no longer loaded: write back to the held object only
 		live.clear();
-		dialsMountedIn = null;
+		rootMountedIn = null;
 		int revalidated = slot.revalidations;
 		modal.restore(client);
 		assertArrayEquals(PRISTINE, slot.position());
 		assertEquals(revalidated, slot.revalidations);
 		assertFalse(modal.holds());
+	}
+
+	@Test
+	public void theClassicMenusRootWorksTheSame()
+	{
+		rootId = InterfaceID.Menu.LJ_LAYER2;
+		modal.update(client, rootId, true, 2000, 1400);
+		assertTrue(modal.holds());
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_RIGHT, WidgetPositionMode.ABSOLUTE_BOTTOM, 6, 6}, slot.position());
+		// the modern menu's root is not loaded: asking with it puts the slot back
+		modal.update(client, InterfaceID.MenuNew.INFINITE, true, 2000, 1400);
+		assertFalse(modal.holds());
+		assertArrayEquals(PRISTINE, slot.position());
+	}
+
+	@Test
+	public void aRootThatDoesNotFillTheSlotIsLeftAlone()
+	{
+		rootX = 10;
+		modal.update(client, rootId, true, 2000, 1400);
+		assertFalse(modal.holds());
+		assertEquals(0, slot.revalidations);
+	}
+
+	@Test
+	public void noMenuPutsTheSlotBack()
+	{
+		modal.update(client, rootId, true, 2000, 1400);
+		assertTrue(modal.holds());
+		modal.update(client, -1, false, 2000, 1400);
+		assertFalse(modal.holds());
+		assertArrayEquals(PRISTINE, slot.position());
 	}
 }

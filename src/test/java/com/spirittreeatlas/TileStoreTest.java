@@ -23,7 +23,7 @@ public class TileStoreTest
 {
 	private static final String FIXTURES = "/fixtures/";
 
-	private final RingRepository repo = RingRepository.load(new Gson(), FIXTURES);
+	private final TreeRepository repo = TreeRepository.load(new Gson(), FIXTURES);
 
 	@Test
 	public void levelChoice()

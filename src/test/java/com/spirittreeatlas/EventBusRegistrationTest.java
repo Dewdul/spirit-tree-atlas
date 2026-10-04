@@ -22,8 +22,5 @@ public class EventBusRegistrationTest
 		SpiritTreeAtlasPlugin plugin = new SpiritTreeAtlasPlugin();
 		bus.register(plugin);
 		bus.unregister(plugin);
-		RingMenuNames names = new RingMenuNames(null, null, () -> null);
-		bus.register(names);
-		bus.unregister(names);
 	}
 }

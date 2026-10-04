@@ -14,11 +14,12 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 
 /**
- * Where the map goes. Fixed mode: exactly over the dial interface. Resizable: as large as the
- * config allows, growing up and left from the dials' bottom-right corner (where Teleport and the
- * close button are moved), clear of the chatbox, the side panel and the travel log, and never
- * smaller than the dials. With "Use free space", {@link #slotCorner} says where the dials
- * themselves go so that this growth fills the free part of the screen ({@link ModalSlot}).
+ * Where the map goes (DESIGN 4.2). Fixed mode: exactly over the menu's slot (the 512x334 "menu
+ * rect"). Resizable: as large as the config allows, growing up and left from the menu rect's
+ * bottom-right corner (where the Travel row and the close button are moved), clear of the
+ * chatbox and the side panel, and never smaller than the menu rect. With "Use free space",
+ * {@link #slotCorner} says where the slot itself goes so that this growth fills the free part of
+ * the screen ({@link ModalSlot}).
  */
 public final class MapLayout
 {
@@ -29,31 +30,29 @@ public final class MapLayout
 		InterfaceID.ToplevelPreEoc.SIDE_CONTAINER,
 		InterfaceID.ToplevelPreEoc.SIDE_STATIC_LAYER,
 		InterfaceID.ToplevelPreEoc.SIDE_MOVABLE_LAYER,
-		InterfaceID.FairyringsLog.UNIVERSE,
 	};
 
 	/** Gap between the map and the top of the canvas. */
 	static final int TOP_MARGIN = 6;
-	/** The dials are moved into the free space only when that moves their corner at least this far. */
+	/** The slot is moved into the free space only when that moves its corner at least this far. */
 	static final int MIN_SLOT_GAIN = 8;
 
 	private MapLayout()
 	{
 	}
 
-	/** The map rectangle for the live client, or null when the dials are not on screen. */
-	static Rectangle fromClient(Client client, int maxW, int maxH)
+	/** The map rectangle for the live client around the menu rect (the slot's bounds), or null without one. */
+	static Rectangle fromClient(Client client, Rectangle menu, int maxW, int maxH)
 	{
-		Rectangle dial = bounds(client, InterfaceID.Fairyrings.ROOT_RECT0);
-		if (dial == null)
+		if (menu == null)
 		{
 			return null;
 		}
 		if (!client.isResized())
 		{
-			return dial;
+			return menu;
 		}
-		return compute(canvas(client), dial, obstacles(client), maxW, maxH);
+		return compute(canvas(client), menu, obstacles(client), maxW, maxH);
 	}
 
 	static Rectangle canvas(Client client)
@@ -62,9 +61,9 @@ public final class MapLayout
 	}
 
 	/**
-	 * The live bounds of everything the map keeps clear of: the chatbox, the side panel and the
-	 * travel log. A widget not drawn yet (the travel log loaded in the same batch as the dials) has
-	 * no place on screen yet and is left out rather than taken as sitting at the top-left.
+	 * The live bounds of everything the map keeps clear of: the chatbox (even when collapsed) and
+	 * the side panel with its tab bars. A widget not drawn yet has no place on screen yet and is
+	 * left out rather than taken as sitting at the top-left.
 	 */
 	static List<Rectangle> obstacles(Client client)
 	{
@@ -78,23 +77,6 @@ public final class MapLayout
 			}
 		}
 		return obstacles;
-	}
-
-	/** The holes: the CONFIRM button and the close button, where present. */
-	static List<Rectangle> holes(Client client)
-	{
-		List<Rectangle> out = new ArrayList<>(2);
-		Rectangle confirm = bounds(client, InterfaceID.Fairyrings.CONFIRM);
-		if (confirm != null)
-		{
-			out.add(confirm);
-		}
-		Rectangle close = bounds(client, InterfaceID.Fairyrings.ROOT_GRAPHIC27);
-		if (close != null)
-		{
-			out.add(close);
-		}
-		return out;
 	}
 
 	static Rectangle bounds(Client client, int component)
@@ -111,41 +93,41 @@ public final class MapLayout
 	/**
 	 * Resizable-mode layout. Each obstacle overlapping the usable area cuts it from the side
 	 * (bottom, right, left or top) that clears it and keeps the most room. A cut never goes past
-	 * the dials' own edge, so on a small canvas, where the dials sit within a few pixels of the
-	 * edge, the map still stops at the dials instead of covering the chatbox, side panel and log.
+	 * the menu rect's own edge, so on a small canvas, where the menu sits within a few pixels of
+	 * the edge, the map still stops at the menu instead of covering the chatbox and side panel.
 	 */
-	public static Rectangle compute(Rectangle canvas, Rectangle dial, List<Rectangle> obstacles, int maxW, int maxH)
+	public static Rectangle compute(Rectangle canvas, Rectangle menu, List<Rectangle> obstacles, int maxW, int maxH)
 	{
-		int dialRight = dial.x + dial.width;
-		int dialBottom = dial.y + dial.height;
-		// the inset canvas, grown to hold the dials when they sit closer than the inset to an edge
+		int menuRight = menu.x + menu.width;
+		int menuBottom = menu.y + menu.height;
+		// the inset canvas, grown to hold the menu when it sits closer than the inset to an edge
 		int[] a = cut(new int[]{
-			Math.min(canvas.x + 6, dial.x),
+			Math.min(canvas.x + 6, menu.x),
 			// the game's mouse-over text at the top-left is turned off while the map shows
-			Math.min(canvas.y + TOP_MARGIN, dial.y),
-			Math.max(canvas.x + canvas.width - 6, dialRight),
-			Math.max(canvas.y + canvas.height - 6, dialBottom),
-		}, obstacles, dial);
+			Math.min(canvas.y + TOP_MARGIN, menu.y),
+			Math.max(canvas.x + canvas.width - 6, menuRight),
+			Math.max(canvas.y + canvas.height - 6, menuBottom),
+		}, obstacles, menu);
 
-		// the map grows up and left from the dials' bottom-right corner: Teleport and the close
-		// button, which the game shows only inside the dials, are moved into that corner
-		int w = Math.max(dial.width, Math.min(maxW, dialRight - a[0]));
-		int h = Math.max(dial.height, Math.min(maxH, dialBottom - a[1]));
-		return new Rectangle(dialRight - w, dialBottom - h, w, h);
+		// the map grows up and left from the menu's bottom-right corner: the Travel row and the
+		// close button, which the game shows only inside the slot, are moved into that corner
+		int w = Math.max(menu.width, Math.min(maxW, menuRight - a[0]));
+		int h = Math.max(menu.height, Math.min(maxH, menuBottom - a[1]));
+		return new Rectangle(menuRight - w, menuBottom - h, w, h);
 	}
 
 	/**
-	 * Resizable mode, "Use free space": where the dials' bottom-right corner should go so that the
+	 * Resizable mode, "Use free space": where the slot's bottom-right corner should go so that the
 	 * map, which grows up and left from it, fills the free part of the screen. The free part is
-	 * the dials' container (the game's HUD area, which clips them) inset by 6 px and cut clear of
+	 * the slot's container (the game's HUD area, which clips it) inset by 6 px and cut clear of
 	 * the obstacles as in {@link #compute}. The corner goes in its bottom-right corner or, when the
 	 * size caps leave the map smaller than the free part, where the map comes out centred in it.
 	 *
-	 * @param hud the dials' container, which they must stay inside
-	 * @return the corner in canvas coordinates, or null when the dials do not fit or the move
+	 * @param hud the slot's container, which it must stay inside
+	 * @return the corner in canvas coordinates, or null when the slot does not fit or the move
 	 *     would gain less than {@link #MIN_SLOT_GAIN} px over the game's own centred place
 	 */
-	public static Point slotCorner(Rectangle canvas, Rectangle hud, int dialW, int dialH, List<Rectangle> obstacles, int maxW, int maxH)
+	public static Point slotCorner(Rectangle canvas, Rectangle hud, int slotW, int slotH, List<Rectangle> obstacles, int maxW, int maxH)
 	{
 		int[] a = cut(new int[]{
 			Math.max(canvas.x + 6, hud.x + 6),
@@ -155,18 +137,18 @@ public final class MapLayout
 		}, obstacles, null);
 		int freeW = a[2] - a[0];
 		int freeH = a[3] - a[1];
-		if (freeW < dialW || freeH < dialH)
+		if (freeW < slotW || freeH < slotH)
 		{
 			return null;
 		}
-		// a capped map is centred in the free part; the dials stay inside it either way
-		int mapW = Math.max(dialW, maxW);
-		int mapH = Math.max(dialH, maxH);
+		// a capped map is centred in the free part; the slot stays inside it either way
+		int mapW = Math.max(slotW, maxW);
+		int mapH = Math.max(slotH, maxH);
 		int x = mapW >= freeW ? a[2] : a[0] + (freeW + mapW) / 2;
 		int y = mapH >= freeH ? a[3] : a[1] + (freeH + mapH) / 2;
-		// where the game itself puts them: centred in the container
-		int homeX = hud.x + (hud.width - dialW) / 2 + dialW;
-		int homeY = hud.y + (hud.height - dialH) / 2 + dialH;
+		// where the game itself puts it: centred in the container
+		int homeX = hud.x + (hud.width - slotW) / 2 + slotW;
+		int homeY = hud.y + (hud.height - slotH) / 2 + slotH;
 		if (Math.abs(x - homeX) < MIN_SLOT_GAIN && Math.abs(y - homeY) < MIN_SLOT_GAIN)
 		{
 			return null;
@@ -176,7 +158,7 @@ public final class MapLayout
 
 	/**
 	 * Cuts the area {left, top, right, bottom} clear of each obstacle that overlaps it, from the
-	 * side that clears it and keeps the most room. With {@code keep} (the dials), a cut never goes
+	 * side that clears it and keeps the most room. With {@code keep} (the menu rect), a cut never goes
 	 * past its edge and an obstacle over it is ignored; on a canvas too small for any cut to clear
 	 * an obstacle, the least overlapping cut is taken.
 	 */

@@ -6,7 +6,7 @@
   "solid": { "2": { "41_50": "#00ff00" } },
   "layers": [
     { "id": "surface", "name": "Test Land", "bounds": [2496, 3136, 2752, 3328], "background": "#102030" },
-    { "id": "hollows", "name": "Test Cave", "bounds": [2560, 9600, 2624, 9664], "background": "#000000" }
+    { "id": "prifddinas", "name": "Test City", "bounds": [3136, 5952, 3392, 6208], "background": "#000000" }
   ],
   "labels": [
     { "t": "Big Town", "x": 2600, "y": 3240, "s": 2, "layer": "surface" },

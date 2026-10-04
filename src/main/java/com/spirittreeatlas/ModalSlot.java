@@ -15,16 +15,17 @@ import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
 
 /**
- * "Use free space" in resizable mode. The game centres the dials (398) in its main modal slot,
- * which sits in the HUD area above the chatbox and left of the side panel, and the map grows up
- * and left from the dials' bottom-right corner. While the map shows, this moves the slot (its
- * position only, never its size) so that corner sits at the bottom-right of the free space, and
- * puts it back when the map closes.
+ * "Use free space" in resizable mode (DESIGN 4.2). The game mounts the menu in its main modal
+ * slot, which sits centred in the HUD area above the chatbox and left of the side panel, and the
+ * map grows up and left from the slot's bottom-right corner. While the map shows, this moves the
+ * slot (its position only, never its size) so that corner sits at the bottom-right of the free
+ * space, and puts it back when the map closes.
  *
  * <ul>
  * <li>Only the two resizable toplevels' MAINMODAL, and only from the state their interface
- * definition gives it (centred, no offset, 512x334, the dials filling it): never over another
- * plugin's or the game's own change.</li>
+ * definition gives it (centred, no offset, 512x334, the menu's root filling it: MODERN
+ * {@code MenuNew.INFINITE}, CLASSIC {@code Menu.LJ_LAYER2}): never over another plugin's (Better
+ * Teleport Menu resizes it for the classic menu) or the game's own change.</li>
  * <li>It is anchored to the bottom-right of its container (ABSOLUTE_RIGHT / ABSOLUTE_BOTTOM),
  * so the game keeps it in that corner across window resizes by itself, and a modal opened into a
  * slot we somehow failed to restore still opens on screen.</li>
@@ -66,14 +67,16 @@ final class ModalSlot
 	}
 
 	/**
-	 * Moves the dials' slot into the free space when {@code wanted} (the map shows in resizable
+	 * Moves the menu's slot into the free space when {@code wanted} (the map shows in resizable
 	 * mode with the option on), keeps it there as the free space changes, and otherwise puts it
 	 * back. A slot held from before a toplevel switch is put back first.
+	 *
+	 * @param rootId the menu's root component, which must fill the slot exactly; -1 for none
 	 */
-	void update(Client client, boolean wanted, int maxW, int maxH)
+	void update(Client client, int rootId, boolean wanted, int maxW, int maxH)
 	{
-		Widget dials = client.getWidget(InterfaceID.Fairyrings.ROOT_RECT0);
-		Widget slot = dials == null ? null : dials.getParent();
+		Widget root = rootId == -1 ? null : client.getWidget(rootId);
+		Widget slot = root == null ? null : root.getParent();
 		Widget hud = slot == null ? null : slot.getParent();
 		boolean movable = slot != null && isResizableModal(slot.getId()) && hud != null;
 		if (held != null && held != slot)
@@ -85,11 +88,11 @@ final class ModalSlot
 			restore(client);
 			return;
 		}
-		// layout values, not drawn bounds: at WidgetLoaded(398) the dials are laid out but not yet
-		// drawn (getBounds() is at -1,-1 until the first frame)
+		// layout values, not drawn bounds: when the setup script has just run the menu is laid out
+		// but not yet drawn (getBounds() is at -1,-1 until the first frame)
 		boolean fits = fits(slot.getWidthMode(), slot.getHeightMode(), slot.getOriginalWidth(), slot.getOriginalHeight(),
 			slot.getWidth(), slot.getHeight(),
-			new Rectangle(dials.getRelativeX(), dials.getRelativeY(), dials.getWidth(), dials.getHeight()));
+			new Rectangle(root.getRelativeX(), root.getRelativeY(), root.getWidth(), root.getHeight()));
 		int[] now = position(slot);
 		int[] target = null;
 		if (wanted && fits)
@@ -161,11 +164,11 @@ final class ModalSlot
 	// ------------------------------------------------------------------ pure decisions
 
 	/**
-	 * What to do with the dials' slot.
+	 * What to do with the menu's slot.
 	 *
 	 * @param held we moved it and hold its record
 	 * @param ours its position is still exactly what we wrote
-	 * @param fits it is 512x334 with the dials filling it
+	 * @param fits it is 512x334 with the menu's root filling it
 	 * @param pristine its position is the interface definition's own
 	 * @param move there is a worthwhile place for it and the map wants it
 	 */
@@ -183,23 +186,23 @@ final class ModalSlot
 	}
 
 	/**
-	 * Whether the slot is the size the toplevel gives it, with the dials filling it exactly.
+	 * Whether the slot is the size the toplevel gives it, with the menu's root filling it exactly.
 	 *
 	 * @param width the slot's original (defined) width; {@code slotW} its laid-out width
-	 * @param dials the dials' laid-out position relative to the slot, and size
+	 * @param root the root's laid-out position relative to the slot, and size
 	 */
-	static boolean fits(int widthMode, int heightMode, int width, int height, int slotW, int slotH, Rectangle dials)
+	static boolean fits(int widthMode, int heightMode, int width, int height, int slotW, int slotH, Rectangle root)
 	{
 		return widthMode == WidgetSizeMode.ABSOLUTE && heightMode == WidgetSizeMode.ABSOLUTE
 			&& width == SLOT_W && height == SLOT_H && slotW == SLOT_W && slotH == SLOT_H
-			&& new Rectangle(0, 0, SLOT_W, SLOT_H).equals(dials);
+			&& new Rectangle(0, 0, SLOT_W, SLOT_H).equals(root);
 	}
 
 	/**
 	 * Whether the container's bounds are usable for placing the slot: drawn, and inside the
 	 * canvas. CanvasSizeChanged is posted before the game lays the HUD area out again, so a
 	 * shrinking window briefly reports the old, larger HUD area, and offsets measured from it
-	 * would put the dials off screen.
+	 * would put the menu off screen.
 	 */
 	static boolean laidOut(Rectangle canvas, Rectangle hud)
 	{

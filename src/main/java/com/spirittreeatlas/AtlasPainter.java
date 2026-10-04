@@ -13,11 +13,10 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
-import java.awt.Stroke;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,45 +26,62 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Draws what sits on the map itself: place labels, portals, the clue marker, ring markers and
- * their code labels. Needs no game client. Label placement is cached until the view, the selection
- * or the ring states change; markers are pre-rendered sprites, so a frame is mostly blits.
+ * Draws what sits on the map itself: place labels, map icons, the map-link glyphs of other
+ * layers, tree markers (and their surface stand-ins) with their key badges, and tree labels
+ * (DESIGN 4.7). Needs no game client. Label placement is cached until the view, the selection or
+ * the tree states change; markers are pre-rendered sprites, so a frame is mostly blits.
  */
 public class AtlasPainter
 {
-	static final int VISITED = 1;
-	static final int FAVE = 2;
-	static final int LAST = 4;
-	static final int SELECTED = 8;
-	static final int HOVER = 16;
+	static final int AVAILABLE = 1;
+	static final int LOCKED = 2;
+	static final int SELECTED = 4;
+	static final int HOVER = 8;
+	static final int LAST = 16;
 
-	static final Color UNVISITED = new Color(0x93B5B0);
-	static final Color UNVISITED_DOT = new Color(0x6E8C88);
-	/** The padlock on rings that are not unlocked yet. */
+	static final Color LOCKED_CANOPY = new Color(0x8C8C8C);
+	/** A tree not in the open menu's list: drawn hollow. */
+	static final Color ABSENT = new Color(0xC4CCC0);
+	static final Color TRUNK = new Color(0x8A5A32);
+	/** The padlock on locked trees. */
 	static final Color LOCK = new Color(0xD8DEDC);
-	static final Color INFO = new Color(0xB79CE8);
 	static final Color PORTAL = new Color(0xD7B8FF);
-	static final Color CLUE = new Color(0xE8322C);
 
 	final Ink ink;
 	private final Map<Long, BufferedImage> markerSprites = new HashMap<>();
 	private int colourKey;
 	private long layoutKey = Long.MIN_VALUE;
-	private final List<Placed> codeLabels = new ArrayList<>();
+	private final List<Placed> treeLabels = new ArrayList<>();
 	private final List<Placed> placeLabels = new ArrayList<>();
-	private final List<Placed> portalLabels = new ArrayList<>();
 
 	private static final class Placed
 	{
-		final Object what;
+		final Mark mark;
 		final Rectangle at;
 		final BufferedImage sprite;
 
-		Placed(Object what, Rectangle at, BufferedImage sprite)
+		Placed(Mark mark, Rectangle at, BufferedImage sprite)
 		{
-			this.what = what;
+			this.mark = mark;
 			this.at = at;
 			this.sprite = sprite;
+		}
+	}
+
+	/** A marker on screen: a tree on the view's layer, or a surface stand-in for one. */
+	private static final class Mark
+	{
+		final Tree tree;
+		final double x;
+		final double y;
+		final boolean standIn;
+
+		Mark(Tree tree, double x, double y, boolean standIn)
+		{
+			this.tree = tree;
+			this.x = x;
+			this.y = y;
+			this.standIn = standIn;
 		}
 	}
 
@@ -84,53 +100,57 @@ public class AtlasPainter
 		return ink;
 	}
 
-	/** Marker radius at a zoom: about 6 px, growing slightly past 4 ppt. */
+	/** Marker radius at a zoom: a 15 px glyph, growing slightly past 4 ppt; larger when selected. */
 	static double radius(double ppt, boolean selected)
 	{
-		double r = 5.5 + (ppt > 4 ? Math.min(3, 1.5 * Math.log(ppt / 4) / Math.log(2)) : 0);
-		return selected ? r * 1.3 : r;
+		double r = 7.5 + (ppt > 4 ? Math.min(3, 1.5 * Math.log(ppt / 4) / Math.log(2)) : 0);
+		return selected ? r * 1.25 : r;
 	}
 
-	int flags(Scene s, Ring r)
+	int flags(Scene s, Tree t)
 	{
-		RingRepository repo = s.repo;
-		String code = r.getCode();
-		int f = 0;
-		if (!r.isDialable() || repo.isVisited(code))
-		{
-			f |= VISITED;
-		}
-		if (repo.isFavourite(code))
-		{
-			f |= FAVE;
-		}
-		if (code != null && code.equals(repo.getLastCode()))
-		{
-			f |= LAST;
-		}
-		if (code != null && code.equals(s.selected))
+		Tree.Status st = s.status(t);
+		int f = st == Tree.Status.AVAILABLE ? AVAILABLE : st == Tree.Status.LOCKED ? LOCKED : 0;
+		if (t.getId().equals(s.selected))
 		{
 			f |= SELECTED;
 		}
-		if (r == s.hovered)
+		if (t == s.hovered)
 		{
 			f |= HOVER;
+		}
+		if (t.getId().equals(s.last))
+		{
+			f |= LAST;
 		}
 		return f;
 	}
 
-	float alpha(Scene s, Ring r, int flags)
+	float alpha(Scene s, int flags)
 	{
-		float a = 1f;
-		if (s.searching() && r.isDialable() && !r.matches(s.query))
+		return s.dimLocked && (flags & LOCKED) != 0 && (flags & (SELECTED | HOVER)) == 0 ? 0.5f : 1f;
+	}
+
+	/** The markers on the view: its layer's trees and, on the surface, the stand-ins. */
+	private List<Mark> marks(Scene s)
+	{
+		MapView v = s.view;
+		List<Mark> out = new ArrayList<>();
+		for (Tree t : s.trees)
 		{
-			a = 0.25f;
+			if (t.isMapped() && v.getLayer().equals(t.getLayer()))
+			{
+				out.add(new Mark(t, v.screenX(t.getX() + 0.5), v.screenY(t.getY() + 0.5), false));
+			}
 		}
-		else if (s.dimUnvisited && (flags & VISITED) == 0 && (flags & (SELECTED | HOVER)) == 0)
+		if (Layer.SURFACE.equals(v.getLayer()))
 		{
-			a = 0.5f;
+			for (TreeRepository.StandIn si : s.standIns)
+			{
+				out.add(new Mark(si.getTree(), si.screenX(v), si.screenY(v), true));
+			}
 		}
-		return a;
+		return out;
 	}
 
 	/** Draws everything on the map surface and registers marker and portal hits. */
@@ -140,7 +160,8 @@ public class AtlasPainter
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-		layout(s);
+		List<Mark> marks = marks(s);
+		layout(s, marks);
 
 		for (Placed p : placeLabels)
 		{
@@ -154,21 +175,17 @@ public class AtlasPainter
 		{
 			paintPortals(g, s);
 		}
-		paintClue(g, s, false);
 
-		List<Ring> rings = s.repo.mappedIn(v.getLayer());
-		rings.sort(Comparator.comparingInt(r -> order(s, r)));
+		marks.sort(Comparator.comparingInt(m -> order(s, m.tree)));
 		Composite old = g.getComposite();
-		for (Ring r : rings)
+		for (Mark m : marks)
 		{
-			double sx = v.screenX(r.getX() + 0.5);
-			double sy = v.screenY(r.getY() + 0.5);
-			if (!v.contains((int) sx, (int) sy))
+			if (!v.contains((int) m.x, (int) m.y))
 			{
 				continue;
 			}
-			int f = flags(s, r);
-			float a = alpha(s, r, f);
+			int f = flags(s, m.tree);
+			float a = alpha(s, f);
 			if (a < 1)
 			{
 				g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, a));
@@ -177,160 +194,114 @@ public class AtlasPainter
 			double rad = radius(v.getPpt(), sel);
 			if (sel)
 			{
-				paintHalo(g, sx, sy, rad, s.selectedColor, s.now);
+				paintHalo(g, m.x, m.y, rad, s.selectedColor, s.now);
 			}
-			if (r.isDialable())
+			BufferedImage img = marker(f, rad, s);
+			g.drawImage(img, (int) Math.round(m.x - img.getWidth() / 2.0), (int) Math.round(m.y - img.getHeight() / 2.0), null);
+			if (s.keyHints && s.key(m.tree) != null)
 			{
-				BufferedImage img = marker(f, rad, s);
-				g.drawImage(img, (int) Math.round(sx - img.getWidth() / 2.0), (int) Math.round(sy - img.getHeight() / 2.0), null);
-				if (r.getCode().equals(s.dialledCode()))
-				{
-					paintDialled(g, sx, sy, rad, s.selectedColor, s.now);
-				}
+				paintKey(g, s.key(m.tree), m.x + rad * 0.5, m.y - rad * 0.8);
 			}
-			else
+			if (m.tree.getId().equals(s.here))
 			{
-				paintInfoMarker(g, sx, sy, (f & HOVER) != 0);
-			}
-			if (r.getCode() != null && r.getCode().equals(s.here))
-			{
-				paintPin(g, sx, sy - rad - 3);
+				paintPin(g, ink, m.x, m.y - rad - 2);
 			}
 			g.setComposite(old);
 			int hr = (int) Math.ceil(rad + 3);
-			String target = (r.getCode() == null ? "" : r.getCode() + " ") + s.repo.displayName(r);
-			s.hits.add(new Hit(Hit.Kind.MARKER, new Rectangle((int) sx - hr, (int) sy - hr, hr * 2, hr * 2), r, null,
-				r.isDialable() ? "Select" : "Zoom to", target));
+			s.hits.add(new Hit(Hit.Kind.MARKER, new Rectangle((int) m.x - hr, (int) m.y - hr, hr * 2, hr * 2), m.tree,
+				m.standIn ? Hit.STAND_IN : null, "Select", m.tree.getLabel()));
 		}
 
-		// the X goes over the markers so a clue next to a ring stays readable
-		paintClue(g, s, true);
-
-		for (Placed p : codeLabels)
+		for (Placed p : treeLabels)
 		{
-			Ring r = (Ring) p.what;
-			float a = alpha(s, r, flags(s, r));
+			float a = alpha(s, flags(s, p.mark.tree));
 			if (a < 1)
 			{
 				g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, a));
 			}
-			g.drawImage(labelSprite(s, r), p.at.x - 1, p.at.y - 1, null);
+			g.drawImage(labelSprite(s, p.mark.tree), p.at.x - 1, p.at.y - 1, null);
 			g.setComposite(old);
 		}
 	}
 
-	/** Draw and label order: plain rings first, then favourites, hovered and selected on top. */
-	private int order(Scene s, Ring r)
+	/** Draw and label order: absent, locked, available, last trip, then hovered and selected on top. */
+	private int order(Scene s, Tree t)
 	{
-		int f = flags(s, r);
-		return ((f & SELECTED) != 0 ? 8 : 0) + ((f & HOVER) != 0 ? 4 : 0) + ((f & FAVE) != 0 ? 2 : 0) + ((f & VISITED) != 0 ? 1 : 0);
+		int f = flags(s, t);
+		return ((f & SELECTED) != 0 ? 16 : 0) + ((f & HOVER) != 0 ? 8 : 0) + ((f & LAST) != 0 ? 4 : 0)
+			+ ((f & AVAILABLE) != 0 ? 2 : 0) + ((f & LOCKED) != 0 ? 1 : 0);
 	}
 
-	private BufferedImage labelSprite(Scene s, Ring r)
+	private BufferedImage labelSprite(Scene s, Tree t)
 	{
-		int f = flags(s, r);
-		Color c = !r.isDialable() ? INFO
-			: (f & SELECTED) != 0 ? s.selectedColor
-			: (f & FAVE) != 0 ? s.favouriteColor
-			: (f & VISITED) != 0 ? Color.WHITE : UNVISITED;
-		return ink.sprite(labelText(r), ink.small, c, Ink.Style.OUTLINE);
-	}
-
-	/** A ring's code, or the name of an entry that has none (the hideout, the Zanaris exits). */
-	private static String labelText(Ring r)
-	{
-		return r.isDialable() ? r.getCode() : r.getName();
+		int f = flags(s, t);
+		Color c = (f & SELECTED) != 0 ? s.selectedColor
+			: (f & AVAILABLE) != 0 ? Color.WHITE
+			: (f & LOCKED) != 0 ? new Color(0xB4B4B4) : ABSENT;
+		return ink.sprite(t.getLabel(), ink.small, c, Ink.Style.OUTLINE);
 	}
 
 	// ------------------------------------------------------------------ layout
 
-	private void layout(Scene s)
+	private void layout(Scene s, List<Mark> marks)
 	{
 		MapView v = s.view;
-		long key = Objects.hash(v, s.selected, s.hovered, s.codeLabels, s.placeLabels, s.topBar, s.panel, s.groupsPanel, s.holes,
-			s.card, s.repo.getStateHash());
+		long key = Objects.hash(v, s.selected, s.hovered, s.treeLabels, s.placeLabels, s.keyHints, s.topBar, s.card, s.backButton,
+			s.holes, s.rowCell, s.captionRect, s.states, s.keys, s.here, s.last, s.standIns.size());
 		if (key == layoutKey)
 		{
 			return;
 		}
 		layoutKey = key;
-		codeLabels.clear();
+		treeLabels.clear();
 		placeLabels.clear();
-		portalLabels.clear();
 
 		Rectangle bounds = new Rectangle(v.getX() + 2, v.getY() + 2, v.getW() - 4, v.getH() - 4);
 		LabelPlacer placer = new LabelPlacer(bounds);
 		placer.addObstacle(s.topBar);
-		placer.addObstacle(s.panel);
-		placer.addObstacle(s.groupsPanel);
 		placer.addObstacle(s.card);
 		placer.addObstacle(s.backButton);
 		for (Rectangle h : s.blockers())
 		{
 			placer.addObstacle(grow(h, 4));
 		}
-
-		List<Ring> rings = s.repo.mappedIn(v.getLayer());
-		for (Ring r : rings)
+		for (Mark m : marks)
 		{
-			double rad = radius(v.getPpt(), r.getCode() != null && r.getCode().equals(s.selected));
-			int sx = (int) Math.round(v.screenX(r.getX() + 0.5));
-			int sy = (int) Math.round(v.screenY(r.getY() + 0.5));
+			double rad = radius(v.getPpt(), m.tree.getId().equals(s.selected));
 			int q = (int) Math.ceil(rad + 1);
-			placer.addObstacle(new Rectangle(sx - q, sy - q, q * 2, q * 2));
+			placer.addObstacle(new Rectangle((int) Math.round(m.x) - q, (int) Math.round(m.y) - q, q * 2, q * 2));
+			if (s.keyHints && s.key(m.tree) != null)
+			{
+				placer.addObstacle(keyBox(s.key(m.tree), m.x + rad * 0.5, m.y - rad * 0.8));
+			}
+		}
+		if (Layer.SURFACE.equals(v.getLayer()))
+		{
+			for (Portal p : s.repo.getPortals())
+			{
+				placer.addObstacle(portalBox(s, p));
+			}
 		}
 
-		if (s.codeLabels != Scene.CodeLabels.NONE)
+		if (s.treeLabels)
 		{
-			List<Ring> order = new ArrayList<>();
-			for (Ring r : rings)
-			{
-				if (r.isDialable() || s.codeLabels == Scene.CodeLabels.ALL)
-				{
-					order.add(r);
-				}
-			}
-			// dialable rings first, so a named entry never takes a code's place
-			order.sort(Comparator.comparing((Ring r) -> !r.isDialable()).thenComparingInt(r -> -order(s, r))
-				.thenComparing(AtlasPainter::labelText));
+			List<Mark> order = new ArrayList<>(marks);
+			order.sort(Comparator.comparingInt((Mark m) -> -order(s, m.tree)).thenComparing(m -> m.tree.getLabel()));
 			int h = ink.height(ink.small);
-			for (Ring r : order)
+			for (Mark m : order)
 			{
-				int f = flags(s, r);
-				if (s.codeLabels == Scene.CodeLabels.FAVOURITES && (f & (FAVE | SELECTED | HOVER)) == 0)
-				{
-					continue;
-				}
-				double rad = radius(v.getPpt(), (f & SELECTED) != 0);
-				int px = (int) v.screenX(r.getX() + 0.5);
-				int py = (int) v.screenY(r.getY() + 0.5);
-				if (covered(s.topBar, px, py) || covered(s.panel, px, py) || covered(s.groupsPanel, px, py) || covered(s.card, px, py)
-					|| inHole(s, px, py))
+				int px = (int) m.x;
+				int py = (int) m.y;
+				if (covered(s.topBar, px, py) || covered(s.card, px, py) || covered(s.backButton, px, py) || inHole(s, px, py))
 				{
 					// the marker is under the chrome; a label beside it would point at nothing
 					continue;
 				}
-				Rectangle at = placer.place(v.screenX(r.getX() + 0.5), v.screenY(r.getY() + 0.5),
-					ink.width(ink.small, labelText(r)), h, (int) Math.ceil(rad), 3);
+				double rad = radius(v.getPpt(), m.tree.getId().equals(s.selected));
+				Rectangle at = placer.place(m.x, m.y, ink.width(ink.small, m.tree.getLabel()), h, (int) Math.ceil(rad), 3);
 				if (at != null)
 				{
-					codeLabels.add(new Placed(r, at, null));
-				}
-			}
-		}
-
-		if (Layer.SURFACE.equals(v.getLayer()))
-		{
-			int h = ink.height(ink.small);
-			for (Portal p : s.repo.getPortals())
-			{
-				Layer l = s.repo.layer(p.getLayer());
-				String text = p.getLabel() != null ? p.getLabel() : l == null ? p.getLayer() : l.getName();
-				Rectangle at = placer.place(v.screenX(p.getX() + 0.5), v.screenY(p.getY() + 0.5),
-					ink.width(ink.small, text), h, 8, 2);
-				if (at != null)
-				{
-					portalLabels.add(new Placed(p, at, ink.sprite(text, ink.small, PORTAL, Ink.Style.OUTLINE)));
+					treeLabels.add(new Placed(m, at, null));
 				}
 			}
 		}
@@ -339,7 +310,7 @@ public class AtlasPainter
 		{
 			List<MapIndex.Label> labels = new ArrayList<>(s.repo.getIndex().getLabels());
 			labels.sort(Comparator.comparingInt(l -> -l.getS()));
-			Layer layer = s.repo.layer(v.getLayer());
+			Layer layer = s.layer();
 			for (MapIndex.Label l : labels)
 			{
 				if (l.getS() < 2 && v.getPpt() < (l.getS() == 1 ? 0.75 : 2))
@@ -347,11 +318,10 @@ public class AtlasPainter
 					continue;
 				}
 				boolean inLayer = l.getLayer() != null ? l.getLayer().equals(v.getLayer()) : layer != null && layer.contains(l.getX(), l.getY());
-				if (!inLayer)
+				if (inLayer)
 				{
-					continue;
+					placeLabel(s, placer, l);
 				}
-				placeLabel(s, placer, l);
 			}
 		}
 	}
@@ -383,7 +353,7 @@ public class AtlasPainter
 		{
 			int lw = ink.width(f, lines[i]);
 			BufferedImage img = ink.sprite(lines[i], f, c, Ink.Style.OUTLINE);
-			placeLabels.add(new Placed(l, new Rectangle(x + (w - lw) / 2 - 1, y + i * lh - 1, img.getWidth(), img.getHeight()), img));
+			placeLabels.add(new Placed(null, new Rectangle(x + (w - lw) / 2 - 1, y + i * lh - 1, img.getWidth(), img.getHeight()), img));
 		}
 	}
 
@@ -391,7 +361,7 @@ public class AtlasPainter
 
 	BufferedImage marker(int flags, double rad, Scene s)
 	{
-		int ck = Objects.hash(s.visitedColor, s.selectedColor, s.favouriteColor);
+		int ck = Objects.hash(s.availableColor, s.selectedColor);
 		if (ck != colourKey)
 		{
 			markerSprites.clear();
@@ -401,7 +371,7 @@ public class AtlasPainter
 		BufferedImage img = markerSprites.get(key);
 		if (img == null)
 		{
-			int size = (int) Math.ceil((rad + 7) * 2);
+			int size = (int) Math.ceil((rad + 6) * 2);
 			img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 			Graphics2D g = img.createGraphics();
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -413,62 +383,61 @@ public class AtlasPainter
 		return img;
 	}
 
+	/**
+	 * A spirit tree glyph (round canopy over a short trunk) in a dark disc of radius r: the canopy
+	 * in the state's colour, hollow when the tree is not in the list; a padlock when locked, a
+	 * ring when selected, a white outline on hover, a return-arrow badge for the last trip.
+	 */
 	void drawMarker(Graphics2D g, double cx, double cy, double r, int flags, Scene s)
 	{
-		boolean visited = (flags & VISITED) != 0;
-		boolean selected = (flags & SELECTED) != 0;
-		Color main = selected ? s.selectedColor : visited ? s.visitedColor : UNVISITED;
-
-		g.setColor(new Color(0, 0, 0, 150));
-		g.fill(circle(cx, cy, r + 2.6));
-		if (visited || selected)
+		boolean available = (flags & AVAILABLE) != 0;
+		boolean locked = (flags & LOCKED) != 0;
+		g.setColor(new Color(0, 0, 0, 170));
+		g.fill(circle(cx, cy, r));
+		Path2D trunk = new Path2D.Double();
+		trunk.moveTo(cx - r * 0.13, cy + r * 0.05);
+		trunk.lineTo(cx + r * 0.13, cy + r * 0.05);
+		trunk.lineTo(cx + r * 0.2, cy + r * 0.66);
+		trunk.lineTo(cx - r * 0.2, cy + r * 0.66);
+		trunk.closePath();
+		Ellipse2D canopy = new Ellipse2D.Double(cx - r * 0.62, cy - r * 0.7, r * 1.24, r * 1.0);
+		if (available || locked)
 		{
-			g.setColor(withAlpha(main, 120));
-			g.setStroke(new BasicStroke(1.1f));
-			g.draw(circle(cx, cy, r));
+			g.setColor(locked ? new Color(0x6A6A6A) : TRUNK);
+			g.fill(trunk);
+			Color c = available ? s.availableColor : LOCKED_CANOPY;
+			g.setColor(c);
+			g.fill(canopy);
+			// a highlight on the canopy's upper left gives it some volume
+			g.setColor(withAlpha(Color.WHITE, 70));
+			g.fill(new Ellipse2D.Double(cx - r * 0.42, cy - r * 0.6, r * 0.5, r * 0.36));
 		}
 		else
 		{
-			g.setColor(main);
-			g.setStroke(new BasicStroke(1.2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[]{2.2f, 2f}, 0));
-			g.draw(circle(cx, cy, r));
-		}
-		double dot = visited || selected ? (selected ? 2.1 : 1.7) : 1.1;
-		g.setColor(visited || selected ? main : UNVISITED_DOT);
-		for (int i = 0; i < 8; i++)
-		{
-			double a = Math.PI / 4 * i + Math.PI / 8;
-			g.fill(circle(cx + Math.cos(a) * r, cy + Math.sin(a) * r, dot));
-		}
-		if (visited)
-		{
-			g.setColor(withAlpha(main, 90));
-			g.fill(circle(cx, cy, r * 0.45));
-		}
-		else
-		{
-			// not unlocked (not in the travel log yet): a padlock in the middle
-			drawPadlock(g, cx, cy, Math.max(5, r * 0.95), selected ? main : LOCK);
-		}
-		if (selected)
-		{
-			g.setColor(Color.WHITE);
+			g.setColor(ABSENT);
 			g.setStroke(new BasicStroke(1.2f));
-			g.draw(circle(cx, cy, r + 2.6));
+			g.draw(canopy);
+			g.draw(trunk);
+		}
+		if (locked)
+		{
+			drawPadlock(g, cx + r * 0.45, cy + r * 0.38, Math.max(4.5, r * 0.6), LOCK);
+		}
+		if ((flags & SELECTED) != 0)
+		{
+			g.setColor(s.selectedColor);
+			g.setStroke(new BasicStroke(1.8f));
+			g.draw(circle(cx, cy, r + 0.6));
 		}
 		if ((flags & HOVER) != 0)
 		{
 			g.setColor(Color.WHITE);
-			g.setStroke(new BasicStroke(1.6f));
-			g.draw(circle(cx, cy, r + 3.4));
-		}
-		if ((flags & FAVE) != 0)
-		{
-			drawStar(g, cx + r * 0.95, cy - r * 0.95, 3.9, s.favouriteColor);
+			g.setStroke(new BasicStroke(1.4f));
+			g.draw(circle(cx, cy, r + 2.4));
 		}
 		if ((flags & LAST) != 0)
 		{
-			drawLastBadge(g, cx + r * 0.95, cy + r * 0.95, 3.7);
+			drawLastBadge(g, cx - r * 0.8, cy + r * 0.8, 3.7);
 		}
 	}
 
@@ -483,42 +452,27 @@ public class AtlasPainter
 		g.fill(circle(cx, cy, r + 4));
 	}
 
-	private void paintDialled(Graphics2D g, double cx, double cy, double r, Color c, long now)
+	/** The row's hotkey in a small dark rounded square whose bottom-left corner is at (x, y). */
+	private void paintKey(Graphics2D g, String key, double x, double y)
 	{
-		float phase = (now % 2000) / 2000f * 10f;
-		Stroke old = g.getStroke();
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(3f));
-		g.draw(circle(cx, cy, r + 6));
-		g.setColor(c);
-		g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[]{3f, 2f}, phase));
-		g.draw(circle(cx, cy, r + 6));
-		g.setStroke(old);
+		Rectangle b = keyBox(key, x, y);
+		g.setColor(new Color(16, 13, 9, 230));
+		g.fill(new RoundRectangle2D.Double(b.x, b.y, b.width, b.height, 4, 4));
+		g.setColor(new Color(0x6b5a40));
+		g.setStroke(new BasicStroke(1f));
+		g.draw(new RoundRectangle2D.Double(b.x + 0.5, b.y + 0.5, b.width - 1, b.height - 1, 4, 4));
+		ink.text(g, key, ink.small, Color.WHITE, b.x + 3, b.y + 1, Ink.Style.PLAIN);
 	}
 
-	private void paintInfoMarker(Graphics2D g, double cx, double cy, boolean hover)
+	private Rectangle keyBox(String key, double x, double y)
 	{
-		Path2D d = new Path2D.Double();
-		d.moveTo(cx, cy - 5);
-		d.lineTo(cx + 5, cy);
-		d.lineTo(cx, cy + 5);
-		d.lineTo(cx - 5, cy);
-		d.closePath();
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(3f));
-		g.draw(d);
-		g.setColor(INFO);
-		g.fill(d);
-		if (hover)
-		{
-			g.setColor(Color.WHITE);
-			g.setStroke(new BasicStroke(1.4f));
-			g.draw(circle(cx, cy, 8));
-		}
+		int w = Math.max(11, ink.width(ink.small, key) + 6);
+		int h = ink.height(ink.small) + 1;
+		return new Rectangle((int) Math.round(x), (int) Math.round(y) - h, w, h);
 	}
 
-	/** A "you are here" pin whose tip touches (x, y). */
-	static void paintPin(Graphics2D g, double x, double y)
+	/** A "you are here" pin whose tip touches (x, y), with "You" beside its head. */
+	static void paintPin(Graphics2D g, Ink ink, double x, double y)
 	{
 		Path2D p = new Path2D.Double();
 		p.moveTo(x, y);
@@ -533,6 +487,10 @@ public class AtlasPainter
 		g.fill(p);
 		g.setColor(Color.WHITE);
 		g.fill(circle(x, y - 10, 2));
+		if (ink != null)
+		{
+			ink.text(g, "You", ink.small, Color.WHITE, (int) Math.round(x + 7), (int) Math.round(y - 15), Ink.Style.OUTLINE);
+		}
 	}
 
 	/** A small padlock centred on (cx, cy); w is the body width. */
@@ -545,39 +503,15 @@ public class AtlasPainter
 		shackle.append(new Arc2D.Double(cx - k, by - k * 2, k * 2, k * 2.6, 0, 180, Arc2D.OPEN), false);
 		g.setStroke(new BasicStroke((float) Math.max(1.1, w * 0.17)));
 		g.setColor(Ink.DARK);
-		g.fill(new java.awt.geom.RoundRectangle2D.Double(cx - w / 2 - 0.8, by - 0.8, w + 1.6, bh + 1.6, 2, 2));
+		g.fill(new RoundRectangle2D.Double(cx - w / 2 - 0.8, by - 0.8, w + 1.6, bh + 1.6, 2, 2));
 		g.setColor(c);
 		g.draw(shackle);
-		g.fill(new java.awt.geom.RoundRectangle2D.Double(cx - w / 2, by, w, bh, 1.5, 1.5));
+		g.fill(new RoundRectangle2D.Double(cx - w / 2, by, w, bh, 1.5, 1.5));
 		g.setColor(Ink.DARK);
 		g.fill(circle(cx, by + bh * 0.45, Math.max(0.6, w * 0.1)));
 	}
 
-	static void drawStar(Graphics2D g, double cx, double cy, double r, Color c)
-	{
-		Path2D p = new Path2D.Double();
-		for (int i = 0; i < 10; i++)
-		{
-			double a = -Math.PI / 2 + i * Math.PI / 5;
-			double rr = i % 2 == 0 ? r : r * 0.45;
-			if (i == 0)
-			{
-				p.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
-			}
-			else
-			{
-				p.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
-			}
-		}
-		p.closePath();
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(1.6f));
-		g.draw(p);
-		g.setColor(c);
-		g.fill(p);
-	}
-
-	/** A small round badge with a circular arrow: "last destination". */
+	/** A small round badge with a circular arrow: "last trip". */
 	static void drawLastBadge(Graphics2D g, double cx, double cy, double r)
 	{
 		g.setColor(Ink.DARK);
@@ -594,57 +528,12 @@ public class AtlasPainter
 		g.fill(head);
 	}
 
-	/**
-	 * A curved rotate arrow: clockwise or not, centred on (cx, cy) with radius r.
-	 */
-	static void drawRotateArrow(Graphics2D g, double cx, double cy, double r, boolean clockwise, Color c, float width)
-	{
-		double start = clockwise ? 150 : 30;
-		double extent = clockwise ? -120 : 120;
-		Arc2D arc = new Arc2D.Double(cx - r, cy - r, r * 2, r * 2, start, extent, Arc2D.OPEN);
-		double endA = Math.toRadians(start + extent);
-		double ex = cx + Math.cos(endA) * r;
-		double ey = cy - Math.sin(endA) * r;
-		// tangent direction of travel at the end of the arc
-		double dir = endA + (clockwise ? -Math.PI / 2 : Math.PI / 2);
-		double tx = Math.cos(dir);
-		double ty = -Math.sin(dir);
-		double hs = width * 2.6 + 2;
-		Path2D head = new Path2D.Double();
-		head.moveTo(ex + tx * hs, ey + ty * hs);
-		head.lineTo(ex - ty * hs * 0.7, ey + tx * hs * 0.7);
-		head.lineTo(ex + ty * hs * 0.7, ey - tx * hs * 0.7);
-		head.closePath();
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(width + 2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(arc);
-		g.draw(head);
-		g.setColor(c);
-		g.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(arc);
-		g.fill(head);
-	}
-
-	static void drawCheck(Graphics2D g, double cx, double cy, double s, Color c)
-	{
-		Path2D p = new Path2D.Double();
-		p.moveTo(cx - s, cy);
-		p.lineTo(cx - s * 0.3, cy + s * 0.7);
-		p.lineTo(cx + s, cy - s * 0.7);
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(p);
-		g.setColor(c);
-		g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(p);
-	}
-
-	// ------------------------------------------------------------------ icons, portals, clue
+	// ------------------------------------------------------------------ icons and portals
 
 	private void paintIcons(Graphics2D g, Scene s)
 	{
 		MapView v = s.view;
-		Layer layer = s.repo.layer(v.getLayer());
+		Layer layer = s.layer();
 		for (MapIndex.Icon icon : s.repo.getIndex().getIcons())
 		{
 			if (layer != null && !layer.contains(icon.getX(), icon.getY()))
@@ -665,98 +554,51 @@ public class AtlasPainter
 		}
 	}
 
-	private void paintPortals(Graphics2D g, Scene s)
+	/** The map-link glyph of a portal: just below the stand-ins that sit on its point. */
+	private Rectangle portalBox(Scene s, Portal p)
 	{
 		MapView v = s.view;
+		int sx = (int) Math.round(v.screenX(p.getX() + 0.5));
+		int sy = (int) Math.round(v.screenY(p.getY() + 0.5) + radius(v.getPpt(), false) + 9);
+		return new Rectangle(sx - 7, sy - 7, 14, 14);
+	}
+
+	private void paintPortals(Graphics2D g, Scene s)
+	{
 		for (Portal p : s.repo.getPortals())
 		{
-			double sx = v.screenX(p.getX() + 0.5);
-			double sy = v.screenY(p.getY() + 0.5);
-			if (!v.contains((int) sx, (int) sy))
+			Rectangle box = portalBox(s, p);
+			if (!s.view.contains((int) box.getCenterX(), (int) box.getCenterY()))
 			{
 				continue;
 			}
-			Rectangle box = new Rectangle((int) sx - 7, (int) sy - 7, 14, 14);
+			double cx = box.getCenterX();
+			double cy = box.getCenterY();
 			g.setColor(Ink.DARK);
 			g.fillRoundRect(box.x - 1, box.y - 1, box.width + 2, box.height + 2, 5, 5);
 			g.setColor(new Color(0x3B2E52));
 			g.fillRoundRect(box.x, box.y, box.width, box.height, 4, 4);
+			// a page with an arrow leaving it: "opens another map"
 			g.setColor(PORTAL);
-			g.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
-			Path2D stairs = new Path2D.Double();
-			stairs.moveTo(sx - 4.5, sy - 3.5);
-			stairs.lineTo(sx - 1.5, sy - 3.5);
-			stairs.lineTo(sx - 1.5, sy - 0.5);
-			stairs.lineTo(sx + 1.5, sy - 0.5);
-			stairs.lineTo(sx + 1.5, sy + 2.5);
-			stairs.lineTo(sx + 4.5, sy + 2.5);
-			g.draw(stairs);
+			g.setStroke(new BasicStroke(1.3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			Path2D page = new Path2D.Double();
+			page.moveTo(cx - 0.5, cy - 4);
+			page.lineTo(cx - 4, cy - 4);
+			page.lineTo(cx - 4, cy + 4);
+			page.lineTo(cx + 4, cy + 4);
+			page.lineTo(cx + 4, cy + 0.5);
+			g.draw(page);
+			Path2D arrow = new Path2D.Double();
+			arrow.moveTo(cx - 1, cy + 1);
+			arrow.lineTo(cx + 4, cy - 4);
+			arrow.moveTo(cx + 1, cy - 4);
+			arrow.lineTo(cx + 4, cy - 4);
+			arrow.lineTo(cx + 4, cy - 1);
+			g.draw(arrow);
 			Layer l = s.repo.layer(p.getLayer());
 			String name = l == null ? p.getLayer() : l.getName();
-			s.hits.add(new Hit(Hit.Kind.PORTAL, grow(box, 2), null, p.getLayer(), "Open", name));
+			s.hits.add(new Hit(Hit.Kind.PORTAL, grow(box, 2), null, p.getLayer(), "Open", name + " map"));
 		}
-		for (Placed p : portalLabels)
-		{
-			g.drawImage(p.sprite, p.at.x - 1, p.at.y - 1, null);
-		}
-	}
-
-	/** The dashed line to the nearest visited ring, or (mark) the X itself. */
-	private void paintClue(Graphics2D g, Scene s, boolean mark)
-	{
-		if (Double.isNaN(s.clueX))
-		{
-			return;
-		}
-		MapView v = s.view;
-		Layer layer = s.repo.layer(v.getLayer());
-		if (layer == null || !layer.contains(s.clueX, s.clueY))
-		{
-			return;
-		}
-		double cx = v.screenX(s.clueX + 0.5);
-		double cy = v.screenY(s.clueY + 0.5);
-		Ring best = null;
-		double bestD = Double.MAX_VALUE;
-		for (Ring r : s.repo.ringsIn(v.getLayer()))
-		{
-			if (!s.repo.isVisited(r.getCode()))
-			{
-				continue;
-			}
-			double d = Math.hypot(r.getX() - s.clueX, r.getY() - s.clueY);
-			if (d < bestD)
-			{
-				bestD = d;
-				best = r;
-			}
-		}
-		if (best != null && !mark)
-		{
-			Line2D line = new Line2D.Double(cx, cy, v.screenX(best.getX() + 0.5), v.screenY(best.getY() + 0.5));
-			g.setColor(new Color(0, 0, 0, 140));
-			g.setStroke(new BasicStroke(3f));
-			g.draw(line);
-			g.setColor(new Color(0xFFE066));
-			g.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[]{5f, 4f}, 0));
-			g.draw(line);
-		}
-		if (!mark || !v.contains((int) cx, (int) cy))
-		{
-			return;
-		}
-		double k = 5;
-		Path2D x = new Path2D.Double();
-		x.moveTo(cx - k, cy - k);
-		x.lineTo(cx + k, cy + k);
-		x.moveTo(cx + k, cy - k);
-		x.lineTo(cx - k, cy + k);
-		g.setColor(Ink.DARK);
-		g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(x);
-		g.setColor(CLUE);
-		g.setStroke(new BasicStroke(2.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(x);
 	}
 
 	// ------------------------------------------------------------------ helpers

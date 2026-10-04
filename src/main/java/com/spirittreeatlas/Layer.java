@@ -18,6 +18,8 @@ import lombok.Getter;
 public class Layer
 {
 	public static final String SURFACE = "surface";
+	public static final String PRIFDDINAS = "prifddinas";
+	/** The house's layer while it has no place on a map (trees.json; never in index.json). */
 	public static final String POH = "poh";
 
 	private String id;
@@ -79,23 +81,14 @@ public class Layer
 	}
 
 	/**
-	 * Layers used when index.json is missing or lacks one: the ids and rough bounds of DESIGN 3.3.
-	 * Without imagery the map is a plain background with markers.
+	 * Layers used when index.json is missing or lacks one: the ids and rough bounds of DESIGN 3.2
+	 * (Prifddinas: its whole map file, rx 49-52, ry 93-96). Without imagery the map is a plain
+	 * background with markers.
 	 */
 	static List<Layer> defaults()
 	{
 		return Arrays.asList(
 			new Layer(SURFACE, "Gielinor", 1016, 2104, 3976, 4168, "#4a5d89"),
-			new Layer("zanaris", "Zanaris", 2304, 4288, 2560, 4544, "#000000"),
-			new Layer("abyss", "The Abyss", 2880, 4672, 3200, 4992, "#000000"),
-			new Layer("dorgesh_south", "Dorgesh-Kaan South Dungeon", 2624, 5120, 2816, 5312, "#000000"),
-			new Layer("fisher_realm", "Fisher Realm", 2560, 4608, 2752, 4800, "#000000"),
-			new Layer("enchanted_valley", "Enchanted Valley", 2944, 4416, 3136, 4608, "#000000"),
-			new Layer("mor_ul_rek", "Mor Ul Rek", 2336, 5024, 2560, 5248, "#000000"),
-			new Layer("cosmic_plane", "Cosmic entity's plane", 1984, 4736, 2176, 4928, "#000000"),
-			new Layer("gorak_plane", "Gorak Plane", 2944, 5248, 3136, 5440, "#000000"),
-			new Layer("yubiusk", "Yu'biusk", 3456, 4288, 3648, 4480, "#000000"),
-			new Layer("grimstone", "Grimstone Dungeon", 2816, 10368, 3008, 10560, "#000000"),
-			new Layer("hollows", "Myreque Hideout (The Hollows)", 3328, 9728, 3584, 9984, "#000000"));
+			new Layer(PRIFDDINAS, "Prifddinas", 3136, 5952, 3392, 6208, "#000000"));
 	}
 }

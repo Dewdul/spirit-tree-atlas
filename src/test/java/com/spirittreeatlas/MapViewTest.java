@@ -136,12 +136,12 @@ public class MapViewTest
 	}
 
 	@Test
-	public void fixedLayoutIsTheDialRect()
+	public void fixedLayoutIsTheMenuRect()
 	{
 		Rectangle canvas = new Rectangle(0, 0, 765, 503);
-		Rectangle dial = new Rectangle(4, 4, 512, 334);
-		Rectangle r = MapLayout.compute(canvas, dial, Collections.emptyList(), 1100, 720);
-		assertTrue(r.contains(dial));
+		Rectangle menu = new Rectangle(4, 4, 512, 334);
+		Rectangle r = MapLayout.compute(canvas, menu, Collections.emptyList(), 1100, 720);
+		assertTrue(r.contains(menu));
 		assertTrue(r.width >= 512 && r.height >= 334);
 	}
 
@@ -151,53 +151,49 @@ public class MapViewTest
 		Rectangle canvas = new Rectangle(0, 0, 1600, 900);
 		Rectangle chat = new Rectangle(0, 735, 519, 165);
 		Rectangle side = new Rectangle(1359, 565, 241, 335);
-		Rectangle log = new Rectangle(1384, 602, 190, 261);
-		// dial centred in the area left of the side panel and above the chatbox
-		Rectangle dial = new Rectangle((1600 - 250) / 2 - 256, (900 - 165) / 2 - 167, 512, 334);
-		Rectangle r = MapLayout.compute(canvas, dial, Arrays.asList(chat, side, log), 1100, 720);
-		assertTrue(r.contains(dial));
+		// the slot centred in the area left of the side panel and above the chatbox
+		Rectangle menu = new Rectangle((1600 - 250) / 2 - 256, (900 - 165) / 2 - 167, 512, 334);
+		Rectangle r = MapLayout.compute(canvas, menu, Arrays.asList(chat, side), 1100, 720);
+		assertTrue(r.contains(menu));
 		assertTrue(!r.intersects(chat));
 		assertTrue(!r.intersects(side));
-		assertTrue(!r.intersects(log));
 		assertTrue(r.width <= 1100 && r.height <= 720);
 		assertTrue(r.x >= 6 && r.y >= 6);
 		assertTrue(r.width >= 900);
-		// grown from the dials' bottom-right corner: the moved Teleport and close sit in that corner
-		assertEquals(dial.y + dial.height, r.y + r.height);
-		assertEquals(dial.x + dial.width, r.x + r.width);
+		// grown from the slot's bottom-right corner: the moved Travel row and close sit in that corner
+		assertEquals(menu.y + menu.height, r.y + r.height);
+		assertEquals(menu.x + menu.width, r.x + r.width);
 		Rectangle corner = new Rectangle(r.x + r.width - 190, r.y + r.height - 75, 190, 75);
-		for (int[] m : SpiritTreeAtlasPlugin.MOVED_IN_MAP)
+		TreeMenu.Geometry modern = TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0);
+		TreeMenu.Geometry classic = TreeMenu.classic(512, 334, 386, 16, 0);
+		Rectangle[] parts = {
+			modern.getCell(), new Rectangle(modern.getRoot().x + 338 - 44, modern.getRoot().y + 17, 26, 23),
+			classic.getCell(), new Rectangle(classic.getClose().x, classic.getClose().y, 26, 23),
+		};
+		for (Rectangle part : parts)
 		{
-			Rectangle moved = new Rectangle(dial.x + m[1], dial.y + m[2], m[3], m[4]);
-			assertTrue(dial.contains(moved));
-			if (m[0] == net.runelite.api.gameval.InterfaceID.Fairyrings.CONFIRM)
-			{
-				// tall enough that the game still wraps long destination names onto two lines
-				assertTrue(m[4] >= SpiritTreeAtlasPlugin.CONFIRM_MIN_H);
-			}
-			if (m[0] != net.runelite.api.gameval.InterfaceID.Fairyrings.ROOT_MODEL25)
-			{
-				assertTrue(corner.contains(moved));
-			}
+			Rectangle on = new Rectangle(menu.x + part.x, menu.y + part.y, part.width, part.height);
+			assertTrue(part.toString(), menu.contains(on));
+			assertTrue(part.toString(), corner.contains(on));
 		}
 	}
 
 	@Test
-	public void tinyCanvasStillContainsTheDials()
+	public void tinyCanvasStillContainsTheMenu()
 	{
 		Rectangle canvas = new Rectangle(0, 0, 600, 380);
-		Rectangle dial = new Rectangle(20, 20, 512, 334);
-		Rectangle r = MapLayout.compute(canvas, dial, Collections.singletonList(new Rectangle(0, 360, 600, 20)), 1100, 720);
-		assertTrue(r.contains(dial));
+		Rectangle menu = new Rectangle(20, 20, 512, 334);
+		Rectangle r = MapLayout.compute(canvas, menu, Collections.singletonList(new Rectangle(0, 360, 600, 20)), 1100, 720);
+		assertTrue(r.contains(menu));
 	}
 
 	/**
 	 * Small resizable canvases (and stretched mode, which clamps one side to 765 or 503), where the
-	 * dials sit within the 6 px inset of the edge. Geometry of toplevel 161: the dial is centred
+	 * menu sits within the 6 px inset of the edge. Geometry of toplevel 161: the slot is centred
 	 * above the 165 px chatbox and left of the 250 px side area.
 	 */
 	@Test
-	public void smallResizableCanvasKeepsClearOfChatSideAndLog()
+	public void smallResizableCanvasKeepsClearOfChatAndSide()
 	{
 		int[][] sizes = {{765, 503}, {800, 503}, {862, 503}, {773, 600}, {765, 600}, {900, 510}, {1600, 900}};
 		for (int[] s : sizes)
@@ -205,58 +201,15 @@ public class MapViewTest
 			int w = s[0];
 			int h = s[1];
 			Rectangle canvas = new Rectangle(0, 0, w, h);
-			Rectangle dial = new Rectangle((w - 250 - 512) / 2, (h - 165 - 334) / 2, 512, 334);
+			Rectangle menu = new Rectangle((w - 250 - 512) / 2, (h - 165 - 334) / 2, 512, 334);
 			Rectangle chat = new Rectangle(0, h - 165, 519, 165);
 			Rectangle side = new Rectangle(w - 241, h - 335, 241, 335);
-			Rectangle log = new Rectangle(w - 216, h - 298, 190, 261);
-			Rectangle r = MapLayout.compute(canvas, dial, Arrays.asList(chat, side, log), 1100, 720);
+			Rectangle r = MapLayout.compute(canvas, menu, Arrays.asList(chat, side), 1100, 720);
 			String at = w + "x" + h + " gave " + r;
-			assertTrue(at, r.contains(dial));
+			assertTrue(at, r.contains(menu));
 			assertTrue(at, !r.intersects(chat));
 			assertTrue(at, !r.intersects(side));
-			assertTrue(at, !r.intersects(log));
 			assertTrue(at, canvas.contains(r));
 		}
-	}
-
-	/**
-	 * Fixed mode, card at the map's bottom-left and a mid-list log row: the leader's arc crosses the
-	 * close button in the map's bottom-right corner, and must pass under it rather than over it.
-	 */
-	@Test
-	public void travelLogLeaderPassesUnderTheCornerButtons()
-	{
-		Rectangle card = new Rectangle(36, 172, 230, 160);
-		Rectangle row = new Rectangle(550, 295, 180, 18);
-		int[] c = SpiritTreeAtlasPlugin.MOVED_IN_MAP[2];
-		Rectangle close = new Rectangle(4 + c[1], 4 + c[2], c[3], c[4]);
-		java.awt.image.BufferedImage plain = leader(row, card, Collections.emptyList());
-		java.awt.image.BufferedImage avoiding = leader(row, card, Collections.singletonList(close));
-		assertTrue(inked(plain, close) > 0);
-		assertEquals(0, inked(avoiding, AtlasPainter.grow(close, 3)));
-		// the rest of the leader is still drawn
-		assertTrue(inked(avoiding, new Rectangle(300, 200, 150, 120)) > 0);
-	}
-
-	private static java.awt.image.BufferedImage leader(Rectangle row, Rectangle card, java.util.List<Rectangle> avoid)
-	{
-		java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(800, 500, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-		java.awt.Graphics2D g = img.createGraphics();
-		AtlasOverlay.paintRowHighlight(g, row, card, avoid, java.awt.Color.ORANGE, 0);
-		g.dispose();
-		return img;
-	}
-
-	private static int inked(java.awt.image.BufferedImage img, Rectangle r)
-	{
-		int n = 0;
-		for (int y = r.y; y < r.y + r.height; y++)
-		{
-			for (int x = r.x; x < r.x + r.width; x++)
-			{
-				n += (img.getRGB(x, y) >>> 24) != 0 ? 1 : 0;
-			}
-		}
-		return n;
 	}
 }

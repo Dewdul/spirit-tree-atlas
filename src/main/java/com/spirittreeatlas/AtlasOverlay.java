@@ -5,36 +5,32 @@
  */
 package com.spirittreeatlas;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.Area;
-import java.awt.geom.Path2D;
-import java.awt.geom.QuadCurve2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
-import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 
 /**
- * Draws the atlas while the dial interface is open, in absolute canvas coordinates (render returns
- * null, so the overlay keeps no bounds of its own). Map mode: the cached base map, then markers,
- * labels and chrome, leaving holes over Teleport and close. Dial mode: a "Map" button and the
- * rotation guide over the real dials. In both, the selected ring's travel log row is outlined.
+ * Draws the atlas while the spirit tree menu is open, in absolute canvas coordinates (render
+ * returns null, so the overlay keeps no bounds of its own). Map mode: the cached base map, then
+ * markers, labels and chrome, leaving holes over the close button and, while it is usable, the
+ * Travel row. List mode: only the floating "Map" button. Stepping aside: only the notice.
  */
 @Singleton
 public class AtlasOverlay extends Overlay
@@ -60,6 +56,8 @@ public class AtlasOverlay extends Overlay
 	private Area clipArea;
 	private Rectangle clipRect;
 	private List<Rectangle> clipHoles;
+	/** The repository state the scene's per-tree maps were filled from. */
+	private int sceneState = Integer.MIN_VALUE;
 
 	@Inject
 	AtlasOverlay(Client client, SpiritTreeAtlasPlugin plugin, SpiritTreeAtlasConfig config, SpriteManager spriteManager)
@@ -88,14 +86,9 @@ public class AtlasOverlay extends Overlay
 		cache = null;
 		cacheView = null;
 		cacheGeneration = -1;
+		sceneState = Integer.MIN_VALUE;
 		chrome.release();
 		painter.ink().clear();
-	}
-
-	/** Where the dragged row lands as last painted, or null. */
-	ChromePainter.Drop drop()
-	{
-		return chrome.drop;
 	}
 
 	@Override
@@ -105,45 +98,50 @@ public class AtlasOverlay extends Overlay
 		{
 			return null;
 		}
-		RingRepository repo = plugin.getRepo();
-		scene.repo = repo;
-		scene.now = System.currentTimeMillis();
-		scene.selected = plugin.getSelected();
-		scene.dials = plugin.dials();
-		scene.query = plugin.getSearch();
-		Ring selected = repo.ring(scene.selected);
-		boolean ready = selected != null && scene.dialsMatch(selected.getCode());
-		Rectangle row = selected != null && !ready && repo.hasLogRow(selected.getCode())
-			? plugin.getTravelLog().rowBounds(selected, repo.favouriteSlot(selected.getCode())) : null;
-		scene.rowVisible = row != null;
-
-		if (plugin.getMode() == SpiritTreeAtlasPlugin.Mode.DIAL)
+		TreeMenu menu = plugin.getMenu();
+		if (plugin.getNotice() != null)
 		{
-			renderDialMode(g, selected, ready);
-			plugin.publishGroups(null, 0);
-			if (row != null)
+			Rectangle slot = menu.slotBounds();
+			if (slot != null)
 			{
-				paintRowHighlight(g, row, null, java.util.Collections.emptyList(), config.selectedColor(), scene.now);
+				chrome.paintNotice(g, slot, MapLayout.canvas(client), plugin.getNotice());
 			}
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
+			return null;
+		}
+		if (plugin.getMode() == SpiritTreeAtlasPlugin.Mode.LIST)
+		{
+			renderListMode(g, menu);
 			return null;
 		}
 
-		Rectangle rect = MapLayout.fromClient(client, config.maxWidth(), config.maxHeight());
+		Rectangle rect = MapLayout.fromClient(client, menu.slotBounds(), config.mapMaxWidth(), config.mapMaxHeight());
 		if (rect == null)
 		{
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
 			return null;
 		}
-		List<Rectangle> holes = MapLayout.holes(client);
-		Rectangle confirm = MapLayout.bounds(client, net.runelite.api.gameval.InterfaceID.Fairyrings.CONFIRM);
-		scene.teleportSlot = confirm;
-		if (confirm != null && !scene.teleportShown())
+		TreeRepository repo = plugin.getRepo();
+		String selected = plugin.getSelected();
+		// the real row is uncovered only while pressing it goes where the player expects, checked
+		// from the live widget every frame
+		TreeMenu.Row row = repo.row(selected);
+		TreeMenu.Row live = menu.liveRow(row, repo.getTrees(), repo.getUnavailableColour());
+		boolean shown = Scene.rowShown(selected, live, repo.getHere());
+		Rectangle cell = menu.rowCell(shown ? live : null);
+		shown &= cell != null;
+		List<Rectangle> holes = new ArrayList<>(2);
+		Rectangle close = menu.closeRect();
+		if (close != null)
 		{
-			// the map covers Teleport (and owns its clicks) until the dials are worth using
-			holes.remove(confirm);
-			confirm = null;
+			holes.add(close);
+		}
+		if (shown)
+		{
+			holes.add(cell);
 		}
 		MapView v = plugin.frameView(rect);
-		fillScene(v, holes, confirm);
+		fillScene(v, repo, selected, holes, cell, close, shown, row);
 		chrome.layout(scene);
 
 		Layer layer = repo.layer(v.getLayer());
@@ -171,67 +169,64 @@ public class AtlasOverlay extends Overlay
 		painter.paintMap(g, scene);
 		chrome.paint(g, scene);
 		g.setClip(oldClip);
-		chrome.paintHoles(g, scene, ready);
-		if (row != null)
-		{
-			// the leader runs from Teleport (where the player goes next) to the log row; without a
-			// Teleport slot, from the card or the map
-			Rectangle from = scene.teleportSlot != null ? AtlasPainter.grow(scene.teleportSlot, 4)
-				: scene.card != null ? scene.card : rect;
-			paintRowHighlight(g, row, from, scene.blockers(), config.selectedColor(), scene.now);
-		}
-		plugin.publish(new ArrayList<>(scene.hits), holes, scene.panel, chrome.panelScrollMax, null);
-		plugin.publishGroups(scene.groupsPanel, chrome.groupsScrollMax);
+		chrome.paintHoles(g, scene);
+		plugin.publish(new ArrayList<>(scene.hits), holes, null, shown ? cell : null);
 		return null;
 	}
 
-	private void fillScene(MapView v, List<Rectangle> holes, Rectangle confirm)
+	private void fillScene(MapView v, TreeRepository repo, String selected, List<Rectangle> holes, Rectangle cell, Rectangle close,
+		boolean shown, TreeMenu.Row row)
 	{
 		Scene s = scene;
 		s.view = v;
+		if (repo != s.repo || repo.getStateHash() != sceneState)
+		{
+			s.fromRepository(repo);
+			sceneState = repo.getStateHash();
+		}
+		s.now = System.currentTimeMillis();
+		s.selected = selected;
 		s.holes.clear();
 		s.holes.addAll(holes);
-		s.confirmHole = confirm;
-		s.here = plugin.getHere();
-		s.flashUntil = plugin.getFlashUntil();
-		s.notice = plugin.getNotice();
-		s.panelCollapsed = plugin.isPanelCollapsed(v.getW());
-		s.panelScroll = plugin.getPanelScroll();
-		s.faveOrder = plugin.getFaveOrder();
-		s.dragList = plugin.getDragList();
-		s.dragCode = plugin.getDragCode();
-		s.dragY = plugin.getDragY();
-		s.groupsOpen = plugin.isGroupsOpen(v.getW());
-		s.groups = plugin.getGroupsView();
-		s.groupsScroll = plugin.getGroupsScroll();
-		WorldPoint clue = config.clueHelper() ? plugin.getClue() : null;
-		s.clueX = clue == null ? Double.NaN : clue.getX();
-		s.clueY = clue == null ? Double.NaN : clue.getY();
-		s.codeLabels = config.codeLabels();
+		s.rowCell = cell;
+		s.closeRect = close;
+		s.rowShown = shown;
+		s.standIn = shown ? null : Scene.standInText(repo.tree(selected), row, repo.getHere());
+		s.notice = null;
 		s.placeLabels = config.placeLabels();
 		s.mapIcons = config.mapIcons();
-		s.dimUnvisited = config.dimUnvisited();
 		s.fullDetails = config.fullDetails();
-		s.visitedColor = config.visitedColor();
+		s.treeLabels = config.treeLabels();
+		s.keyHints = config.keyHints();
+		s.dimLocked = config.dimLocked();
+		s.availableColor = config.availableColor();
 		s.selectedColor = config.selectedColor();
-		s.favouriteColor = config.favouriteColor();
 		net.runelite.api.Point mp = client.getMouseCanvasPosition();
-		s.mouse = new java.awt.Point(mp.getX(), mp.getY());
-		// while a right-click menu is open the card keeps describing the ring it was opened on
+		boolean mapInput = plugin.isMapInput(mp.getX(), mp.getY());
+		// while a right-click menu is open the card keeps describing the tree it was opened on
 		if (!client.isMenuOpen())
 		{
-			Hit hover = plugin.isMapInput(mp.getX(), mp.getY()) ? plugin.hitAt(mp.getX(), mp.getY()) : null;
-			s.hovered = hover != null && (hover.getKind() == Hit.Kind.MARKER || hover.getKind() == Hit.Kind.CHIP
-				|| hover.getKind() == Hit.Kind.CARD) ? hover.getRing() : null;
-			s.hoveredNote = s.hovered == null ? null : plugin.groupNote(hover.getId(), s.hovered.getCode());
-			s.hoveredDetails = s.hovered == null ? null : plugin.groupDetails(hover.getId(), s.hovered.getCode());
+			Hit hover = mapInput ? plugin.hitAt(mp.getX(), mp.getY()) : null;
+			s.hovered = hover != null && hover.getKind() == Hit.Kind.MARKER ? hover.getTree() : null;
 		}
-		if (!plugin.isMapInput(mp.getX(), mp.getY()))
-		{
-			s.mouse = null;
-		}
+		s.mouse = mapInput ? new Point(mp.getX(), mp.getY()) : null;
 		s.hits.clear();
 		s.card = null;
+	}
+
+	/** List mode: the plain menu works as the game made it; only the Map button is ours. */
+	private void renderListMode(Graphics2D g, TreeMenu menu)
+	{
+		Point a = menu.anchor();
+		if (a == null)
+		{
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
+			return;
+		}
+		Rectangle b = chrome.mapButton(a);
+		net.runelite.api.Point mp = client.getMouseCanvasPosition();
+		chrome.paintMapButton(g, b, !client.isMenuOpen() && b.contains(mp.getX(), mp.getY()));
+		plugin.publish(Collections.emptyList(), Collections.emptyList(), b, null);
 	}
 
 	private Shape clip(Rectangle rect, List<Rectangle> holes)
@@ -263,186 +258,5 @@ public class AtlasOverlay extends Overlay
 			});
 		}
 		return img;
-	}
-
-	// ------------------------------------------------------------------ travel log row
-
-	/**
-	 * A pulsing outline around the row to click, and a curved leader from the card or map edge.
-	 * The leader passes under {@code avoid} (the holes and Teleport's slot, with their frames):
-	 * its way from the card to the log can cross the map's bottom-right corner.
-	 */
-	static void paintRowHighlight(Graphics2D g, Rectangle row, Rectangle from, List<Rectangle> avoid, Color c, long now)
-	{
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		double t = 0.5 + 0.5 * Math.sin(now / 180.0);
-		Rectangle r = AtlasPainter.grow(row, 2);
-		g.setStroke(new BasicStroke(4f));
-		g.setColor(new Color(0, 0, 0, 120));
-		g.drawRoundRect(r.x, r.y, r.width, r.height, 6, 6);
-		g.setStroke(new BasicStroke(2f));
-		g.setColor(AtlasPainter.withAlpha(c, (int) (140 + 115 * t)));
-		g.drawRoundRect(r.x, r.y, r.width, r.height, 6, 6);
-		if (from == null || from.intersects(r))
-		{
-			return;
-		}
-		double sx;
-		double sy;
-		double ex;
-		double ey = r.getCenterY();
-		if (r.x >= from.x + from.width)
-		{
-			sx = from.x + from.width;
-			sy = Math.max(from.y + 10, Math.min(from.y + from.height - 10, ey));
-			ex = r.x - 2;
-		}
-		else if (r.x + r.width <= from.x)
-		{
-			sx = from.x;
-			sy = Math.max(from.y + 10, Math.min(from.y + from.height - 10, ey));
-			ex = r.x + r.width + 2;
-		}
-		else
-		{
-			return;
-		}
-		double mx = (sx + ex) / 2;
-		double my = Math.min(sy, ey) - Math.abs(ex - sx) * 0.25;
-		QuadCurve2D curve = new QuadCurve2D.Double(sx, sy, mx, my, ex, ey);
-		Shape oldClip = g.getClip();
-		Area clip = new Area(AtlasPainter.grow(curve.getBounds(), 12));
-		for (Rectangle h : avoid)
-		{
-			clip.subtract(new Area(AtlasPainter.grow(h, 3)));
-		}
-		g.clip(clip);
-		g.setColor(new Color(0, 0, 0, 140));
-		g.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(curve);
-		g.setColor(AtlasPainter.withAlpha(c, 230));
-		// the dashes march toward the row; a dash phase must not be negative, so it counts
-		// down through one dash period (6 + 4)
-		g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10, new float[]{6f, 4f}, 10f - (now % 1000) / 100f));
-		g.draw(curve);
-		double ang = Math.atan2(ey - my, ex - mx);
-		Path2D head = new Path2D.Double();
-		head.moveTo(ex, ey);
-		head.lineTo(ex - Math.cos(ang - 0.45) * 9, ey - Math.sin(ang - 0.45) * 9);
-		head.lineTo(ex - Math.cos(ang + 0.45) * 9, ey - Math.sin(ang + 0.45) * 9);
-		head.closePath();
-		g.fill(head);
-		g.setClip(oldClip);
-	}
-
-	// ------------------------------------------------------------------ dial mode
-
-	private void renderDialMode(Graphics2D g, Ring selected, boolean ready)
-	{
-		Rectangle dial = MapLayout.bounds(client, net.runelite.api.gameval.InterfaceID.Fairyrings.ROOT_RECT0);
-		if (dial == null)
-		{
-			plugin.publish(new ArrayList<>(), new ArrayList<>(), null, 0, null);
-			return;
-		}
-		Ink ink = painter.ink();
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-		Rectangle b = new Rectangle(dial.x + 8, dial.y + 8, ink.width(ink.small, "Map") + 30, 20);
-		net.runelite.api.Point mp = client.getMouseCanvasPosition();
-		boolean hover = !client.isMenuOpen() && b.contains(mp.getX(), mp.getY());
-		g.setColor(ChromePainter.FRAME);
-		g.fillRoundRect(b.x - 1, b.y - 1, b.width + 2, b.height + 2, 6, 6);
-		g.setColor(hover ? new Color(0x5a4b36) : new Color(0x3a3125));
-		g.fillRoundRect(b.x, b.y, b.width, b.height, 5, 5);
-		g.setColor(hover ? ChromePainter.BRONZE_LIGHT : ChromePainter.BRONZE);
-		g.setStroke(new BasicStroke(1f));
-		g.drawRoundRect(b.x, b.y, b.width - 1, b.height - 1, 5, 5);
-		paintMapGlyph(g, b.x + 6, b.y + 5);
-		ink.text(g, "Map", ink.small, hover ? Color.WHITE : ChromePainter.CREAM, b.x + 22, b.y + (b.height - ink.height(ink.small)) / 2, Ink.Style.SHADOW);
-		plugin.publish(new ArrayList<>(), new ArrayList<>(), null, 0, b);
-
-		if (!config.dialGuidance() || selected == null || !selected.isDialable())
-		{
-			return;
-		}
-		int[] plan = DialMath.plan(scene.dials, selected.getCode());
-		Color hint = ChromePainter.HINT;
-		for (int d = 0; d < 3; d++)
-		{
-			Widget cw = client.getWidget(SpiritTreeAtlasPlugin.ZONES[d][0]);
-			Widget acw = client.getWidget(SpiritTreeAtlasPlugin.ZONES[d][1]);
-			if (cw == null || acw == null || cw.isHidden() || acw.isHidden())
-			{
-				continue;
-			}
-			Rectangle zc = cw.getBounds();
-			Rectangle za = acw.getBounds();
-			Rectangle both = zc.union(za);
-			String letter = String.valueOf(selected.getCode().charAt(d));
-			int k = plan[d];
-			// target letter badge above the dial
-			int bw = 26;
-			Rectangle badge = new Rectangle((int) both.getCenterX() - bw / 2, both.y - 24, bw, 20);
-			g.setColor(new Color(16, 13, 9, 225));
-			g.fillRoundRect(badge.x, badge.y, badge.width, badge.height, 6, 6);
-			g.setColor(k == 0 ? ChromePainter.GOOD : config.selectedColor());
-			g.setStroke(new BasicStroke(1.5f));
-			g.drawRoundRect(badge.x, badge.y, badge.width, badge.height, 6, 6);
-			if (k == 0)
-			{
-				ink.text(g, letter, ink.bold, ChromePainter.GOOD, badge.x + 4, badge.y + 4, Ink.Style.SHADOW);
-				AtlasPainter.drawCheck(g, badge.x + 18, badge.y + 10, 4, ChromePainter.GOOD);
-				continue;
-			}
-			ink.text(g, letter, ink.bold, config.selectedColor(), badge.x + (bw - ink.width(ink.bold, letter)) / 2, badge.y + 4, Ink.Style.SHADOW);
-			boolean clockwise = DialMath.clockwise(k);
-			Rectangle zone = clockwise ? zc : za;
-			double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 200.0);
-			g.setColor(AtlasPainter.withAlpha(hint, (int) (60 + 80 * pulse)));
-			g.setStroke(new BasicStroke(2f));
-			g.drawRoundRect(zone.x + 2, zone.y + 2, zone.width - 4, zone.height - 4, 10, 10);
-			AtlasPainter.drawRotateArrow(g, zone.getCenterX(), zone.getCenterY() - 8, 18, clockwise, hint, 3f);
-			String n = "x" + DialMath.clicks(k);
-			int nw = ink.width(ink.bold, n) + 8;
-			int nx = (int) zone.getCenterX() - nw / 2;
-			int ny = (int) zone.getCenterY() + 18;
-			g.setColor(new Color(16, 13, 9, 225));
-			g.fillRoundRect(nx, ny, nw, 18, 6, 6);
-			ink.text(g, n, ink.bold, hint, nx + 4, ny + 3, Ink.Style.SHADOW);
-		}
-		if (ready)
-		{
-			Rectangle confirm = MapLayout.bounds(client, net.runelite.api.gameval.InterfaceID.Fairyrings.CONFIRM);
-			if (confirm != null)
-			{
-				double t = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 160.0);
-				g.setColor(AtlasPainter.withAlpha(ChromePainter.GOOD, (int) (120 + 135 * t)));
-				g.setStroke(new BasicStroke(2.5f));
-				g.drawRoundRect(confirm.x - 4, confirm.y - 4, confirm.width + 7, confirm.height + 7, 6, 6);
-			}
-		}
-	}
-
-	/** A tiny folded-map glyph. */
-	private static void paintMapGlyph(Graphics2D g, int x, int y)
-	{
-		Path2D p = new Path2D.Double();
-		p.moveTo(x, y + 2);
-		p.lineTo(x + 4, y);
-		p.lineTo(x + 8, y + 2);
-		p.lineTo(x + 12, y);
-		p.lineTo(x + 12, y + 9);
-		p.lineTo(x + 8, y + 11);
-		p.lineTo(x + 4, y + 9);
-		p.lineTo(x, y + 11);
-		p.closePath();
-		g.setColor(new Color(0xD9C38F));
-		g.fill(p);
-		g.setColor(ChromePainter.FRAME);
-		g.setStroke(new BasicStroke(1f));
-		g.draw(p);
-		g.drawLine(x + 4, y, x + 4, y + 9);
-		g.drawLine(x + 8, y + 2, x + 8, y + 11);
 	}
 }

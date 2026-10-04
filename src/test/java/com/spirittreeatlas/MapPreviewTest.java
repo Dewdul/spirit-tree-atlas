@@ -11,14 +11,17 @@ import static org.junit.Assume.assumeNotNull;
 import static org.junit.Assume.assumeTrue;
 import org.junit.Test;
 
-/** Runs MapPreview when FRA_PREVIEW is set: {@code FRA_PREVIEW=1 ./gradlew test --tests MapPreviewTest}. */
+/**
+ * Runs MapPreview when STA_PREVIEW is set: {@code STA_PREVIEW=1 ./gradlew test --tests MapPreviewTest}
+ * (or {@code ./gradlew preview}).
+ */
 public class MapPreviewTest
 {
 	@Test
 	public void renderPreviews() throws Exception
 	{
-		assumeNotNull(System.getenv("FRA_PREVIEW"));
-		assumeTrue(MapPreviewTest.class.getResource(SpiritTreeAtlasPlugin.RESOURCES + "rings.json") != null);
+		assumeNotNull(System.getenv("STA_PREVIEW"));
+		assumeTrue(MapPreviewTest.class.getResource(SpiritTreeAtlasPlugin.RESOURCES + "trees.json") != null);
 		File out = new File("build/preview");
 		MapPreview.main(new String[]{out.getPath()});
 		for (String name : MapPreview.names())

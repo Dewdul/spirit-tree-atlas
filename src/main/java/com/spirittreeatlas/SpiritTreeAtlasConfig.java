@@ -12,12 +12,13 @@ import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
 
+/** DESIGN 4.11. */
 @ConfigGroup(SpiritTreeAtlasConfig.GROUP)
 public interface SpiritTreeAtlasConfig extends Config
 {
-	String GROUP = "fairyringatlas";
+	String GROUP = "spirittreeatlas";
 
-	enum StartView
+	enum OpenAt
 	{
 		FIT_ALL,
 		AROUND_YOU,
@@ -27,17 +28,11 @@ public interface SpiritTreeAtlasConfig extends Config
 	@ConfigSection(name = "Map", description = "Size and contents of the map", position = 0)
 	String mapSection = "map";
 
-	@ConfigSection(name = "Markers", description = "How rings are drawn", position = 1)
+	@ConfigSection(name = "Markers", description = "How trees are drawn", position = 1)
 	String markerSection = "markers";
 
-	@ConfigSection(name = "Travel log", description = "Help with the travel log and the dials", position = 2)
-	String logSection = "travelLog";
-
-	@ConfigSection(name = "Advanced", description = "Other options", position = 3, closedByDefault = true)
-	String advancedSection = "advanced";
-
 	@ConfigItem(keyName = "openInMapMode", name = "Open as map",
-		description = "Show the map over the dials when you use a fairy ring; otherwise start with the dials",
+		description = "Show the map over the spirit tree menu when it opens; otherwise start with the plain list",
 		section = mapSection, position = 0)
 	default boolean openInMapMode()
 	{
@@ -45,7 +40,7 @@ public interface SpiritTreeAtlasConfig extends Config
 	}
 
 	@ConfigItem(keyName = "useFreeSpace", name = "Use free space",
-		description = "Resizable mode: while the map shows, move the fairy ring interface into the corner of the free screen space so the map can fill it. It goes back when the map closes",
+		description = "Resizable mode: while the map shows, move the spirit tree menu into the corner of the free screen space so the map can fill it. It goes back when the map closes",
 		section = mapSection, position = 1)
 	default boolean useFreeSpace()
 	{
@@ -55,7 +50,7 @@ public interface SpiritTreeAtlasConfig extends Config
 	@Range(min = 512, max = 2000)
 	@ConfigItem(keyName = "mapMaxWidth", name = "Max width",
 		description = "Largest map width in pixels (resizable mode). With Use free space, a smaller map is centred in the free space", section = mapSection, position = 2)
-	default int maxWidth()
+	default int mapMaxWidth()
 	{
 		return 2000;
 	}
@@ -63,17 +58,17 @@ public interface SpiritTreeAtlasConfig extends Config
 	@Range(min = 334, max = 1400)
 	@ConfigItem(keyName = "mapMaxHeight", name = "Max height",
 		description = "Largest map height in pixels (resizable mode). With Use free space, a smaller map is centred in the free space", section = mapSection, position = 3)
-	default int maxHeight()
+	default int mapMaxHeight()
 	{
 		return 1400;
 	}
 
 	@ConfigItem(keyName = "openAt", name = "Open at",
-		description = "Centre the map on the ring you are standing at, fit all rings, or remember the last view this session",
+		description = "Fit every spirit tree, centre the map on where you are, or remember the last view this session",
 		section = mapSection, position = 4)
-	default StartView startView()
+	default OpenAt openAt()
 	{
-		return StartView.AROUND_YOU;
+		return OpenAt.FIT_ALL;
 	}
 
 	@ConfigItem(keyName = "placeLabels", name = "Place names",
@@ -90,82 +85,46 @@ public interface SpiritTreeAtlasConfig extends Config
 		return true;
 	}
 
-	@ConfigItem(keyName = "autoFitSearch", name = "Fit to search",
-		description = "Zoom the map to the rings matching the travel log search", section = mapSection, position = 7)
-	default boolean autoFitSearch()
-	{
-		return true;
-	}
-
-	@ConfigItem(keyName = "fullDetails", name = "Full ring details",
-		description = "Show everything about a ring on its card (description, every nearby place, notes) instead of a short summary",
-		section = mapSection, position = 8)
+	@ConfigItem(keyName = "fullDetails", name = "Full tree details",
+		description = "Show everything about a tree on its card (every requirement, nearby place, danger and note) instead of a short summary",
+		section = mapSection, position = 7)
 	default boolean fullDetails()
 	{
 		return false;
 	}
 
-	@ConfigItem(keyName = "codeLabels", name = "Code labels",
-		description = "Which rings show their code beside the marker", section = markerSection, position = 0)
-	default Scene.CodeLabels codeLabels()
+	@ConfigItem(keyName = "treeLabels", name = "Tree names",
+		description = "Show each tree's name beside its marker", section = markerSection, position = 0)
+	default boolean treeLabels()
 	{
-		return Scene.CodeLabels.ALL;
+		return true;
 	}
 
-	@ConfigItem(keyName = "dimUnvisited", name = "Dim locked rings",
-		description = "Draw rings you have not unlocked (not in your travel log yet) at half opacity", section = markerSection, position = 1)
-	default boolean dimUnvisited()
+	@ConfigItem(keyName = "keyHints", name = "Key hints",
+		description = "Show each tree's menu key on its marker: press it to travel without clicking", section = markerSection, position = 1)
+	default boolean keyHints()
+	{
+		return true;
+	}
+
+	@ConfigItem(keyName = "dimLocked", name = "Dim locked trees",
+		description = "Draw trees the menu lists as unavailable at half opacity", section = markerSection, position = 2)
+	default boolean dimLocked()
 	{
 		return false;
 	}
 
-	@ConfigItem(keyName = "visitedColor", name = "Visited colour",
-		description = "Colour of rings in your travel log", section = markerSection, position = 2)
-	default Color visitedColor()
+	@ConfigItem(keyName = "availableColor", name = "Available colour",
+		description = "Colour of the trees you can travel to", section = markerSection, position = 3)
+	default Color availableColor()
 	{
-		return new Color(0x3FD9C8);
+		return new Color(0x5BD45B);
 	}
 
 	@ConfigItem(keyName = "selectedColor", name = "Selected colour",
-		description = "Colour of the selected ring and its travel log row", section = markerSection, position = 3)
+		description = "Colour of the selected tree", section = markerSection, position = 4)
 	default Color selectedColor()
 	{
 		return new Color(0xFF981F);
-	}
-
-	@ConfigItem(keyName = "favouriteColor", name = "Favourite colour",
-		description = "Colour of the favourite star", section = markerSection, position = 4)
-	default Color favouriteColor()
-	{
-		return new Color(0xFFD700);
-	}
-
-	@ConfigItem(keyName = "filterTravelLog", name = "Filter travel log",
-		description = "Narrow the travel log to the selected ring, moved to the top", section = logSection, position = 0)
-	default boolean filterTravelLog()
-	{
-		return true;
-	}
-
-	@ConfigItem(keyName = "dialGuidance", name = "Dial guidance",
-		description = "In dial mode, show which way to turn each dial for the selected ring", section = logSection, position = 1)
-	default boolean dialGuidance()
-	{
-		return true;
-	}
-
-	@ConfigItem(keyName = "menuNames", name = "Names in ring menu",
-		description = "Show destination names in a fairy ring's right-click menu: Last-destination and the Favourites codes",
-		section = logSection, position = 2)
-	default boolean menuNames()
-	{
-		return true;
-	}
-
-	@ConfigItem(keyName = "clueHelper", name = "Clue helper",
-		description = "Mark the active clue step on the map and preselect fairy ring clue codes. Needs the core Clue Scroll plugin to be enabled", section = advancedSection, position = 0)
-	default boolean clueHelper()
-	{
-		return true;
 	}
 }

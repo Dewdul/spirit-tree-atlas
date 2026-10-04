@@ -10,77 +10,55 @@ import java.util.List;
 import lombok.Value;
 
 /**
- * Something on the map the mouse can point at, published by the painter each frame. Hits later in
- * the list are on top.
+ * Something on the map the mouse can point at, published by the painters each frame. Hits later
+ * in the list are on top. The plugin builds the right-click menu from the hit under the mouse
+ * (option and target are its left-click entry) and {@link AtlasInput} lets a left press through
+ * only for a hit the menu was built for.
  */
 @Value
 public class Hit
 {
 	public enum Kind
 	{
-		/** A ring marker; ring is set. */
+		/** A tree marker, or its surface stand-in at a portal (id {@link #STAND_IN}); tree is set. */
 		MARKER,
-		/** A ring chip in an Elsewhere card, a Favourites row (id FAVE) or a group's row (id {@link #groupRow}); ring is set. */
-		CHIP,
-		/** An Elsewhere card; id is the layer id; ring is the ring a click selects, if any. */
-		CARD,
-		/** A surface entrance to a layer; id is the layer id. */
+		/** The map-link glyph where another layer is entered; id is that layer's id. */
 		PORTAL,
-		/** A toolbar or card button; id names it. */
+		/** A chrome button; id names it. */
 		BUTTON,
-		/** Solid chrome with no action: absorbs presses, never starts a drag. */
+		/** Solid chrome with no action (top bar, card, the covered Travel cell): absorbs presses, never starts a drag. */
 		BLOCK,
-		/** The Elsewhere panel background: like BLOCK, but the wheel scrolls it. */
-		PANEL,
-		/** A group's header in the Groups panel; id is the group id. */
-		GROUP,
 	}
 
 	public static final String ZOOM_IN = "zoomIn";
 	public static final String ZOOM_OUT = "zoomOut";
 	public static final String FIT = "fit";
-	public static final String DIALS = "dials";
+	/** Top bar: switch to List mode (the plain menu). */
+	public static final String LIST = "list";
 	public static final String CLEAR = "clear";
+	/** Back to the surface from another layer. */
 	public static final String BACK = "back";
-	public static final String TOGGLE_PANEL = "panel";
+	/** List mode's floating button: back to Map mode. */
 	public static final String SHOW_MAP = "map";
-	/** Id of a ring row in the panel's Favourites list. */
-	public static final String FAVE = "fave";
-	/** Id of the house card in the side panel (a CHIP hit). */
-	public static final String HOUSE = "house";
-	public static final String TOGGLE_GROUPS = "groups";
-	public static final String NEW_GROUP = "newGroup";
-	private static final String GROUP_ROW = "group:";
+	/** Id of a MARKER that is a surface stand-in for a tree on another layer. */
+	public static final String STAND_IN = "standIn";
 
 	Kind kind;
 	Rectangle area;
-	Ring ring;
+	Tree tree;
 	String id;
-	/** Menu option and target shown for the hit; null for BLOCK/PANEL. */
+	/** Menu option and target of the left-click entry; null for BLOCK. */
 	String option;
 	String target;
 
 	public boolean isActionable()
 	{
-		return kind != Kind.BLOCK && kind != Kind.PANEL;
+		return kind != Kind.BLOCK;
 	}
 
-	/** Id of a ring row in a group of the Groups panel. */
-	public static String groupRow(String groupId)
+	public boolean isStandIn()
 	{
-		return GROUP_ROW + groupId;
-	}
-
-	/** The group of a group-row id, or null for any other id. */
-	public static String groupOf(String id)
-	{
-		return id != null && id.startsWith(GROUP_ROW) ? id.substring(GROUP_ROW.length()) : null;
-	}
-
-	/** Whether a row can be dragged to reorder its list: a favourite or a group's ring. */
-	public boolean isDraggableRow()
-	{
-		return kind == Kind.CHIP && ring != null && (FAVE.equals(id) || groupOf(id) != null);
+		return kind == Kind.MARKER && STAND_IN.equals(id);
 	}
 
 	/** The topmost hit containing the point, or null. */
