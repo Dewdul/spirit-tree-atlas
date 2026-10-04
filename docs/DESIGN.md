@@ -305,8 +305,9 @@ overview; solid tiles not shipped (`solid` per level); `index.json` holds `cache
   as Fairy Ring Atlas), and `prifddinas` "Prifddinas", the bounding box of the city's content plus 8
   tiles inside rx 49-52, ry 93-96, background black. No `poh` entry (card only).
 - **Icons:** keep every map-function icon (including fairy rings, which Fairy Ring Atlas dropped),
-  except the transportation icon (sprite 1504) within 3 tiles of each spirit tree centre and the
-  farming patch icon (sprite 1501) within 3 tiles of each patch tree: our markers sit there.
+  except the transportation icon (sprite 1504) within 6 tiles (per axis) of each spirit tree centre
+  (Tree Gnome Village's sits 5.5 tiles from its tree) and the farming patch icon (sprite 1501) within
+  3 tiles of each patch tree: our markers sit there.
 - **Surface z=2 and z=-1 tiles** must come out byte-identical to Fairy Ring Atlas's (same cache, same
   renderer); the generator checks this when the FRA checkout is present. Surface z=-1 tiles that
   contain off-surface pixels from FRA's layers are repainted with the surface background where they
@@ -504,11 +505,14 @@ draws nothing else and takes no input.
   not `here`, and the row text still maps to the selected tree (re-checked every frame from the live
   widget; "Please wait..." keeps the old mapping).
 - **Stand-in.** Otherwise the overlay draws a disabled stand-in over the row cell, consumes its
-  input and says, in one line (RuneScape small font, fitted with "..."):
+  input and says, in one line (RuneScape small font):
   - nothing selected: "Pick a tree on the map";
-  - the selected tree's row is grey: "Locked: <lockedHint>";
+  - the selected tree's row is grey: a padlock and `<lockedHint>`;
   - the selected tree is `here`: "You are here";
   - the selected tree has no row: "Not in this tree's list".
+
+  The line is never cut while the stand-in may grow up to 24 px left of the cell over the map
+  (`Scene.standInRect`, which labels and the card keep clear of); "..." only beyond that.
 - **Caption.** A small "Travel" caption sits on the map just above the cell's left end, left of the
   close button, so the corner reads as a button pair even while the stand-in shows.
 - When the Travel row shows, its frame pulses gently (as Fairy Ring Atlas's Teleport when ready).
@@ -541,8 +545,9 @@ draws nothing else and takes no input.
 - **No side panels.**
 - **Info card** for the hovered tree, else the selected one; when neither, a one-line hint
   ("Click a tree to travel there"). Contents: name (the house names its town) and area; status line
-  (Available / Locked - <lockedHint> in red / You are here / Not in the list), with a "last trip"
-  badge; the next-step line for the selected tree (4.5); requirements (amber while locked), dangers
+  (Available / Locked - <lockedHint> in red / You are here / Not in the list), with the last trip
+  shown as the marker's return-arrow badge and "last trip"; the title leads with the tree's marker
+  glyph; the hint card's legend shows the Available / Locked / Not listed glyphs; the next-step line for the selected tree (4.5); requirements (amber while locked), dangers
   (red), "Nearby" POIs and notes. Compact by default (name, area, status, next step, first locked
   requirement, two POIs); `fullDetails` shows everything. Placement exactly as Fairy Ring Atlas
   (`ChromePainter.place`: bottom-left first, keeping clear of the holes, the Travel cell and its
@@ -552,17 +557,18 @@ draws nothing else and takes no input.
 
 ### 4.7 Markers, labels and the initial view
 
-- **Tree marker:** a vector spirit tree glyph (round canopy over a short trunk) in a dark disc,
-  about 14-16 px, growing slightly past 4 ppt. States:
+- **Tree marker:** a vector spirit tree glyph (a lobed canopy of four round lobes over a short trunk
+  with a root flare, dark outline) in a dark disc, 16 px, up to 22 px at 16 ppt, 25% larger when
+  selected. States:
 
   | State | Look |
   |---|---|
   | Available | canopy `availableColor` (default `#5BD45B`) |
   | Locked (grey row) | grey `#8C8C8C` canopy with a small padlock; 50% alpha when `dimLocked` |
-  | Not in the list | hollow outline |
+  | Not in the list | hollow outline, dashed rim |
   | Hover | white outline |
   | Selected | `selectedColor` (`#FF981F`) ring, larger, soft pulsing halo |
-  | You are here | a pin with "You" |
+  | You are here | a pin with "You", over the marker's top-left |
   | Last trip | small vector return-arrow badge |
   | Key | `keyHints` (default on): a small dark rounded square with the row's key in white at the marker's top-right |
 
@@ -708,9 +714,12 @@ size), `EventBusRegistrationTest`, `MapPreviewTest`, and the launcher `SpiritTre
 
 **Previews** (`gradlew preview`, `MapPreview` into `build/preview/`): full fit, Grand Exchange at
 4 ppt, 16 ppt, the Prifddinas layer, fixed mode 512x334 with the modern corner (Travel shown), fixed
-mode with the classic corner (stand-in), a locked tree's card, an alignment sheet of every tree at
-8 ppt, the free-space size (1738x905), and `icon.png` (the hub icon, 48x72: a crop of the map with a
-selected spirit tree marker).
+mode with the classic corner (stand-in), fixed mode with the classic Travel row shown
+(`11-fixed-classic-travel`), a locked tree's card, a full-details card (`12-full-card`), every
+marker state at 1/4/8/16 ppt and every stand-in in both cell sizes (`13-marker-states`), an
+alignment sheet of every tree at 8 ppt, the free-space size (1738x905), and `icon.png` (the hub
+icon, 48x72: a large selected marker over Varrock at 2 ppt), which the preview writes to the repo
+root. The previews draw the game's own row and close button in the holes, as they look in game.
 
 ---
 
@@ -836,8 +845,8 @@ from the text above.
     the tree as available; the next read makes them agree.
 19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then falls back
     to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna Aurorae under the card.
-20. **The card's "last trip" badge is the text " - last trip"** after the status line, not a drawn
-    badge (4.6). (The painters belong to the visual work; recheck 19 and 20 after it is merged.)
+20. **The card also keeps clear of a surface stand-in it describes**, and of the widened stand-in
+    box (`Scene.standInRect`).
 
 **Smaller differences**
 
