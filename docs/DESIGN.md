@@ -16,6 +16,10 @@ The user's scope (2026-10-04): "Similar to our Fairy Ring Atlas ... there are a 
 options so we really only need the map, groups aren't needed." So: no Groups panel, no Favourites
 list, no Elsewhere panel, no search, no clue helper, no dials, no travel log.
 
+After testing in game the same day the user asked: "a quick select menu on the left would be nice".
+So the map has one side panel after all, the **quick-select panel** (4.6): every destination as a
+row down the map's left edge, modelled on Fairy Ring Atlas's left panel.
+
 - Internal hub name: `spirit-tree-atlas`
 - Display name: "Spirit Tree Atlas"
 - Package: `com.spirittreeatlas`
@@ -558,8 +562,39 @@ draws nothing else and takes no input.
   "Gielinor > Prifddinas" (vector triangle), the last trip ("Last: Grand Exchange") when known, and
   buttons on the right: `-`, `+`, `Fit`, `List`, and `Clear` while there is a selection.
 - **Back button:** on the Prifddinas map, a large orange "Back to Gielinor" button at the top-left
-  under the bar.
-- **No side panels.**
+  under the bar, right of the quick-select panel.
+- **Quick-select panel** (from the user's in-game feedback, 2026-10-04: "a quick select menu on the
+  left would be nice"). Fairy Ring Atlas's left panel, with one list:
+  - Inside the map's left edge, 6 px in, below the top bar; `ChromePainter.PANEL_W` (150 px) wide,
+    wider when the longest row (label plus its "You" tag or last-trip badge) needs it, but never past
+    30% of the map (`panelWidth`). Fairy Ring Atlas's look: the same dark translucent fill and bronze
+    rim, a header row with "Destinations" (bold, orange) and a small hide button with a left-pointing
+    triangle. As tall as its rows need (`Scene.panel`).
+  - **One row per destination in menu order** (`TreeRepository.menuOrder`: the live rows' order;
+    trees the menu does not list follow, in `trees.json` order), 18 px tall, 1 px apart: the row's
+    key badge (the live row's key; blank when it has none), a 6.5 px copy of the tree's marker glyph
+    in its state (available, locked with its padlock, not listed hollow), and the tree's `label` (the
+    house names its town), cut with "..." only when it does not fit. The selected row is filled dark
+    orange with a `selectedColor` rim and label; the hovered row is lighter with a white label; locked
+    rows have dimmer text, not-listed rows dimmer still. The tree you are at gets a small red "You"
+    tag and the last trip the return-arrow badge, at the row's right end.
+  - **Closed**, it is a 20 px tab (`TAB_W`) at the same top-left spot with a right-pointing triangle
+    and "Destinations" written down it; clicking the tab or the header's triangle toggles it.
+    Open by default; on maps narrower than 700 px (fixed mode) it starts closed until the player
+    opens it there (Fairy Ring Atlas's rule for its Groups panel). The player's choice holds at any
+    size for the session and is saved in the hidden key `quickSelectOpen` ("false" once closed).
+  - **Off** with the `quickSelect` setting: neither panel nor tab.
+  - **Hits:** `PANEL` for the body (absorbs presses, never pans; not actionable), `ROW` per visible
+    row (tree set, option "Select", target the label), and the `TOGGLE_PANEL` button (header
+    triangle "Hide", or the whole tab "Show", target "Destinations").
+  - **Overflow:** rows outside the panel are clipped, with a small chevron at the top or bottom while
+    there is more; the wheel scrolls them (4.8). The painter reports `panelScrollMax`.
+  - **Keeping clear:** the panel stops above the holes, the Travel cell, its caption and the stand-in
+    (`Scene.standInRect`) when any of them, grown by 8 px for their frames, is in its column (with
+    every real layout they are not: the corner is on the right). Fits keep clear of the open panel or
+    the tab (`SpiritTreeAtlasPlugin.chromeInsets`); the card sits beside the open panel, or below the
+    tab (which is one of its blockers); the panel is a `LabelPlacer` obstacle, and markers under it
+    get no label. Markers under it still draw (beneath the translucent fill) but take no input there.
 - **Info card** for the hovered tree, else the selected one; when neither, a one-line hint
   ("Click a tree to travel there"). Contents: name (the house names its town) and area; status line
   (Available / Locked - <lockedHint> in red / You are here / Not in the list), with the last trip
@@ -568,8 +603,9 @@ draws nothing else and takes no input.
   (red), "Nearby" POIs and notes. Compact by default (name, area, status, next step, first locked
   requirement, two POIs); `fullDetails` shows everything. Placement exactly as Fairy Ring Atlas
   (`ChromePainter.place`: bottom-left first, keeping clear of the holes, the Travel cell and its
-  caption, the top bar and the tree it describes); about 45% of the map wide (at least 220 px), at
-  most 62% of its height (48% on maps under 450 px tall); long text wraps; "..." when cut. While a
+  caption, the top bar, the quick-select panel or tab and the tree it describes); about 45% of the
+  map wide (at least 220 px), at most 62% of its height (48% on maps under 450 px tall); long text
+  wraps; "..." when cut. While a
   right-click menu is open, the card keeps describing the tree it was opened on.
 
 ### 4.7 Markers, labels and the initial view
@@ -603,11 +639,14 @@ draws nothing else and takes no input.
 
 ### 4.8 Navigation, input and menu ownership
 
-Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging:
+Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus its panels and row dragging, plus the
+quick-select panel:
 - Wheel zooms about the cursor (x1.25 per notch, precise rotation, 0.125-16 ppt); left-drag on empty
   map pans; `+`/`-` zoom x1.5 about the centre, animated, compounding from a running animation;
   `Fit` fits all surface markers (or the Prifddinas layer bounds); animations ease out over 250 ms;
-  the view is clamped so the layer cannot be dragged out of sight; fits respect the top bar inset.
+  the view is clamped so the layer cannot be dragged out of sight; fits (the initial view, `Fit`,
+  `Zoom to`, opening a layer, a row's pan) keep clear of the top bar and of the quick-select panel or
+  its tab (`chromeInsets`).
 - `AtlasInput` (a `MouseAdapter` + `MouseWheelListener`, registered with the normal appending calls
   so Stretched Mode translates first) is active only while the menu is open, in Map mode, no menu is
   open, the point is inside the map rect and not in a hole (the wheel: anywhere on the map, 4.4). A
@@ -615,6 +654,19 @@ Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging
   when `onPostMenuSort` built the game's menu for that same hit (`menuKey`), otherwise swallowed.
   Empty-map presses start a pan. Drag and move events are never consumed; release and click are
   consumed until release.
+- **Quick-select panel** (4.6). A left press on a row follows the rule for actionable chrome: it is
+  let through only when `onPostMenuSort` built the game's menu for that same row (`menuKey`: kind,
+  id and tree), so the game runs our "Select"; otherwise it is swallowed and a stale game entry can
+  never run. A press on the panel's body is absorbed (no pan). The wheel over the panel (body or row)
+  scrolls it by two rows a notch while its rows overflow (`panelScrollMax` > 0, fixed mode); otherwise
+  it zooms the map as everywhere else. Right-click a row: `Select` (the left-click entry), `Zoom to`
+  (when the tree is on a map) and `Clear selection` (with a selection), all `MenuAction.RUNELITE`.
+  `Select` (`SpiritTreeAtlasPlugin.showTree`) selects the tree exactly as its marker does (the Travel
+  row or the stand-in updates at once) and, when its marker (on the surface, a Prifddinas tree's
+  stand-in) is not inside the map clear of the chrome (16 px in), animates a pan to it at the current
+  zoom; a surface tree picked on the Prifddinas map brings the surface back first. Hovering a row
+  shows that tree's card and the hover ring on its marker. The panel's scroll is reset on each open
+  that is not a quick reopen.
 - `onPostMenuSort` (menu closed): inside the map and outside the holes, remove every entry but
   CANCEL (no "Walk here" through the map, no hidden rows), then add ours. In List mode only the
   floating Map button owns its rect: its "Show Map" entry, and a left press there is let through
@@ -679,6 +731,7 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `mapMaxWidth` | int px | 2000, range 512-2000 |
 | `mapMaxHeight` | int px | 1400, range 334-1400 |
 | `openAt` | enum FIT_ALL / AROUND_YOU / REMEMBER | FIT_ALL |
+| `quickSelect` ("Quick select list") | boolean | true: the quick-select panel (4.6); off, neither panel nor tab |
 | `placeLabels` | boolean | true |
 | `mapIcons` | boolean | true |
 | `fullDetails` | boolean | false |
@@ -687,6 +740,9 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `dimLocked` | boolean | false |
 | `availableColor` | Color | `#5BD45B` |
 | `selectedColor` | Color | `#FF981F` |
+
+Hidden (not in the config panel): `quickSelectOpen`, "false" once the player closed the
+quick-select panel (absent or "true": open, 4.6), as Fairy Ring Atlas saves `groupsOpen`.
 
 ---
 
@@ -707,10 +763,10 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `ModalSlot` | Use free space | adapted (root that must fill the slot) |
 | `Scene`, `Hit` | per-frame data and hit regions | adapted |
 | `AtlasPainter` | markers, labels, icons, portals | adapted |
-| `ChromePainter` | frame, top bar, back button, card, stand-in, caption, hole frames | adapted |
+| `ChromePainter` | frame, top bar, quick-select panel, back button, card, stand-in, caption, hole frames | adapted |
 | `AtlasOverlay` | draws everything, publishes hits/holes, List-mode Map button and notices | adapted |
 | `RowBackdrop` | UNDER_WIDGETS backdrop for the Travel hole | new |
-| `AtlasInput` | mouse and wheel | adapted (no rows/panels) |
+| `AtlasInput` | mouse and wheel; the quick-select panel's rows and wheel | adapted (no row dragging) |
 
 Dropped from FRA: `DialMath`, `FavouriteOrder`, `RingGroups`, `TravelLogController`, `RingMenuNames`,
 `ClueHelper`, `UnlockCheck`, `Ring`, `RingRepository`, `groups.json`, `rings.json`.
@@ -723,21 +779,32 @@ in Map mode no component holding either key-listener layer is hidden), `PluginEv
 plugin's event handling against the fake menus: open on the title only, rebuilds put back first,
 another menu on the same interface, a script we do not hook, a missed script, reopen within 3
 ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
-wheel on the map and List mode's Map button), `MapViewTest`,
+wheel on the map and List mode's Map button; the quick-select panel: a row press with and without
+a menu built for it, the panel's body absorbing a press, the wheel over the panel scrolling only
+while its rows overflow, a row's Select panning only when the marker or stand-in is out of view and
+bringing the surface back, the panel closed on narrow maps and the player's choice kept and saved,
+and the `quickSelect` default), `PainterTest` (holes untouched, markers and buttons, the stand-in,
+the fixed-mode card covering no marker; the quick-select panel: rows in the live menu order with
+unlisted trees last, every row state drawn differently, the tab and the setting off, no overlap with
+the holes, cell, caption or stand-in at 512x334 and 1738x905 for every selection in both styles, and
+stopping above them in its column, the card and labels clear of it, scrolling), `MapViewTest`,
 `LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest`, `TreeDataTest` (the real `trees.json` and
 `index.json`: unique ids and labels, every tree inside its layer, previous values 1-14 unique, house
 portals 1-6, 8, 9, 13, ASCII and length limits, tiles on disk equal the index, every image at most
 256x256 and under 950,000 bytes decoded, resources at most 7.6 MiB, layers in `index.json`, source
 size), `EventBusRegistrationTest`, `MapPreviewTest`, and the launcher `SpiritTreeAtlasPluginTest`.
 
-**Previews** (`gradlew preview`, `MapPreview` into `build/preview/`): full fit, Grand Exchange at
+**Previews** (`gradlew preview`, `MapPreview` into `build/preview/`). Maps 700 px and wider show the
+quick-select panel open, the fixed-mode (512x334) shots its tab, as on a first open. Full fit, Grand Exchange at
 4 ppt, 16 ppt, the Prifddinas layer, fixed mode 512x334 with the modern corner (Travel shown), fixed
 mode with the classic corner (stand-in), fixed mode with the classic Travel row shown
 (`11-fixed-classic-travel`), a locked tree's card, a full-details card (`12-full-card`), every
 marker state at 1/4/8/16 ppt and every stand-in in both cell sizes (`13-marker-states`), an
 alignment sheet of every tree at 8 ppt, the free-space size (1738x905), and `icon.png` (the hub
 icon, 48x72: a large selected marker over Varrock at 2 ppt), which the preview writes to the repo
-root. The previews draw the game's own row and close button in the holes, as they look in game.
+root, and `14-fixed-quick-select`: fixed mode with the panel opened, the pointer over Hosidius's
+row (its card and its marker's hover ring), Grand Exchange selected and the "You" tag on the Gnome
+Stronghold. The previews draw the game's own row and close button in the holes, as they look in game.
 
 ---
 
@@ -785,6 +852,9 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
   `WidgetClosed`/`WidgetLoaded` against the scripts; `WidgetClosed` with `isUnload()` false on the
   fixed/resizable switch, with the map staying up across it.
 - **The wheel.** Over the classic Travel row nothing scrolls; elsewhere on the map it zooms.
+- **Quick-select panel.** A row's left click selects (the game runs our Select; no stale entry runs
+  after moving onto the panel from the game view); the tab and the header triangle toggle it, and
+  the choice survives a client restart.
 - **Rows.** What a grey row and the tree you stand at do when clicked; whether grey rows have
   `</col>`; that "Please wait..." after a key press keeps the Travel row in place until the menu
   closes.
