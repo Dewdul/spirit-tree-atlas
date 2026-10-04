@@ -63,9 +63,9 @@ public class PainterTest
 		s.now = 1000;
 		Rectangle map = v.rect();
 		Rectangle slot = new Rectangle(map.x + map.width - 512, map.y + map.height - 334, 512, 334);
-		TreeMenu.Geometry g = TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0);
+		TreeMenu.Geometry g = TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0);
 		s.rowCell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
-		s.closeRect = new Rectangle(slot.x + 468, slot.y + 273, 26, 23);
+		s.closeRect = new Rectangle(slot.x + 478, slot.y + 261, 26, 23);
 		s.holes.add(s.closeRect);
 		s.rowShown = shown;
 		if (shown)
@@ -212,24 +212,28 @@ public class PainterTest
 	}
 
 	/**
-	 * DESIGN 4.4: the stand-in's line is never cut for the real data: every grey row's hint (with
-	 * its padlock) and every fixed line fit the modern 161 px and classic 170 px cells, widened to
-	 * the left by at most {@link ChromePainter#STAND_IN_GROW}.
+	 * DESIGN 4.4: the stand-in's lines are never cut for the real data: every tree's label (the
+	 * house with the longest town), every grey row's hint (with its padlock) and every fixed line
+	 * fit the Travel cell (200 px in both menus) without widening it, and two lines fit its height.
 	 */
 	@Test
 	public void standInLinesFitTheCell()
 	{
 		TreeRepository real = TreeRepository.load(new Gson(), SpiritTreeAtlasPlugin.RESOURCES);
-		ChromePainter chrome = new ChromePainter(Ink.create());
+		Ink ink = Ink.create();
+		ChromePainter chrome = new ChromePainter(ink);
 		List<String> lines = new ArrayList<>(Arrays.asList("Pick a tree on the map", "You are here", "Not in this tree's list"));
+		real.placeHouse(3);
 		for (Tree t : real.getTrees())
 		{
-			assertTrue(t.getId(), chrome.standInWidth(t.getLockedHint(), true) + 6 <= 161 + ChromePainter.STAND_IN_GROW);
+			assertTrue(t.getId(), chrome.standInWidth(t.getLockedHint(), true) + 6 <= TreeMenu.TRAVEL_W);
+			lines.add(t.getLabel());
 		}
 		for (String l : lines)
 		{
-			assertTrue(l, chrome.standInWidth(l, false) + 6 <= 161);
+			assertTrue(l, chrome.standInWidth(l, false) + 6 <= TreeMenu.TRAVEL_W);
 		}
+		assertTrue(2 * ink.height(ink.small) + 2 <= TreeMenu.TRAVEL_H);
 	}
 
 	/** The stand-in owns its whole (possibly widened) box, and labels and the card keep clear of it. */
@@ -251,7 +255,8 @@ public class PainterTest
 	 * DESIGN 4.6, deviation 19: in fixed mode (a 512x334 map) the fitted overview has a marker near
 	 * every corner, so the card slides along an edge rather than cover one. For the real data, both
 	 * menu styles, each house town and each tree selected in turn (and none), the card covers no
-	 * marker centre, Laguna Aurorae's in the bottom-left corner included.
+	 * marker centre, Laguna Aurorae's in the bottom-left corner included, and neither does the
+	 * "Travel" caption.
 	 */
 	@Test
 	public void theFixedModeCardCoversNoMarker()
@@ -288,9 +293,15 @@ public class PainterTest
 						assertNotNull(at, s.card);
 						assertFalse(at, s.card.intersects(s.closeRect));
 						assertFalse(at, s.card.intersects(s.rowCell));
+						// the "Travel" caption stays above the cell, left of the close button, and hides no
+						// marker either (Feldip Hills sits over the 200 px cell's left end)
+						Rectangle cap = s.captionRect;
+						assertEquals(at, s.rowCell.y - 6, cap.y + cap.height);
+						assertTrue(at, cap.x >= s.rowCell.x - 1 && cap.x + cap.width < s.closeRect.x);
 						for (AtlasPainter.Mark m : AtlasPainter.marks(s))
 						{
 							assertFalse(at + " covers " + m.tree.getId() + " with " + s.card, s.card.contains(m.x, m.y));
+							assertFalse(at + " caption covers " + m.tree.getId(), AtlasPainter.grow(cap, 8).contains(m.x, m.y));
 						}
 					}
 				}
@@ -314,9 +325,9 @@ public class PainterTest
 		s.now = 1000;
 		s.panelOpen = panelOpen;
 		Rectangle slot = v.rect();
-		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0) : TreeMenu.classic(512, 334, 386, 16, 0);
+		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
 		s.rowCell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
-		s.closeRect = modern ? new Rectangle(slot.x + 468, slot.y + 273, 26, 23)
+		s.closeRect = modern ? new Rectangle(slot.x + 478, slot.y + 261, 26, 23)
 			: new Rectangle(slot.x + g.getClose().x, slot.y + g.getClose().y, 26, 23);
 		s.holes.add(s.closeRect);
 		TreeMenu.Row row = r.row(selected);

@@ -204,7 +204,7 @@ public class MapPreview
 		// the map grows from the slot's bottom-right corner, where the Travel row and close button go
 		Rectangle slot = new Rectangle(rect.x + rect.width - 512, rect.y + rect.height - 334, 512, 334);
 		boolean modern = shot.style == TreeMenu.Style.MODERN;
-		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0) : TreeMenu.classic(512, 334, 386, 16, 0);
+		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
 		Rectangle cell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
 		Point c = modern ? new Point(g.getRoot().x + 338 - 44, g.getRoot().y + 17) : g.getClose();
 		Rectangle close = new Rectangle(slot.x + c.x, slot.y + c.y, 26, 23);
@@ -456,8 +456,8 @@ public class MapPreview
 		int ch = 64;
 		int lw = 140;
 		Ink ink = painter.ink();
-		int stripH = 2 * 40 + 30;
-		BufferedImage img = new BufferedImage(Math.max(lw + ppts.length * (cw + 6) + 6, 140 + 5 * 186), 28 + states.length * (ch + 6) + 6 + stripH, BufferedImage.TYPE_INT_RGB);
+		int stripH = 2 * STAND_IN_ROW + 30;
+		BufferedImage img = new BufferedImage(Math.max(lw + ppts.length * (cw + 6) + 6, 148 + 5 * STAND_IN_STEP), 28 + states.length * (ch + 6) + 6 + stripH, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = img.createGraphics();
 		g.setColor(BACKGROUND);
 		g.fillRect(0, 0, img.getWidth(), img.getHeight());
@@ -508,6 +508,10 @@ public class MapPreview
 		ImageIO.write(img, "png", new File(out, "13-marker-states.png"));
 	}
 
+	/** The stand-in strip: one cell per case across, one menu style per row down. */
+	private static final int STAND_IN_STEP = TreeMenu.TRAVEL_W + 26;
+	private static final int STAND_IN_ROW = TreeMenu.TRAVEL_H + 40;
+
 	/** The stand-in for each case, and the shown row, in both menu styles at their real cell sizes. */
 	private static void standIns(TreeRepository repo, AtlasPainter painter, Graphics2D g, int top)
 	{
@@ -529,15 +533,19 @@ public class MapPreview
 		for (int style = 0; style < 2; style++)
 		{
 			boolean modern = style == 0;
-			int y = top + 18 + style * 40;
-			ink.text(g, modern ? "Modern 161x20" : "Classic 170x16", ink.small, ChromePainter.CREAM, 8, y + 2, Ink.Style.SHADOW);
+			// the cells as Map mode makes them (DESIGN 4.3)
+			TreeMenu.Geometry geo = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
+			int y = top + 30 + style * STAND_IN_ROW;
+			String size = geo.getCell().width + "x" + geo.getCell().height;
+			ink.text(g, (modern ? "Modern " : "Classic ") + size, ink.small, ChromePainter.CREAM, 8, y + geo.getCell().height / 2 - 6,
+				Ink.Style.SHADOW);
 			for (int i = 0; i < cases.length; i++)
 			{
 				Tree sel = (Tree) cases[i][0];
 				TreeMenu.Row row = (TreeMenu.Row) cases[i][1];
 				String here = (String) cases[i][2];
-				Rectangle cell = new Rectangle(148 + i * 186, y, modern ? 161 : 170, modern ? 20 : 16);
-				Rectangle map = new Rectangle(cell.x - 8, cell.y - 22, cell.width + 16, cell.height + 30);
+				Rectangle cell = new Rectangle(148 + i * STAND_IN_STEP, y, geo.getCell().width, geo.getCell().height);
+				Rectangle map = new Rectangle(cell.x - 8, cell.y - 26, cell.width + 16, cell.height + 34);
 				Scene s = new Scene();
 				s.fromRepository(repo);
 				s.view = MapView.of(repo.surface(), map);

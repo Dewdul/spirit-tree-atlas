@@ -6,6 +6,7 @@
 package com.spirittreeatlas;
 
 import com.google.gson.Gson;
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.WidgetPositionMode;
+import net.runelite.api.widgets.WidgetSizeMode;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,9 +27,10 @@ import org.junit.Test;
 
 /**
  * The menu (DESIGN 3.3, 4.3): row parsing for both menus and the forms other plugins write; the
- * Map mode geometry for today's 15 rows and a 12-row list, modern and classic; and the changes
- * against fake menus: exactly recorded, put back exactly, never showing what we did not hide,
- * never touching the key listeners.
+ * Map mode geometry for today's 15 rows and a 12-row list, modern and classic, with the Travel
+ * row made button-sized; and the changes against fake menus: exactly recorded, put back exactly
+ * (sizes and size modes too), never showing what we did not hide, never resizing anything but the
+ * Travel row, never touching the key listeners.
  */
 public class TreeMenuTest
 {
@@ -185,7 +188,11 @@ public class TreeMenuTest
 
 	// ------------------------------------------------------------------ geometry
 
-	/** CONTENT_SCROLL's place in UNIVERSE and size, as the cache's modes lay them out for a UNIVERSE this size. */
+	/**
+	 * CONTENT_SCROLL's place in UNIVERSE and size, as the cache's modes lay them out for a UNIVERSE
+	 * this size, and the close button's right end (TITLE: centre/top, minus 12 wide; the button 12
+	 * px inside its right end).
+	 */
 	private static TreeMenu.Geometry modernFor(int universeW, int universeH)
 	{
 		// CONTENT_FRAME: centre/bottom, (0, 6), minus 12 x minus 56; CONTENT: centre/top, (0, 2), minus 4 x minus 2
@@ -195,7 +202,21 @@ public class TreeMenuTest
 		int frameY = universeH - frameH - 6;
 		int contentW = frameW - 4;
 		int contentX = (frameW - contentW) / 2;
-		return TreeMenu.modern(512, 334, frameX + contentX, frameY + 2, contentW, 161, 20, 0, 0);
+		int closeRight = 6 + (universeW - 12) - TreeMenu.MODERN_CLOSE_INSET;
+		return TreeMenu.modern(512, 334, frameX + contentX, frameY + 2, contentW, frameH - 2, closeRight, 0, 0);
+	}
+
+	/** The button pair: the close button's bottom just above the cell, their right ends aligned, both in the slot. */
+	private static void assertButtonPair(String at, Rectangle cell, Rectangle close)
+	{
+		Rectangle slot = new Rectangle(0, 0, 512, 334);
+		assertTrue(at, slot.contains(cell));
+		assertTrue(at, slot.contains(close));
+		assertFalse(at, close.intersects(cell));
+		assertEquals(at, TreeMenu.CLOSE_GAP, cell.y - (close.y + close.height));
+		assertEquals(at, cell.x + cell.width, close.x + close.width);
+		assertEquals(at, 512 - TreeMenu.RIGHT, cell.x + cell.width);
+		assertEquals(at, 334 - TreeMenu.BOTTOM, cell.y + cell.height);
 	}
 
 	@Test
@@ -206,27 +227,36 @@ public class TreeMenuTest
 		{
 			TreeMenu.Geometry g = modernFor(universe[0], universe[1]);
 			String at = universe[0] + "x" + universe[1];
-			// UNIVERSE hangs below the slot: its title strip and first row line show in the corner
-			assertEquals(at, new Point(174, 256), g.getRoot());
-			// the top row of the last column, CONTENT_SCROLL-relative
-			assertEquals(at, new Point(161, 0), g.getRow());
-			assertEquals(at, new Rectangle(343, 308, 161, 20), g.getCell());
-			assertEquals(at, 512 - TreeMenu.RIGHT, g.getCell().x + g.getCell().width);
-			assertEquals(at, 334 - TreeMenu.BOTTOM, g.getCell().y + g.getCell().height);
+			// UNIVERSE hangs below the slot: its title strip and the button show in the corner
+			assertEquals(at, new Point(184, 244), g.getRoot());
+			// the Travel button, 200x32, at the top of the scroll area, its right end under the close button's
+			assertEquals(at, new Dimension(TreeMenu.TRAVEL_W, TreeMenu.TRAVEL_H), g.getRowSize());
+			assertEquals(at, new Point(112, 0), g.getRow());
+			assertEquals(at, new Rectangle(304, 296, 200, 32), g.getCell());
 			assertNull(g.getClose());
 			// the close button rides on UNIVERSE at (W-44, 17): just above the cell's right end
 			Rectangle close = new Rectangle(g.getRoot().x + universe[0] - 44, g.getRoot().y + 17, 26, 23);
-			assertEquals(at, new Rectangle(468, 273, 26, 23), close);
-			assertTrue(at, new Rectangle(0, 0, 512, 334).contains(close));
-			assertTrue(at, close.y + close.height < g.getCell().y);
-			assertTrue(at, close.x > g.getCell().x + g.getCell().width / 2 && close.x + close.width <= g.getCell().x + g.getCell().width);
-			// what shows of UNIVERSE inside the slot: the 51 px title strip, the 20 px row line and the 6 px margin
-			assertEquals(at, 78, 334 - g.getRoot().y);
+			assertEquals(at, new Rectangle(478, 261, 26, 23), close);
+			assertButtonPair(at, g.getCell(), close);
+			// the button stays inside CONTENT_SCROLL (UNIVERSE (8, 52), 322 wide)
+			assertTrue(at, g.getRow().x >= 0 && g.getRow().x + 200 <= 322);
+			// what shows of UNIVERSE inside the slot: the 52 px title strip, the 32 px button and the 6 px margin
+			assertEquals(at, 90, 334 - g.getRoot().y);
 		}
 		// scrolled: the cell keeps its place on screen, the row moves with the scroll
-		TreeMenu.Geometry scrolled = TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 30, 0);
-		assertEquals(new Point(191, 0), scrolled.getRow());
-		assertEquals(new Rectangle(343, 308, 161, 20), scrolled.getCell());
+		TreeMenu.Geometry scrolled = TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 30, 0);
+		assertEquals(new Point(142, 0), scrolled.getRow());
+		assertEquals(new Rectangle(304, 296, 200, 32), scrolled.getCell());
+		// close button unknown: the button ends at the scroll area's right end, the cell keeps its place
+		TreeMenu.Geometry unknown = TreeMenu.modern(512, 334, 8, 52, 322, 160, 0, 0, 0);
+		assertEquals(new Point(174, 244), unknown.getRoot());
+		assertEquals(new Point(122, 0), unknown.getRow());
+		assertEquals(new Rectangle(304, 296, 200, 32), unknown.getCell());
+		// a scroll area smaller than the button: the button is what fits, still in the corner
+		TreeMenu.Geometry small = TreeMenu.modern(512, 334, 8, 52, 150, 20, 140, 0, 0);
+		assertEquals(new Dimension(150, 20), small.getRowSize());
+		assertEquals(new Point(0, 0), small.getRow());
+		assertEquals(new Rectangle(354, 308, 150, 20), small.getCell());
 	}
 
 	@Test
@@ -235,17 +265,21 @@ public class TreeMenuTest
 		// 15 rows scroll the 232 px list by up to 8 px; 12 rows do not scroll
 		for (int scrollY : new int[]{0, 8})
 		{
-			TreeMenu.Geometry g = TreeMenu.classic(512, 334, 386, 16, scrollY);
-			assertEquals(new Point(226, 312), g.getRoot());
+			TreeMenu.Geometry g = TreeMenu.classic(512, 334, 386, 232, scrollY);
+			assertEquals(new Point(211, 296), g.getRoot());
 			assertEquals(new Point(0, scrollY), g.getRow());
-			// the middle 170 px of the centred row line
-			assertEquals(new Rectangle(334, 312, 170, 16), g.getCell());
+			// the row keeps its full width (minus 0 of the list) and becomes 32 tall
+			assertEquals(new Dimension(386, TreeMenu.TRAVEL_H), g.getRowSize());
+			// the middle 200 px of the centred row line: the same corner as the modern menu
+			assertEquals(new Rectangle(304, 296, 200, 32), g.getCell());
 			assertEquals(g.getRoot().x + 386 / 2, (int) g.getCell().getCenterX());
-			assertEquals(new Point(478, 285), g.getClose());
-			Rectangle close = new Rectangle(g.getClose().x, g.getClose().y, 26, 23);
-			assertEquals(4, g.getCell().y - (close.y + close.height));
-			assertEquals(g.getCell().x + g.getCell().width, close.x + close.width);
+			assertEquals(new Point(478, 261), g.getClose());
+			assertButtonPair("scroll " + scrollY, g.getCell(), new Rectangle(g.getClose().x, g.getClose().y, 26, 23));
 		}
+		// Better Teleport Menu's "Expand scroll menu": the slot and the list 8 px taller; the corner follows
+		TreeMenu.Geometry tall = TreeMenu.classic(512, 342, 386, 240, 0);
+		assertEquals(new Rectangle(304, 304, 200, 32), tall.getCell());
+		assertEquals(new Point(478, 269), tall.getClose());
 	}
 
 	// ------------------------------------------------------------------ changes against fake menus
@@ -273,13 +307,14 @@ public class TreeMenuTest
 		return null;
 	}
 
-	/** Snapshot of every widget's hidden flag and position fields, to compare after a restore. */
+	/** Snapshot of every widget's hidden flag, position and size fields and layout, to compare after a restore. */
 	private static List<String> snapshot(FakeMenu f)
 	{
 		List<String> out = new ArrayList<>();
 		for (FakeMenu.W w : f.all())
 		{
-			out.add(w.id + "/" + w.index + " " + w.hidden + " " + Arrays.toString(w.position()) + " " + w.relX + "," + w.relY);
+			out.add(w.id + "/" + w.index + " " + w.hidden + " " + Arrays.toString(w.position()) + " " + Arrays.toString(w.size())
+				+ " " + w.relX + "," + w.relY + " " + w.w + "x" + w.h);
 		}
 		Collections.sort(out);
 		return out;
@@ -311,7 +346,7 @@ public class TreeMenuTest
 		TreeMenu.Row ge = row(menu, "GRAND_EXCHANGE");
 		menu.apply(ge);
 		FakeMenu.W universe = f.get(InterfaceID.MenuNew.UNIVERSE);
-		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 174, 256}, universe.position());
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 184, 244}, universe.position());
 		FakeMenu.W[] text = f.get(InterfaceID.MenuNew.TEXT).children;
 		FakeMenu.W[] graphics = f.get(InterfaceID.MenuNew.GRAPHICS).children;
 		for (int i = 0; i < text.length; i++)
@@ -319,14 +354,22 @@ public class TreeMenuTest
 			assertEquals("row " + i, i != 3, text[i].hidden);
 			assertEquals("row " + i, i != 3, graphics[i].hidden);
 		}
-		// the shown row is in the cell, which is in the slot's bottom-right corner
-		Rectangle cell = new Rectangle(100 + 343, 200 + 308, 161, 20);
+		// the shown row, text and backing, is the 200x32 button in the cell, in the slot's bottom-right corner
+		Rectangle cell = new Rectangle(100 + 304, 200 + 296, 200, 32);
+		int[] button = {WidgetSizeMode.ABSOLUTE, WidgetSizeMode.ABSOLUTE, 200, 32};
+		assertArrayEquals(button, text[3].size());
+		assertArrayEquals(button, graphics[3].size());
 		assertEquals(cell, text[3].canvas());
 		assertEquals(cell, graphics[3].canvas());
 		assertEquals(cell, menu.rowCell(ge));
-		assertEquals(new Rectangle(100 + 468, 200 + 273, 26, 23), menu.closeRect());
+		// the close button just above the button's right end
+		Rectangle close = new Rectangle(100 + 478, 200 + 261, 26, 23);
+		assertEquals(close, menu.closeRect());
+		assertFalse(close.intersects(cell));
+		assertEquals(cell.x + cell.width, close.x + close.width);
 		assertEquals("GRAND_EXCHANGE", menu.liveRow(ge, TREES, GREY).getTreeId());
-		// UNIVERSE keeps its size: nothing is resized
+		// nothing else is resized: UNIVERSE keeps its size, the other rows theirs
+		assertOnlyResized(f, text[3], graphics[3]);
 		assertEquals(338, universe.w);
 		assertEquals(218, universe.h);
 
@@ -335,13 +378,17 @@ public class TreeMenuTest
 		menu.apply(ge);
 		assertEquals(writes, universe.writes + text[3].writes);
 
-		// another selection: Grand Exchange goes back and hides, Feldip Hills comes out
+		// another selection: Grand Exchange goes back (place and size) and hides, Feldip Hills comes out
 		TreeMenu.Row feldip = row(menu, "FELDIP_HILLS");
 		menu.apply(feldip);
 		assertTrue(text[3].hidden);
 		assertArrayEquals(new int[]{0, 0, 0, 60}, text[3].position());
+		int[] entry = {WidgetSizeMode.ABSOLUTE, WidgetSizeMode.ABSOLUTE, 161, 20};
+		assertArrayEquals(entry, text[3].size());
+		assertArrayEquals(entry, graphics[3].size());
 		assertFalse(text[4].hidden);
 		assertEquals(cell, text[4].canvas());
+		assertEquals(cell, graphics[4].canvas());
 
 		// a row someone else hid is never shown, even as the Travel row
 		TreeMenu.Row sarim = row(menu, "PORT_SARIM");
@@ -396,14 +443,21 @@ public class TreeMenuTest
 		FakeMenu.W[] text = f.get(InterfaceID.MenuNew.TEXT).children;
 		assertFalse(text[9].hidden);
 		assertTrue(text[3].hidden);
+		assertEquals(200, text[9].w);
+		assertEquals(32, text[9].h);
 		menu.restore();
+		// the old rows' records were dropped: the old Travel row is left as it was, 200x32
 		for (int i = 0; i < old.length; i++)
 		{
 			assertEquals("old row " + i, oldWrites[i], old[i].writes);
 		}
-		for (FakeMenu.W t : text)
+		assertEquals(32, old[3].h);
+		FakeMenu.W[] graphics = f.get(InterfaceID.MenuNew.GRAPHICS).children;
+		for (int i = 0; i < text.length; i++)
 		{
-			assertFalse(t.hidden);
+			assertFalse(text[i].hidden);
+			assertArrayEquals(new int[]{WidgetSizeMode.ABSOLUTE, WidgetSizeMode.ABSOLUTE, 161, 20}, text[i].size());
+			assertArrayEquals(new int[]{WidgetSizeMode.ABSOLUTE, WidgetSizeMode.ABSOLUTE, 161, 20}, graphics[i].size());
 		}
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_CENTER, WidgetPositionMode.ABSOLUTE_CENTER, 0, 0},
 			f.get(InterfaceID.MenuNew.UNIVERSE).position());
@@ -421,7 +475,7 @@ public class TreeMenuTest
 		f.add(InterfaceID.MenuNew.UNIVERSE, f.get(InterfaceID.MenuNew.INFINITE), 1, 1, 0, 0, 338, 218);
 		menu.restore();
 		assertEquals(writes, universe.writes);
-		assertEquals(174, universe.x);
+		assertEquals(184, universe.x);
 	}
 
 	@Test
@@ -442,26 +496,91 @@ public class TreeMenuTest
 		assertTrue(f.get(InterfaceID.Menu.LJ_SCROLL_BAR).hidden);
 		assertNull(f.hotkeysBlocked());
 		FakeMenu.W list = f.get(InterfaceID.Menu.LJ_LAYER1);
-		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 226, 312}, list.position());
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 211, 296}, list.position());
 		assertEquals(386, list.w);
+		assertEquals(232, list.h);
 		FakeMenu.W[] rows = list.children;
 		for (int i = 0; i < rows.length; i++)
 		{
 			assertEquals("row " + i, i != 3, rows[i].hidden);
 		}
-		// the row moved to the list's scroll position, its centred x kept
+		// the row moved to the list's scroll position, its centred x kept, 32 tall, its width still the list's minus 0
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_CENTER, WidgetPositionMode.ABSOLUTE_TOP, 0, 8}, rows[3].position());
-		Rectangle cell = new Rectangle(100 + 334, 200 + 312, 170, 16);
+		assertArrayEquals(new int[]{WidgetSizeMode.MINUS, WidgetSizeMode.ABSOLUTE, 0, 32}, rows[3].size());
+		assertEquals(new Rectangle(100 + 211, 200 + 296, 386, 32), rows[3].canvas());
+		Rectangle cell = new Rectangle(100 + 304, 200 + 296, 200, 32);
 		assertTrue(rows[3].canvas().contains(cell));
 		assertEquals(cell, menu.rowCell(ge));
-		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 478, 285},
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 478, 261},
 			f.get(InterfaceID.Menu.ROOT_GRAPHIC3).position());
-		assertEquals(new Rectangle(100 + 478, 200 + 285, 26, 23), menu.closeRect());
+		Rectangle close = new Rectangle(100 + 478, 200 + 261, 26, 23);
+		assertEquals(close, menu.closeRect());
+		assertFalse(close.intersects(cell));
+		assertOnlyResized(f, rows[3]);
+
+		// another selection: Grand Exchange goes back to 16 px at its own place
+		menu.apply(row(menu, "HOSIDIUS"));
+		assertArrayEquals(new int[]{WidgetSizeMode.MINUS, WidgetSizeMode.ABSOLUTE, 0, 16}, rows[3].size());
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_CENTER, WidgetPositionMode.ABSOLUTE_TOP, 0, 48}, rows[3].position());
+		assertArrayEquals(new int[]{WidgetSizeMode.MINUS, WidgetSizeMode.ABSOLUTE, 0, 32}, rows[9].size());
+		assertEquals(cell, menu.rowCell(row(menu, "HOSIDIUS")));
 		assertEquals(FakeMenu.TITLE, menu.title(TreeMenu.Style.CLASSIC));
 
 		menu.restore();
 		assertEquals(before, snapshot(f));
 		assertKeyListenersUntouched(f, InterfaceID.Menu.KEYLISTENERS);
+	}
+
+	/** Hard rule 4: of every widget of the menu, only these (the Travel row's) were ever resized. */
+	private static void assertOnlyResized(FakeMenu f, FakeMenu.W... travel)
+	{
+		List<FakeMenu.W> allowed = Arrays.asList(travel);
+		for (FakeMenu.W w : f.all())
+		{
+			if (!allowed.contains(w))
+			{
+				assertEquals(w.id + "/" + w.index + " resized", 0, w.resizes);
+			}
+		}
+	}
+
+	/**
+	 * The size is put back exactly as found, modes included, and only while the row still holds
+	 * the size we wrote: a row the game or another plugin resized since keeps that size (and that
+	 * size is what a later apply records as the one to go back to).
+	 */
+	@Test
+	public void theTravelRowsSizeIsPutBackOnlyWhileItHoldsOurs()
+	{
+		for (TreeMenu.Style style : TreeMenu.Style.values())
+		{
+			boolean modern = style == TreeMenu.Style.MODERN;
+			FakeMenu f = modern ? FakeMenu.modern(FakeMenu.OPTIONS) : FakeMenu.classic(FakeMenu.OPTIONS);
+			TreeMenu menu = open(f, style);
+			FakeMenu.W r = f.get(modern ? InterfaceID.MenuNew.TEXT : InterfaceID.Menu.LJ_LAYER1).children[3];
+			int[] position = r.position();
+			menu.apply(row(menu, "GRAND_EXCHANGE"));
+			assertEquals(style.name(), 32, r.h);
+			// someone else makes it 40 tall: our size is no longer there to put back (the whole size
+			// is left as found, as a move the game redid is); the position still is ours, and goes back
+			r.oh = 40;
+			r.layOut();
+			int[] theirs = r.size();
+			int writes = r.resizes;
+			menu.restore();
+			assertEquals(style.name(), writes, r.resizes);
+			assertArrayEquals(style.name(), theirs, r.size());
+			assertArrayEquals(style.name(), position, r.position());
+			// applied again, their size is what goes back; a second apply writes nothing
+			menu.apply(row(menu, "GRAND_EXCHANGE"));
+			assertEquals(style.name(), 32, r.h);
+			writes = r.writes;
+			menu.apply(row(menu, "GRAND_EXCHANGE"));
+			assertEquals(style.name(), writes, r.writes);
+			menu.restore();
+			assertArrayEquals(style.name(), theirs, r.size());
+			assertEquals(style.name(), 40, r.h);
+		}
 	}
 
 	@Test
@@ -560,7 +679,7 @@ public class TreeMenuTest
 		assertEquals(71, list.y);
 		// and a re-apply records that place as the one to go back to
 		menu.apply(null);
-		assertEquals(312, list.y);
+		assertEquals(296, list.y);
 		menu.restore();
 		assertEquals(71, list.y);
 	}
@@ -654,6 +773,7 @@ public class TreeMenuTest
 			assertFalse(r.hidden);
 			assertEquals(WidgetPositionMode.ABSOLUTE_TOP, r.yMode);
 			assertEquals(16 * r.index, r.y);
+			assertArrayEquals(new int[]{WidgetSizeMode.MINUS, WidgetSizeMode.ABSOLUTE, 0, 16}, r.size());
 		}
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 55, 70},
 			f.get(InterfaceID.Menu.LJ_LAYER1).position());

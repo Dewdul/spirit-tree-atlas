@@ -163,9 +163,9 @@ public class MapViewTest
 		// grown from the slot's bottom-right corner: the moved Travel row and close sit in that corner
 		assertEquals(menu.y + menu.height, r.y + r.height);
 		assertEquals(menu.x + menu.width, r.x + r.width);
-		Rectangle corner = new Rectangle(r.x + r.width - 190, r.y + r.height - 75, 190, 75);
-		TreeMenu.Geometry modern = TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0);
-		TreeMenu.Geometry classic = TreeMenu.classic(512, 334, 386, 16, 0);
+		Rectangle corner = new Rectangle(r.x + r.width - 216, r.y + r.height - 80, 216, 80);
+		TreeMenu.Geometry modern = TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0);
+		TreeMenu.Geometry classic = TreeMenu.classic(512, 334, 386, 232, 0);
 		Rectangle[] parts = {
 			modern.getCell(), new Rectangle(modern.getRoot().x + 338 - 44, modern.getRoot().y + 17, 26, 23),
 			classic.getCell(), new Rectangle(classic.getClose().x, classic.getClose().y, 26, 23),
