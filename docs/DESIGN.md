@@ -888,8 +888,14 @@ from the text above.
 23. The source-size test counts each line end as one byte, so a CRLF checkout measures the same as
     the committed files (rule 7).
 24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes, child creation,
-    other listeners, key managers and network classes, and fails if any code refers to the
-    key-listener layers.
+    other listeners, key managers, network classes, `getScriptEvent` (re-running a game script's
+    event) and `setParam0` / `setParam1` / `setIdentifier` (retargeting a game menu entry), and fails
+    if any code refers to the key-listener layers. It scans each file with comments stripped and
+    whitespace collapsed, matching names as whole words, so method references
+    (`client::runScript`) and spaced calls (`runScript (`) are caught; every `setType(` must be
+    `setType(MenuAction.RUNELITE)`; and, structurally, `setHidden(true)` appears only in
+    `TreeMenu.hide`, whose only static target is `LJ_SCROLL_BAR` (nothing that holds a key-listener
+    layer is ever hidden).
 
 **Review fixes (2026-10-04)**
 
