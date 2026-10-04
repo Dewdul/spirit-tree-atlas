@@ -129,11 +129,14 @@ public class PluginEventsTest
 	/** Map mode is in place on the modern menu, with this row index as the Travel row (or none). */
 	private void assertModernMap(int shown)
 	{
-		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 174, 256}, universe().position());
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 184, 244}, universe().position());
 		FakeMenu.W[] text = f.get(InterfaceID.MenuNew.TEXT).children;
 		for (int i = 0; i < text.length; i++)
 		{
 			assertEquals("row " + i, i != shown, text[i].hidden);
+			// the Travel row is the 200x32 button, the others keep the game's 161x20
+			assertEquals("row " + i, i == shown ? 200 : 161, text[i].w);
+			assertEquals("row " + i, i == shown ? 32 : 20, text[i].h);
 		}
 		assertNull(f.hotkeysBlocked());
 		assertFalse(f.mouseover);
@@ -374,7 +377,7 @@ public class PluginEventsTest
 		script(CLASSIC_SCRIPT);
 		plugin.select("GRAND_EXCHANGE");
 		MapView v = plugin.frameView(FakeMenu.SLOT);
-		Rectangle hole = new Rectangle(100 + 334, 200 + 312, 170, 16);
+		Rectangle hole = new Rectangle(100 + 304, 200 + 296, 200, 32);
 		plugin.publish(Collections.emptyList(), Collections.singletonList(hole), null, hole);
 		// on the map: zoom
 		assertTrue(input.mouseWheelMoved(wheel(300, 300)).isConsumed());

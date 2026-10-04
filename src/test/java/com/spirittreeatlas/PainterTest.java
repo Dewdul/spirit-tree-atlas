@@ -54,9 +54,9 @@ public class PainterTest
 		s.selected = selected;
 		s.now = 1000;
 		Rectangle slot = new Rectangle(MAP.x + MAP.width - 512, MAP.y + MAP.height - 334, 512, 334);
-		TreeMenu.Geometry g = TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0);
+		TreeMenu.Geometry g = TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0);
 		s.rowCell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
-		s.closeRect = new Rectangle(slot.x + 468, slot.y + 273, 26, 23);
+		s.closeRect = new Rectangle(slot.x + 478, slot.y + 261, 26, 23);
 		s.holes.add(s.closeRect);
 		s.rowShown = shown;
 		if (shown)
@@ -192,24 +192,28 @@ public class PainterTest
 	}
 
 	/**
-	 * DESIGN 4.4: the stand-in's line is never cut for the real data: every grey row's hint (with
-	 * its padlock) and every fixed line fit the modern 161 px and classic 170 px cells, widened to
-	 * the left by at most {@link ChromePainter#STAND_IN_GROW}.
+	 * DESIGN 4.4: the stand-in's lines are never cut for the real data: every tree's label (the
+	 * house with the longest town), every grey row's hint (with its padlock) and every fixed line
+	 * fit the Travel cell (200 px in both menus) without widening it, and two lines fit its height.
 	 */
 	@Test
 	public void standInLinesFitTheCell()
 	{
 		TreeRepository real = TreeRepository.load(new Gson(), SpiritTreeAtlasPlugin.RESOURCES);
-		ChromePainter chrome = new ChromePainter(Ink.create());
+		Ink ink = Ink.create();
+		ChromePainter chrome = new ChromePainter(ink);
 		List<String> lines = new ArrayList<>(Arrays.asList("Pick a tree on the map", "You are here", "Not in this tree's list"));
+		real.placeHouse(3);
 		for (Tree t : real.getTrees())
 		{
-			assertTrue(t.getId(), chrome.standInWidth(t.getLockedHint(), true) + 6 <= 161 + ChromePainter.STAND_IN_GROW);
+			assertTrue(t.getId(), chrome.standInWidth(t.getLockedHint(), true) + 6 <= TreeMenu.TRAVEL_W);
+			lines.add(t.getLabel());
 		}
 		for (String l : lines)
 		{
-			assertTrue(l, chrome.standInWidth(l, false) + 6 <= 161);
+			assertTrue(l, chrome.standInWidth(l, false) + 6 <= TreeMenu.TRAVEL_W);
 		}
+		assertTrue(2 * ink.height(ink.small) + 2 <= TreeMenu.TRAVEL_H);
 	}
 
 	/** The stand-in owns its whole (possibly widened) box, and labels and the card keep clear of it. */
@@ -287,9 +291,9 @@ public class PainterTest
 		s.selected = selected;
 		s.now = 1000;
 		Rectangle slot = v.rect();
-		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0) : TreeMenu.classic(512, 334, 386, 16, 0);
+		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
 		s.rowCell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
-		s.closeRect = modern ? new Rectangle(slot.x + 468, slot.y + 273, 26, 23)
+		s.closeRect = modern ? new Rectangle(slot.x + 478, slot.y + 261, 26, 23)
 			: new Rectangle(slot.x + g.getClose().x, slot.y + g.getClose().y, 26, 23);
 		s.holes.add(s.closeRect);
 		TreeMenu.Row row = r.row(selected);

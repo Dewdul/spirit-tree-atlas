@@ -53,7 +53,7 @@ public class ChromePainter
 	private static final String LOCKED = "Locked: ";
 	/** The padlock and the gap after it. */
 	private static final int LOCK_W = 10;
-	/** How far the stand-in may grow left of the cell to fit its line. */
+	/** How far the stand-in may grow left of the cell to fit its lines. */
 	static final int STAND_IN_GROW = 24;
 	private static final String LAST_TRIP = "last trip";
 	/** The card title's inset, beside the tree glyph. */
@@ -94,9 +94,11 @@ public class ChromePainter
 		s.standInRect = null;
 		if (s.rowCell != null && !s.rowShown)
 		{
-			// the line is never cut while a little more room to the left (over the map) lets it fit
+			// a line is never cut while a little more room to the left (over the map) lets it fit
 			Rectangle c = s.rowCell;
-			int grow = Math.max(0, Math.min(STAND_IN_GROW, standInWidth(standInLine(s), standInLocked(s)) + 6 - c.width));
+			String name = standInName(s);
+			int wide = Math.max(standInWidth(standInLine(s), standInLocked(s)), name == null ? 0 : ink.width(ink.small, name));
+			int grow = Math.max(0, Math.min(STAND_IN_GROW, wide + 6 - c.width));
 			s.standInRect = new Rectangle(c.x - grow, c.y, c.width + grow, c.height);
 		}
 	}
@@ -716,7 +718,9 @@ public class ChromePainter
 
 	/**
 	 * The "Travel" caption over the cell's left end and, while the real row is covered, a disabled
-	 * stand-in in its place that says why in one line and owns its clicks (DESIGN 4.4).
+	 * stand-in in its place that owns its clicks (DESIGN 4.4): for a selected tree, its name over
+	 * why it cannot travel (the padlock and its hint, "You are here", "Not in this tree's list");
+	 * with nothing selected, one line. A cell too short for two lines shows only the reason.
 	 */
 	void paintStandIn(Graphics2D g, Scene s)
 	{
@@ -744,17 +748,34 @@ public class ChromePainter
 		g.setColor(BRONZE);
 		g.drawRect(box.x - 3, box.y - 3, box.width + 5, box.height + 5);
 		boolean locked = standInLocked(s);
-		// "..." only when even the widened box is too narrow
+		int lh = ink.height(ink.small);
+		String name = standInName(s);
+		name = name != null && box.height >= 2 * lh + 2 ? name : null;
+		// the lines as a block, centred; "..." only when even the widened box is too narrow
+		int y = box.y + (box.height - (name == null ? lh : 2 * lh)) / 2;
+		if (name != null)
+		{
+			String n = ink.fit(name, ink.small, box.width - 6);
+			ink.text(g, n, ink.small, Color.WHITE, box.x + (box.width - ink.width(ink.small, n) + 1) / 2, y, Ink.Style.SHADOW);
+			y += lh;
+		}
 		String t = ink.fit(standInLine(s), ink.small, box.width - 6 - (locked ? LOCK_W : 0));
-		Color c = s.selected == null ? GREY : locked ? AMBER : CREAM;
+		Color c = s.selected == null ? GREY : locked ? AMBER : name != null ? GREY : CREAM;
 		int x = box.x + (box.width - standInWidth(t, locked) + 1) / 2;
 		if (locked)
 		{
-			AtlasPainter.drawPadlock(g, x + 3.5, box.y + box.height / 2.0, 7, AMBER);
+			AtlasPainter.drawPadlock(g, x + 3.5, y + lh / 2.0, 7, AMBER);
 			x += LOCK_W;
 		}
-		ink.text(g, t, ink.small, c, x, box.y + (box.height - ink.height(ink.small)) / 2, Ink.Style.SHADOW);
+		ink.text(g, t, ink.small, c, x, y, Ink.Style.SHADOW);
 		s.hits.add(new Hit(Hit.Kind.BLOCK, AtlasPainter.grow(box, 3), null, null, null, null));
+	}
+
+	/** The stand-in's first line: the selected tree's label (the house names its town), or null. */
+	private static String standInName(Scene s)
+	{
+		Tree sel = s.tree(s.selected);
+		return sel == null ? null : sel.getLabel();
 	}
 
 	/** The stand-in's line: {@link Scene#standIn}, a grey row's hint without its "Locked: " (the padlock says it). */

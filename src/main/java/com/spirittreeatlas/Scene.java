@@ -61,7 +61,7 @@ public final class Scene
 	public Rectangle closeRect;
 	/** Whether the selected tree's real row is uncovered in {@link #rowCell} ({@link #rowShown(String, TreeMenu.Row, String)}). */
 	public boolean rowShown;
-	/** The covered cell's one line ({@link #standInText}); null while the row shows. */
+	/** Why the covered cell cannot travel ({@link #standInText}), under the tree's name; null while the row shows. */
 	public String standIn;
 	/** The caption over the cell's left end. */
 	public String caption = "Travel";
@@ -107,7 +107,7 @@ public final class Scene
 	public Rectangle captionRect;
 	/**
 	 * The stand-in's box over the covered cell, set by the chrome layout: the cell, widened to the
-	 * left when its one line needs it; null while the row shows. Labels and the card keep clear of it.
+	 * left when a line needs it; null while the row shows. Labels and the card keep clear of it.
 	 */
 	public Rectangle standInRect;
 

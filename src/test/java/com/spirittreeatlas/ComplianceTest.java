@@ -21,15 +21,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 /**
  * DESIGN 1 (hard rules 1-5): the plugin never sends a game action, writes vars, injects input,
- * uses reflection, adds widget ops, listeners or text, captures the keyboard, touches the key
- * listener layers or the network. This scans the main sources for the APIs that would do any of
- * that, however they are written: comments are stripped, whitespace is collapsed, method
- * references count as calls, and names match as whole words.
+ * uses reflection, adds widget ops, listeners or text, resizes any widget but the Travel row,
+ * captures the keyboard, touches the key listener layers or the network. This scans the main
+ * sources for the APIs that would do any of that, however they are written: comments are
+ * stripped, whitespace is collapsed, method references count as calls, and names match as whole
+ * words.
  */
 public class ComplianceTest
 {
@@ -47,8 +49,7 @@ public class ComplianceTest
 		"requestFocusInWindow",
 		"java.lang.reflect", "Class.forName", "setOnMouseLeaveListener", "setOnTimerListener", "setOnDialogAbortListener",
 		"setOnMouseRepeatListener", "setOnTargetEnterListener", "setOnTargetLeaveListener", "setHasListener", "setName",
-		"setSpriteId", "setOpacity", "setOriginalWidth", "setOriginalHeight", "setWidthMode", "setHeightMode", "createChild",
-		"deleteAllChildren", "clearActions", "setSubOp",
+		"setSpriteId", "setOpacity", "createChild", "deleteAllChildren", "clearActions", "setSubOp",
 		// whole words no longer catch these as "setText" did: a widget restyled is a widget re-texted (rule 4)
 		"setTextShadowed", "setFontId", "setXTextAlignment", "setYTextAlignment", "setLineHeight", "setModelId",
 		"setItemId", "setItemQuantity", "setFilled", "setSpriteTiling", "setBorderType",
@@ -58,6 +59,11 @@ public class ComplianceTest
 		// a game script's event re-run, or a game menu entry retargeted: nothing here needs either
 		"getScriptEvent", "setParam0", "setParam1", "setIdentifier",
 	};
+	/** The widget size setters: allowed only for the Travel row, in TreeMenu.writeSize ({@link #onlyTheTravelRowIsResized}). */
+	private static final String[] RESIZE = {"setWidthMode", "setHeightMode", "setOriginalWidth", "setOriginalHeight"};
+	/** The row layers, whose dynamic children are the rows (DESIGN 2.2, 2.3). */
+	private static final List<String> ROW_LAYERS = Arrays.asList("InterfaceID.MenuNew.TEXT", "InterfaceID.MenuNew.GRAPHICS",
+		"InterfaceID.Menu.LJ_LAYER1");
 	/** The only static component Map mode may hide: no key-listener layer and nothing that holds one (DESIGN 4.3). */
 	private static final String HIDEABLE_STATIC = "InterfaceID.Menu.LJ_SCROLL_BAR";
 	private static final Pattern SPACE_AROUND = Pattern.compile("\\s*(::|[.(),;])\\s*");
@@ -249,6 +255,109 @@ public class ComplianceTest
 			}
 		}
 		assertTrue("TreeMenu hides through hide()", calls >= 2);
+	}
+
+	/**
+	 * Hard rule 4's one resize: the Travel row is made button-sized (DESIGN 4.3), like Fairy Ring
+	 * Atlas's Teleport button, and nothing else is ever resized. Structurally: the size setters
+	 * appear only in TreeMenu.writeSize, once each; writeSize is called only by place (writing the
+	 * size it is given) and by unmove (putting back the size it recorded); place is given a size
+	 * only by placeRows, which runs only on the row layers. TreeMenuTest checks that only the shown
+	 * row is resized and that its size and size modes are put back exactly.
+	 */
+	@Test
+	public void onlyTheTravelRowIsResized() throws IOException
+	{
+		Map<String, String> sources = sources();
+		for (Map.Entry<String, String> f : sources.entrySet())
+		{
+			for (String set : RESIZE)
+			{
+				Matcher m = word(set).matcher(f.getValue());
+				int n = 0;
+				while (m.find())
+				{
+					assertEquals(set + " outside TreeMenu", "TreeMenu.java", f.getKey());
+					n++;
+				}
+				assertEquals(f.getKey() + " " + set, f.getKey().equals("TreeMenu.java") ? 1 : 0, n);
+			}
+		}
+		String menu = sources.get("TreeMenu.java");
+		String writeSize = body(menu, "void writeSize(");
+		for (String set : RESIZE)
+		{
+			assertTrue(set + " outside writeSize", word(set).matcher(writeSize).find());
+		}
+		assertEquals(Arrays.asList("place: writeSize(w,size)", "unmove: writeSize(c.widget,c.originalSize)"),
+			calls(menu, "writeSize", "place", "unmove"));
+		// place with a size (not null) only from placeRows
+		for (String call : calls(menu, "place", "move", "placeRows"))
+		{
+			assertTrue(call, call.startsWith("placeRows: ") || call.startsWith("move: ") && call.endsWith(",null)"));
+		}
+		int rows = 0;
+		Matcher m = word("placeRows").matcher(menu);
+		while (m.find())
+		{
+			int open = m.end();
+			if (open < menu.length() && menu.charAt(open) == '(' && !menu.startsWith("void ", m.start() - 5))
+			{
+				assertTrue(arguments(menu, open).toString(), ROW_LAYERS.contains(arguments(menu, open).get(1)));
+				rows++;
+			}
+		}
+		assertEquals("placeRows on TEXT, GRAPHICS and LJ_LAYER1", 3, rows);
+	}
+
+	/** The body of the method declared by {@code decl} ("void name("), braces included. */
+	private static String body(String src, String decl)
+	{
+		int at = src.indexOf(decl);
+		assertTrue(decl, at >= 0);
+		assertEquals(decl + " declared once", -1, src.indexOf(decl, at + 1));
+		int start = src.indexOf('{', at);
+		int depth = 0;
+		for (int i = start; i < src.length(); i++)
+		{
+			depth += src.charAt(i) == '{' ? 1 : src.charAt(i) == '}' ? -1 : 0;
+			if (depth == 0)
+			{
+				return src.substring(start, i + 1);
+			}
+		}
+		throw new AssertionError("unbalanced " + decl);
+	}
+
+	/**
+	 * Every call of {@code name} (not its declaration), as "caller: name(args)", each checked to sit
+	 * in the body of one of the allowed callers.
+	 */
+	private static List<String> calls(String src, String name, String... callers)
+	{
+		List<String> out = new ArrayList<>();
+		Matcher m = word(name).matcher(src);
+		while (m.find())
+		{
+			int open = m.end();
+			if (open >= src.length() || src.charAt(open) != '(' || src.startsWith("void ", m.start() - 5))
+			{
+				continue;
+			}
+			String in = null;
+			for (String caller : callers)
+			{
+				String b = body(src, "void " + caller + "(");
+				int from = src.indexOf(b);
+				if (m.start() > from && m.start() < from + b.length())
+				{
+					in = caller;
+				}
+			}
+			assertNotNull(name + " called outside " + Arrays.toString(callers), in);
+			out.add(in + ": " + name + "(" + String.join(",", arguments(src, open)) + ")");
+		}
+		return out;
 	}
 
 	/** The top-level arguments of the call whose "(" is at {@code open}. */
