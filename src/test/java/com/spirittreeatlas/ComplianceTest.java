@@ -43,13 +43,17 @@ public class ComplianceTest
 	};
 	/** The same APIs however they are reached, and the rest of the rules (input, reflection, network). */
 	private static final String[] FORBIDDEN = {
-		"menuAction", "runScript", "setCanSendPackets", "setVarp", "Robot", "requestFocus", "requestFocusInWindow",
+		"menuAction", "runScript", "setCanSendPackets", "setVarp", "setVarpValue", "queueChangedVarp", "Robot", "requestFocus",
+		"requestFocusInWindow",
 		"java.lang.reflect", "Class.forName", "setOnMouseLeaveListener", "setOnTimerListener", "setOnDialogAbortListener",
 		"setOnMouseRepeatListener", "setOnTargetEnterListener", "setOnTargetLeaveListener", "setHasListener", "setName",
 		"setSpriteId", "setOpacity", "setOriginalWidth", "setOriginalHeight", "setWidthMode", "setHeightMode", "createChild",
 		"deleteAllChildren", "clearActions", "setSubOp",
+		// whole words no longer catch these as "setText" did: a widget restyled is a widget re-texted (rule 4)
+		"setTextShadowed", "setFontId", "setXTextAlignment", "setYTextAlignment", "setLineHeight", "setModelId",
+		"setItemId", "setItemQuantity", "setFilled", "setSpriteTiling", "setBorderType",
 		"KeyListener", "registerKeyListener", "KeyManager",
-		"OkHttpClient", "HttpURLConnection", "openConnection", "java.net.URL", "java.net.Socket",
+		"OkHttpClient", "HttpURLConnection", "openConnection", "java.net", "java.net.URL", "java.net.Socket",
 		"hopToWorld", "invokeMenuAction",
 		// a game script's event re-run, or a game menu entry retargeted: nothing here needs either
 		"getScriptEvent", "setParam0", "setParam1", "setIdentifier",
@@ -238,9 +242,10 @@ public class ComplianceTest
 			List<String> args = arguments(menu, open);
 			assertEquals("hide" + args, 3, args.size());
 			calls++;
-			if (args.get(2).equals("-1"))
+			// a static component (index -1, or one looked up by id) is only ever the scrollbar
+			if (args.get(2).equals("-1") || args.get(0).contains("getWidget("))
 			{
-				assertEquals("a static component hidden", HIDEABLE_STATIC, args.get(1));
+				assertEquals("a static component hidden", Arrays.asList("client.getWidget(" + HIDEABLE_STATIC + ")", HIDEABLE_STATIC, "-1"), args);
 			}
 		}
 		assertTrue("TreeMenu hides through hide()", calls >= 2);

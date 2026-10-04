@@ -586,8 +586,8 @@ public class ChromePainter
 	 * Finds a spot for a card: bottom-left, else bottom-right, top-right or top-left, clear of the
 	 * holes, the Travel cell and its caption, the Back button and the tree it describes, and
 	 * covering no marker; else the first such spot along the bottom edge, then the top, the left
-	 * and the right; else a corner that may cover other markers. Failing that, it slides a corner spot off them,
-	 * shrinking to at least minH.
+	 * and the right (in {@link #SLIDE} px steps); else a corner that may cover other markers.
+	 * Failing that, it slides a corner spot off them, shrinking to at least minH.
 	 */
 	private Rectangle place(Scene s, int left, int right, int w, int h, int minH, Point focus)
 	{

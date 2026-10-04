@@ -795,8 +795,9 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
   (drawn after 187:0, so now also while the map shows) and the game's title stay under the map and
   do not show through the Travel and close holes or below the slot beside the lowered list; after a
   window resize in Map mode (script 909), List mode still has a parchment; after the fixed to
-  resizable switch in Map mode (it may hide the model we hid, and we show it again in List mode),
-  the parchment does not look doubled. Better Teleport Menu: re-texted rows parse, a key rebound while the menu is open
+  resizable switch in Map mode (it may hide the model and the scrollbar we hid, and we show them
+  again in List mode), the parchment does not look doubled and no needless scrollbar shows beside
+  the taller list. Better Teleport Menu: re-texted rows parse, a key rebound while the menu is open
   shows on the marker within a tick, its hidden rows count as not listed, "Expand scroll menu" with
   the classic menu in resizable mode (the slot 8 px taller: the Travel cell and the close button
   still in the corner, Use free space off). Teleport Maps and Spirit Tree Menu: the notice at open;
@@ -888,7 +889,8 @@ from the text above.
 23. The source-size test counts each line end as one byte, so a CRLF checkout measures the same as
     the committed files (rule 7).
 24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes, child creation,
-    other listeners, key managers, network classes, `getScriptEvent` (re-running a game script's
+    other listeners, widget restyles (`setTextShadowed`, `setFontId` and the like), key managers,
+    network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
     event) and `setParam0` / `setParam1` / `setIdentifier` (retargeting a game menu entry), and fails
     if any code refers to the key-listener layers. It scans each file with comments stripped and
     whitespace collapsed, matching names as whole words, so method references
