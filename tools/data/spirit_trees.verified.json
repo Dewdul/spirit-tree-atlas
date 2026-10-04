@@ -1,0 +1,1227 @@
+{
+ "_comment": "Spirit Tree Atlas destination dataset, reconciled 2026-10-04 from the cache (2727, 2026-09-30), the OSRS Wiki, Shortest Path and the menu research. See RECONCILE.md for every disagreement and its resolution. Tiles are [x, y, plane]; tree.sw is the loc placement (south-west tile), tree.center the footprint centre. Unlock conditions follow Fairy Ring Atlas tools/data/unlock.json (quest/varbit/varp/unknown; low confidence only as unknown). Centres (tree.center, housePortals[].center) are exact footprint centres in tile-index units: the south-west tile plus (size-1)/2. Printable ASCII only. The seven fixes of the 2026-10-04 data challenge are applied (listed in _fixes and tools/data/README.md).",
+ "_fixes": [
+  "FARMING_GUILD.requirements: 85 Farming to plant (advanced tier), was 83",
+  "housePortals 9 (Prifddinas) and 13 (Aldarin): valueConfidence high, from cache enum 252",
+  "HOSIDIUS.area: next to the saltpetre, south-east of the Forthos Ruin (not just south of the Forthos Dungeon)",
+  "BATTLEFIELD_OF_KHAZARD.poi: Clock Tower to the south-east (was east)",
+  "ETCETERIA.notes: the only teleport onto the island (Sailing can moor there); requirement line for The Fremennik Trials added",
+  "housePortals[].center: exact footprint centres (were rounded down)",
+  "previousDestination.source: the op text is on 9 locs, adding 40778 and 44936"
+ ],
+ "menu": {
+  "title": "Spirit Tree Locations",
+  "rows": 15,
+  "cancelKey": "F",
+  "cancelLabel": "Cancel",
+  "unavailableColour": "5f5f5f",
+  "match": "Strip tags from each row (Text.removeTags), drop the \"K: \" prefix, then match menuLabel (exact, or prefix for Your house). Prefer labels over keys: the keys have been 1-E in every capture, but an account missing a destination has not been captured.",
+  "sources": [
+   "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+   "research/menu (FINDINGS in the menu-interface report): title, row geometry, colours",
+   "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)"
+  ]
+ },
+ "global": {
+  "requirements": [
+   "Quest: Tree Gnome Village (every spirit tree; without it no tree will talk or open the menu)"
+  ],
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 43)",
+   "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines) (\"All locations\": \"The tree doesn't feel like talking.\")",
+   "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text) (varp 111 TREEQUEST == 9 switches multilocs 1295 and 37329 to Travel)"
+  ]
+ },
+ "previousDestination": {
+  "varbit": 20252,
+  "name": "VarbitID.SPIRIT_TREE_PREVIOUS",
+  "varp": 5478,
+  "bits": "0-6",
+  "values": "destination previousValue 1-14 (0 = never travelled)",
+  "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text): conditional op3 text on every travel loc (26260, 26261, 26263, 35950, 49595, 8355, 29227, 40778, 44936) maps value N to the destination name, in menu order"
+ },
+ "destinations": [
+  {
+   "id": "TREE_GNOME_VILLAGE",
+   "menuKey": "1",
+   "menuRow": 0,
+   "menuLabel": "Tree Gnome Village",
+   "menuLabelMatch": "exact",
+   "previousValue": 1,
+   "name": "Tree Gnome Village",
+   "area": "Centre of the Gnome Maze, Tree Gnome Village (Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "tree": {
+    "loc": 1293,
+    "travelLoc": 26261,
+    "size": 4,
+    "rot": 1,
+    "sw": [
+     2543,
+     3168,
+     0
+    ],
+    "center": [
+     2544.5,
+     3169.5,
+     0
+    ],
+    "travelWhen": "varbit 598 BOLREN_GOT_ORBS in 2..3 (cache multiloc 1293)"
+   },
+   "arrival": {
+    "tile": [
+     2542,
+     3170,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, west side. Not checked in game."
+   },
+   "requirements": [],
+   "unlock": [],
+   "poi": [
+    "King Bolren (Tree Gnome Village, The Path of Glouphrie)",
+    "Elkoy, who guides you through the maze",
+    "Tree Gnome Village Dungeon",
+    "Fishing Trawler to the east (Port Khazard)"
+   ],
+   "notes": [
+    "Inside the hedge maze: the tree is the quick way in and out.",
+    "Hard clue challenge answer here: 13112221."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67",
+    "https://oldschool.runescape.wiki/w/Tree_Gnome_Village_(location)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "GNOME_STRONGHOLD",
+   "menuKey": "2",
+   "menuRow": 1,
+   "menuLabel": "Gnome Stronghold",
+   "menuLabelMatch": "exact",
+   "previousValue": 2,
+   "name": "Gnome Stronghold",
+   "area": "Tree Gnome Stronghold, south of the Grand Tree (north-west Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "tree": {
+    "loc": 1294,
+    "travelLoc": 26260,
+    "size": 4,
+    "rot": 0,
+    "sw": [
+     2460,
+     3445,
+     0
+    ],
+    "center": [
+     2461.5,
+     3446.5,
+     0
+    ],
+    "travelWhen": "varp 150 GRANDTREE == 160 (cache multiloc 1294); only matters for leaving from here"
+   },
+   "arrival": {
+    "tile": [
+     2461,
+     3444,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [],
+   "unlock": [],
+   "poi": [
+    "Grand Tree, with the gnome glider on its top level",
+    "Gnome Stronghold Agility Course",
+    "Stronghold Slayer Cave and Nieve",
+    "Gianne's Restaurant",
+    "Brimstail (rune essence teleport)"
+   ],
+   "notes": [
+    "Travelling FROM this tree also needs The Grand Tree; arriving here does not.",
+    "A slayer ring teleport to the Stronghold Slayer Cave lands close to this tree."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 43, 49)",
+    "https://oldschool.runescape.wiki/w/Tree_Gnome_Stronghold",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "BATTLEFIELD_OF_KHAZARD",
+   "menuKey": "3",
+   "menuRow": 2,
+   "menuLabel": "Battlefield of Khazard",
+   "menuLabelMatch": "exact",
+   "previousValue": 3,
+   "name": "Battlefield of Khazard",
+   "area": "The Battlefield, just south of West Ardougne (Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "tree": {
+    "loc": 1295,
+    "travelLoc": 26263,
+    "size": 2,
+    "rot": 0,
+    "sw": [
+     2555,
+     3260,
+     0
+    ],
+    "center": [
+     2555.5,
+     3260.5,
+     0
+    ],
+    "travelWhen": "varp 111 TREEQUEST == 9 (cache multiloc 1295)"
+   },
+   "arrival": {
+    "tile": [
+     2555,
+     3259,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [],
+   "unlock": [],
+   "poi": [
+    "West Ardougne to the north",
+    "Clock Tower to the south-east",
+    "Ourania Cave (ZMI altar) to the west",
+    "Ardougne Monastery to the south-east (Ardougne cloak teleport)",
+    "Tree Gnome Village to the south"
+   ],
+   "notes": [
+    "Ardougne cloak to the Monastery, then a short walk north-west, is the cheapest way to reach this tree."
+   ],
+   "danger": [
+    "Gnome troops and Khazard troopers fight on the battlefield (low level)."
+   ],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 69)",
+    "https://oldschool.runescape.wiki/w/Battlefield",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)",
+    "cache 2727 world-map label Clock Tower (2573,3242): 18 east, 18 south of the tree"
+   ]
+  },
+  {
+   "id": "GRAND_EXCHANGE",
+   "menuKey": "4",
+   "menuRow": 3,
+   "menuLabel": "Grand Exchange",
+   "menuLabelMatch": "exact",
+   "previousValue": 4,
+   "name": "Grand Exchange",
+   "area": "North-east corner of the Grand Exchange, Varrock (Misthalin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "tree": {
+    "loc": 1295,
+    "travelLoc": 26263,
+    "size": 2,
+    "rot": 0,
+    "sw": [
+     3184,
+     3509,
+     0
+    ],
+    "center": [
+     3184.5,
+     3509.5,
+     0
+    ],
+    "travelWhen": "varp 111 TREEQUEST == 9 (cache multiloc 1295)"
+   },
+   "arrival": {
+    "tile": [
+     3185,
+     3508,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [],
+   "unlock": [],
+   "poi": [
+    "Grand Exchange clerks and bank booths",
+    "Tunnel west to Edgeville",
+    "Varrock to the south-east",
+    "Wilderness ditch to the north"
+   ],
+   "notes": [
+    "Before 83 Farming the fastest way onto the network: ring of wealth or Varrock Teleport (GE option, medium Varrock Diary)."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 69)",
+    "https://oldschool.runescape.wiki/w/Grand_Exchange",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "FELDIP_HILLS",
+   "menuKey": "5",
+   "menuRow": 4,
+   "menuLabel": "Feldip Hills",
+   "menuLabelMatch": "exact",
+   "previousValue": 5,
+   "name": "Feldip Hills",
+   "area": "South-west corner of the Feldip Hills, next to the Myths' Guild",
+   "kind": "fixed",
+   "layer": "surface",
+   "tree": {
+    "loc": 1295,
+    "travelLoc": 26263,
+    "size": 2,
+    "rot": 3,
+    "sw": [
+     2486,
+     2850,
+     0
+    ],
+    "center": [
+     2486.5,
+     2850.5,
+     0
+    ],
+    "travelWhen": "varp 111 TREEQUEST == 9 (cache multiloc 1295)"
+   },
+   "arrival": {
+    "tile": [
+     2488,
+     2850,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, east side. Not checked in game."
+   },
+   "requirements": [],
+   "unlock": [],
+   "poi": [
+    "Myths' Guild (Dragon Slayer II)",
+    "Wrath Altar (Dragon Slayer II)",
+    "Corsair Cove and its bank (The Corsair Curse)",
+    "Feldip Hills Hunter area"
+   ],
+   "notes": [
+    "Other wiki pages call this the Myths' Guild tree; the menu says Feldip Hills."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 52)",
+    "https://oldschool.runescape.wiki/w/Feldip_Hills",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "PRIFDDINAS",
+   "menuKey": "6",
+   "menuRow": 5,
+   "menuLabel": "Prifddinas",
+   "menuLabelMatch": "exact",
+   "previousValue": 6,
+   "name": "Prifddinas",
+   "area": "Meilyr district (north-east) of Prifddinas, near the north bank (Tirannwn)",
+   "kind": "quest",
+   "layer": "prifddinas",
+   "tree": {
+    "loc": 37329,
+    "travelLoc": 35950,
+    "size": 2,
+    "rot": 0,
+    "sw": [
+     3274,
+     6124,
+     0
+    ],
+    "center": [
+     3274.5,
+     6124.5,
+     0
+    ],
+    "travelWhen": "varp 111 TREEQUEST == 9 (cache multiloc 37329); the city itself needs Song of the Elves"
+   },
+   "arrival": {
+    "tile": [
+     3274,
+     6123,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side; the tile carries the bridge flag (settings 2) on plane 0, which does not block. Not checked in game."
+   },
+   "requirements": [
+    "Quest: Song of the Elves"
+   ],
+   "unlock": [
+    {
+     "type": "quest",
+     "quest": "SONG_OF_THE_ELVES",
+     "state": "FINISHED",
+     "label": "Song of the Elves",
+     "confidence": "high",
+     "source": "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 54); https://oldschool.runescape.wiki/w/Prifddinas (Transportation: every entry needs Song of the Elves)"
+    }
+   ],
+   "poi": [
+    "Prifddinas north bank (Hefin district)",
+    "Meilyr district market stalls and shops",
+    "Crwys district: crystal tree patch, sawmill, Branwen",
+    "Tower of Voices at the city centre"
+   ],
+   "notes": [
+    "On the separate Prifddinas world map (cache world map 29, x 3136-3391, y 5952-6207), not on the Gielinor surface map: draw it on a Prifddinas inset/layer."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67",
+    "https://oldschool.runescape.wiki/w/Prifddinas (line 36, 86-87)",
+    "research/cache/CACHE_NOTES.md section 3 (world map 29)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "PORT_SARIM",
+   "menuKey": "7",
+   "menuRow": 6,
+   "menuLabel": "Port Sarim",
+   "menuLabelMatch": "exact",
+   "previousValue": 7,
+   "name": "Port Sarim",
+   "area": "Spirit tree patch on the east side of Port Sarim (Asgarnia)",
+   "kind": "patch",
+   "layer": "surface",
+   "tree": {
+    "loc": 8338,
+    "travelLoc": 8355,
+    "size": 3,
+    "rot": 0,
+    "sw": [
+     3059,
+     3257,
+     0
+    ],
+    "center": [
+     3060,
+     3258,
+     0
+    ],
+    "travelWhen": "varbit 4771 FARMING_TRANSMIT_A == 20, region 12082 (cache multiloc 8338)"
+   },
+   "arrival": {
+    "tile": [
+     3058,
+     3257,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, west side. Not checked in game."
+   },
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "unlock": [
+    {
+     "type": "unknown",
+     "label": "a grown spirit tree here",
+     "confidence": "high",
+     "why": "The patch state is in a region-scoped FARMING_TRANSMIT_* varbit (value 20 = grown, healthy, Travel) that is only valid while standing in that region, so it cannot be read from another tree. The menu row colour (5f5f5f = unavailable) is the live signal.",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text); Skretzo/shortest-path SpiritTreePatchState.java; runelite PatchImplementation.SPIRIT_TREE"
+    }
+   ],
+   "poi": [
+    "Ships to Entrana (Law Altar), the Void Knights' Outpost and Great Kourend",
+    "Charter ships",
+    "Port Sarim and Rimmington shops",
+    "Draynor Village farming patches"
+   ],
+   "notes": [
+    "Gardener: Frizzy Skernip.",
+    "Just south of the explorer's ring (2+) cabbage-patch teleport."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (lines 60, 69, 86)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Farming)/Patches (nearby activities, gardeners)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "ETCETERIA",
+   "menuKey": "8",
+   "menuRow": 7,
+   "menuLabel": "Etceteria",
+   "menuLabelMatch": "exact",
+   "previousValue": 8,
+   "name": "Etceteria",
+   "area": "South-east Etceteria (Fremennik Isles)",
+   "kind": "patch",
+   "layer": "surface",
+   "tree": {
+    "loc": 8382,
+    "travelLoc": 8355,
+    "size": 3,
+    "rot": 0,
+    "sw": [
+     2612,
+     3857,
+     0
+    ],
+    "center": [
+     2613,
+     3858,
+     0
+    ],
+    "travelWhen": "varbit 4772 FARMING_TRANSMIT_B == 20, region 10300 (cache multiloc 8382)"
+   },
+   "arrival": {
+    "tile": [
+     2613,
+     3855,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 2 tiles from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count",
+    "Quest: The Fremennik Trials (for the Rellekka boat, to reach and plant the patch)"
+   ],
+   "unlock": [
+    {
+     "type": "unknown",
+     "label": "a grown spirit tree here",
+     "confidence": "high",
+     "why": "The patch state is in a region-scoped FARMING_TRANSMIT_* varbit (value 20 = grown, healthy, Travel) that is only valid while standing in that region, so it cannot be read from another tree. The menu row colour (5f5f5f = unavailable) is the live signal.",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text); Skretzo/shortest-path SpiritTreePatchState.java; runelite PatchImplementation.SPIRIT_TREE"
+    }
+   ],
+   "poi": [
+    "Advisor Ghrim (Managing Miscellania)",
+    "Miscellania and Etceteria dungeon entrance behind the castle",
+    "Bush patch in the south-west of the island",
+    "Ship to Rellekka"
+   ],
+   "notes": [
+    "Gardener: Yulf Squecks.",
+    "The only teleport onto Etceteria (otherwise the Rellekka boat to Miscellania, or moor at 65 Sailing after Royal Trouble)."
+   ],
+   "danger": [
+    "Sea snake hatchlings and young on this side of the Miscellania and Etceteria dungeon."
+   ],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 59)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Farming)/Patches (nearby activities, gardeners)",
+    "https://oldschool.runescape.wiki/w/Etceteria (lines 28, 42, 46)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)",
+    "https://oldschool.runescape.wiki/w/Etceteria (line 29: the boat needs The Fremennik Trials; line 53: moor at 65 Sailing after Royal Trouble)"
+   ]
+  },
+  {
+   "id": "BRIMHAVEN",
+   "menuKey": "9",
+   "menuRow": 8,
+   "menuLabel": "Brimhaven",
+   "menuLabelMatch": "exact",
+   "previousValue": 9,
+   "name": "Brimhaven",
+   "area": "North-east Brimhaven, near the Agility Arena (Karamja)",
+   "kind": "patch",
+   "layer": "surface",
+   "tree": {
+    "loc": 8383,
+    "travelLoc": 8355,
+    "size": 3,
+    "rot": 1,
+    "sw": [
+     2801,
+     3202,
+     0
+    ],
+    "center": [
+     2802,
+     3203,
+     0
+    ],
+    "travelWhen": "varbit 4772 FARMING_TRANSMIT_B == 20, region 11058 (cache multiloc 8383)"
+   },
+   "arrival": {
+    "tile": [
+     2800,
+     3203,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, west side. Not checked in game."
+   },
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "unlock": [
+    {
+     "type": "unknown",
+     "label": "a grown spirit tree here",
+     "confidence": "high",
+     "why": "The patch state is in a region-scoped FARMING_TRANSMIT_* varbit (value 20 = grown, healthy, Travel) that is only valid while standing in that region, so it cannot be read from another tree. The menu row colour (5f5f5f = unavailable) is the live signal.",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text); Skretzo/shortest-path SpiritTreePatchState.java; runelite PatchImplementation.SPIRIT_TREE"
+    }
+   ],
+   "poi": [
+    "Fruit tree patch",
+    "Brimhaven Agility Arena",
+    "Brimhaven Dungeon",
+    "Charter ship"
+   ],
+   "notes": [
+    "Gardener: Praistan Ebola."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 61)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Farming)/Patches (nearby activities, gardeners)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "HOSIDIUS",
+   "menuKey": "A",
+   "menuRow": 9,
+   "menuLabel": "Hosidius",
+   "menuLabelMatch": "exact",
+   "previousValue": 10,
+   "name": "Hosidius",
+   "area": "Hosidius, next to the saltpetre deposits, south-east of the Forthos Ruin (Great Kourend)",
+   "kind": "patch",
+   "layer": "surface",
+   "tree": {
+    "loc": 27116,
+    "travelLoc": 8355,
+    "size": 3,
+    "rot": 0,
+    "sw": [
+     1692,
+     3541,
+     0
+    ],
+    "center": [
+     1693,
+     3542,
+     0
+    ],
+    "travelWhen": "varbit 7904 FARMING_TRANSMIT_F == 20, region 6711 (cache multiloc 27116)"
+   },
+   "arrival": {
+    "tile": [
+     1693,
+     3540,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "unlock": [
+    {
+     "type": "unknown",
+     "label": "a grown spirit tree here",
+     "confidence": "high",
+     "why": "The patch state is in a region-scoped FARMING_TRANSMIT_* varbit (value 20 = grown, healthy, Travel) that is only valid while standing in that region, so it cannot be read from another tree. The menu row colour (5f5f5f = unavailable) is the live signal.",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text); Skretzo/shortest-path SpiritTreePatchState.java; runelite PatchImplementation.SPIRIT_TREE"
+    }
+   ],
+   "poi": [
+    "Forthos Dungeon",
+    "Tithe Farm",
+    "Hosidius allotment, flower and herb patches",
+    "Saltpetre and the charcoal furnace",
+    "Sand crabs"
+   ],
+   "notes": [
+    "Gardener: Lammy Langle."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 62)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Farming)/Patches (nearby activities, gardeners)",
+    "https://oldschool.runescape.wiki/w/Hosidius (lines 29, 52)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)",
+    "cache 2727 world-map labels Saltpetre (1702,3520) and Forthos Ruin (1675,3575); https://oldschool.runescape.wiki/w/Forthos_Dungeon (line 22: entrances at 1702,3574 and 1669,3567)"
+   ]
+  },
+  {
+   "id": "FARMING_GUILD",
+   "menuKey": "B",
+   "menuRow": 10,
+   "menuLabel": "Farming Guild",
+   "menuLabelMatch": "exact",
+   "previousValue": 11,
+   "name": "Farming Guild",
+   "area": "Advanced tier of the Farming Guild (Kebos Lowlands)",
+   "kind": "patch",
+   "layer": "surface",
+   "tree": {
+    "loc": 33733,
+    "travelLoc": 8355,
+    "size": 3,
+    "rot": 1,
+    "sw": [
+     1252,
+     3749,
+     0
+    ],
+    "center": [
+     1253,
+     3750,
+     0
+    ],
+    "travelWhen": "varbit 4771 FARMING_TRANSMIT_A == 20, region 4922 (cache multiloc 33733)"
+   },
+   "arrival": {
+    "tile": [
+     1251,
+     3750,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, west side. Not checked in game."
+   },
+   "requirements": [
+    "Skill: 85 Farming to plant (boostable; the patch is in the advanced tier, which needs 85 to enter)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count",
+    "Skill: 85 Farming every time you travel here (boostable)"
+   ],
+   "unlock": [
+    {
+     "type": "unknown",
+     "label": "a grown spirit tree here",
+     "confidence": "high",
+     "why": "The patch state is in a region-scoped FARMING_TRANSMIT_* varbit (value 20 = grown, healthy, Travel) that is only valid while standing in that region, so it cannot be read from another tree. The menu row colour (5f5f5f = unavailable) is the live signal.",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text); Skretzo/shortest-path SpiritTreePatchState.java; runelite PatchImplementation.SPIRIT_TREE"
+    },
+    {
+     "type": "unknown",
+     "label": "85 Farming (boostable)",
+     "confidence": "high",
+     "why": "The unlock format has no skill condition; the tree refuses with \"Travel to that area is restricted\" below 85.",
+     "source": "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines); https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 63)"
+    }
+   ],
+   "poi": [
+    "Farming Guild patches, including Hespori",
+    "Farming contracts (Guildmaster Jane)",
+    "Bank chest and seed vault",
+    "Skills necklace and Farming cape teleport point"
+   ],
+   "notes": [
+    "Gardener: Latlink Fastbell.",
+    "A tree planted with a boost still needs a boost to 85 for each trip."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 63)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Farming)/Patches (nearby activities, gardeners)",
+    "https://oldschool.runescape.wiki/w/Farming_Guild (lines 25, 47, 117)",
+    "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)",
+    "https://oldschool.runescape.wiki/w/Farming_Guild (lines 9, 25, 106, 108: 85 Farming to enter the advanced tier)"
+   ]
+  },
+  {
+   "id": "YOUR_HOUSE",
+   "menuKey": "C",
+   "menuRow": 11,
+   "menuLabel": "Your house",
+   "menuLabelMatch": "prefix",
+   "previousValue": 12,
+   "name": "Your house",
+   "area": "Superior garden of your player-owned house (an instance); drawn at your house portal",
+   "kind": "house",
+   "layer": "poh",
+   "tree": null,
+   "arrival": null,
+   "requirements": [
+    "Skill: 75 Construction (boostable, but not with the crystal saw)",
+    "Skill: 83 Farming (boostable)",
+    "Unlock: a superior garden in your house",
+    "Item: a spirit sapling and a watering can"
+   ],
+   "unlock": [
+    {
+     "type": "varbit",
+     "id": 2187,
+     "name": "VarbitID.POH_HOUSE_LOCATION",
+     "op": ">=",
+     "value": 1,
+     "label": "a house",
+     "confidence": "high",
+     "source": "cs2 [proc,script3809] (cache 2727): %poh_house_location = 0 gives \"You must own a house\""
+    },
+    {
+     "type": "unknown",
+     "label": "a spirit tree in your house",
+     "confidence": "high",
+     "why": "No client var for \"house has a spirit tree\" is known (POH_SPIRIT_TREE_UPROOTED 15959 is unverified). Use the row colour.",
+     "source": "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines) (\"None of my brethren are in your house.\")"
+    }
+   ],
+   "poi": [
+    "Your house portal in the town you chose",
+    "Altar, pool, jewellery box and portal nexus, if built",
+    "A fairy ring too, if the tree is a Spiritual Fairy Tree"
+   ],
+   "notes": [
+    "The game shows the row as \"Your house (<Town>)\", e.g. \"Your house (Prifddinas)\" and \"Your house (Rimmington)\": match the prefix and read the town from the brackets.",
+    "Place the marker at that town's house portal (housePortals table); fall back to POH_HOUSE_LOCATION (varbit 2187).",
+    "A Spiritual Fairy Tree (95 Construction) also works. The house tree grows at once and does not count toward the planting limit."
+   ],
+   "danger": [],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text) (op3 text \"Your house\" for value 12; POH spirit tree locs 29227, 29229, 40778, 40779, 44936, 27097)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (lines 65-67, 97)",
+    "https://oldschool.runescape.wiki/w/Spirit_tree_(Construction)",
+    "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines)",
+    "research/reconcile/walkcheck.txt (house portal placements)"
+   ]
+  },
+  {
+   "id": "POISON_WASTE",
+   "menuKey": "D",
+   "menuRow": 12,
+   "menuLabel": "Poison Waste",
+   "menuLabelMatch": "exact",
+   "previousValue": 13,
+   "name": "Poison Waste",
+   "area": "Canyon east of the Poison Waste (Tirannwn), by the Poison Waste Dungeon",
+   "kind": "quest",
+   "layer": "surface",
+   "tree": {
+    "loc": 49598,
+    "travelLoc": 49595,
+    "size": 3,
+    "rot": 0,
+    "sw": [
+     2338,
+     3110,
+     0
+    ],
+    "center": [
+     2339,
+     3111,
+     0
+    ],
+    "travelWhen": "varbit 15288 POG == 37 or >= 39 (cache multiloc 49598: 0-36 dead 49592, 37 travel 49595, 38 talk-only 49594, default travel 49595)"
+   },
+   "arrival": {
+    "tile": [
+     2339,
+     3109,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [
+    "Quest: The Path of Glouphrie (part way: heal Incomitatus with the crystal chime)"
+   ],
+   "unlock": [
+    {
+     "type": "varbit",
+     "id": 15288,
+     "name": "VarbitID.POG",
+     "op": ">=",
+     "value": 37,
+     "label": "The Path of Glouphrie progress",
+     "confidence": "medium",
+     "why": "The cache tree turns to its Travel loc at 37 and from 39 up; 38 shows a talk-only loc. Quest Helper: 36 = use the chime, 38 = talk to the tree again. Whether the server also refuses travel here at 38 is unchecked; >= 37 errs towards \"met\".",
+     "source": "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text) (multiloc 49598); quest-helper ThePathOfGlouphrie.java lines 148-150; https://oldschool.runescape.wiki/w/Spirit_Tree_(Incomitatus)"
+    }
+   ],
+   "poi": [
+    "Poison Waste Dungeon entrance just west (warped terrorbirds and tortoises, 56 Slayer, cannon allowed)",
+    "Grapple across the river towards Castle Wars and fairy ring BKP",
+    "Zul-Andra to the south-west (reached another way)"
+   ],
+   "notes": [
+    "The tree is Incomitatus, healed during The Path of Glouphrie (2023)."
+   ],
+   "danger": [
+    "Warped terrorbirds and tortoises inside the Poison Waste Dungeon, not at the tree."
+   ],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 53)",
+    "https://oldschool.runescape.wiki/w/Spirit_Tree_(Incomitatus)",
+    "https://oldschool.runescape.wiki/w/Poison_Waste_Dungeon",
+    "https://oldschool.runescape.wiki/w/The_Path_of_Glouphrie (line 109)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  },
+  {
+   "id": "LAGUNA_AURORAE",
+   "menuKey": "E",
+   "menuRow": 13,
+   "menuLabel": "Laguna Aurorae",
+   "menuLabelMatch": "exact",
+   "previousValue": 14,
+   "name": "Laguna Aurorae",
+   "area": "Laguna Aurorae, an island in the Sunset Ocean south-west of Aldarin",
+   "kind": "island",
+   "layer": "surface",
+   "tree": {
+    "loc": 1295,
+    "travelLoc": 26263,
+    "size": 2,
+    "rot": 0,
+    "sw": [
+     1202,
+     2786,
+     0
+    ],
+    "center": [
+     1202.5,
+     2786.5,
+     0
+    ],
+    "travelWhen": "varp 111 TREEQUEST == 9 (cache multiloc 1295, the ordinary young tree); the island gates are server-side"
+   },
+   "arrival": {
+    "tile": [
+     1202,
+     2785,
+     0
+    ],
+    "check": "Shortest Path tile; cache shows it open (not blocked, no solid loc) and 1 tile from the tree footprint, south side. Not checked in game."
+   },
+   "requirements": [
+    "Quest: Pandemonium",
+    "Skill: 58 Sailing (to moor at the island)",
+    "Unlock: moor at Laguna Aurorae once"
+   ],
+   "unlock": [
+    {
+     "type": "quest",
+     "quest": "PANDEMONIUM",
+     "state": "FINISHED",
+     "label": "Pandemonium",
+     "confidence": "high",
+     "source": "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 55); cs2 [proc,script3809]: %sailing_intro < 50 = \"complete the Pandemonium quest\""
+    },
+    {
+     "type": "varbit",
+     "id": 19573,
+     "name": "VarbitID.LAGUNA_AURORAE_VISITED",
+     "op": ">=",
+     "value": 1,
+     "label": "a mooring at Laguna Aurorae",
+     "confidence": "medium",
+     "why": "A 1-bit varbit (varp 5196 bit 4) named LAGUNA_AURORAE_VISITED, a sibling of GRIMSTONE_VISITED that Fairy Ring Atlas uses the same way. That it is the tree's own gate is inferred from the name and the refusal \"You must have visited Laguna Aurorae\".",
+     "source": "runelite-api 1.13.1 gameval VarbitID; research/destinations/locscan/varscan_out.txt; https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines)"
+    }
+   ],
+   "poi": [
+    "Kurask Lair next to the tree (70 Slayer)",
+    "Harpoon and big net fishing spot next to the tree",
+    "Lantern harpooning on the south shore",
+    "Island amenities to build: water pump, cooking range, loom",
+    "Locked chest (serrated key: crystal glider's outfit)"
+   ],
+   "notes": [
+    "Added with Sailing on 19 November 2025.",
+    "Teleport Maps puts this tree at 1201,2785 with loc 49598; the cache places loc 1295 at 1202,2786."
+   ],
+   "danger": [
+    "Aggressive pygmy krakens around the mooring point (at sea).",
+    "Moss giants and leeches on the island."
+   ],
+   "sources": [
+    "game cache 2727 (2026-09-30) decoded with net.runelite:cache 1.13.1: research/cache/out/placements.json + objdefs.json (loc placement, size, multiloc var and children, conditional op3 text)",
+    "Skretzo/shortest-path@18983976 src/main/resources/transports/spirit_trees.tsv (destination rows; identical to master on 2026-10-04)",
+    "https://oldschool.runescape.wiki/w/File:Spirit_tree_interface.png (2025-11-06) and the Dec 2025 news image tp.png (research/menu/ext/news_tp.png): menu row labels and order",
+    "https://oldschool.runescape.wiki/w/Spirit_tree (raw, last edited 2026-10-03) lines 43-67 (line 55)",
+    "https://oldschool.runescape.wiki/w/Laguna_Aurorae (lines 20-30)",
+    "https://oldschool.runescape.wiki/w/Transcript:Spirit_tree (refusal lines)",
+    "research/reconcile/walkcheck.txt (WalkCheck.java over the same cache: arrival tile settings flag and covering locs)"
+   ]
+  }
+ ],
+ "housePortals": [
+  {
+   "value": 1,
+   "town": "Rimmington",
+   "label": "Your house (Rimmington)",
+   "portalLoc": 15478,
+   "sw": [
+    2951,
+    3222,
+    0
+   ],
+   "w": 2,
+   "h": 5,
+   "rot": 1,
+   "center": [
+    2951.5,
+    3224,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 2,
+   "town": "Taverley",
+   "label": "Your house (Taverley)",
+   "portalLoc": 15477,
+   "sw": [
+    2891,
+    3463,
+    0
+   ],
+   "w": 2,
+   "h": 5,
+   "rot": 1,
+   "center": [
+    2891.5,
+    3465,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 3,
+   "town": "Pollnivneach",
+   "label": "Your house (Pollnivneach)",
+   "portalLoc": 15479,
+   "sw": [
+    3338,
+    3001,
+    0
+   ],
+   "w": 5,
+   "h": 2,
+   "rot": 0,
+   "center": [
+    3340,
+    3001.5,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 4,
+   "town": "Rellekka",
+   "label": "Your house (Rellekka)",
+   "portalLoc": 15480,
+   "sw": [
+    2668,
+    3629,
+    0
+   ],
+   "w": 5,
+   "h": 2,
+   "rot": 0,
+   "center": [
+    2670,
+    3629.5,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 5,
+   "town": "Brimhaven",
+   "label": "Your house (Brimhaven)",
+   "portalLoc": 15481,
+   "sw": [
+    2755,
+    3176,
+    0
+   ],
+   "w": 2,
+   "h": 5,
+   "rot": 1,
+   "center": [
+    2755.5,
+    3178,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 6,
+   "town": "Yanille",
+   "label": "Your house (Yanille)",
+   "portalLoc": 15482,
+   "sw": [
+    2542,
+    3097,
+    0
+   ],
+   "w": 5,
+   "h": 2,
+   "rot": 2,
+   "center": [
+    2544,
+    3097.5,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 8,
+   "town": "Hosidius",
+   "label": "Your house (Hosidius)",
+   "portalLoc": 28822,
+   "sw": [
+    1740,
+    3515,
+    0
+   ],
+   "w": 2,
+   "h": 5,
+   "rot": 1,
+   "center": [
+    1740.5,
+    3517,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 9,
+   "town": "Prifddinas",
+   "label": "Your house (Prifddinas)",
+   "portalLoc": 34947,
+   "sw": [
+    3237,
+    6077,
+    0
+   ],
+   "w": 5,
+   "h": 2,
+   "rot": 2,
+   "center": [
+    3239,
+    6077.5,
+    0
+   ],
+   "layer": "prifddinas",
+   "valueConfidence": "high"
+  },
+  {
+   "value": 13,
+   "town": "Aldarin",
+   "label": "Your house (Aldarin)",
+   "portalLoc": 55353,
+   "sw": [
+    1420,
+    2962,
+    0
+   ],
+   "w": 5,
+   "h": 1,
+   "rot": 0,
+   "center": [
+    1422,
+    2962,
+    0
+   ],
+   "layer": "surface",
+   "valueConfidence": "high"
+  }
+ ],
+ "housePortalSources": [
+  "research/reconcile/walkcheck.txt (cache placements of each portal loc)",
+  "C:/Users/scott/FairyRingAtlas/src/main/java/com/fairyringatlas/RingRepository.java lines 89-97 (value -> town, from Shortest Path)",
+  "research/destinations/mb_HouseLocation.java (Microbot HouseLocation enum: same values)",
+  "game cache 2727 enum 252 (POH location id -> town name: 1 Rimmington, 2 Taverley, 3 Pollnivneach, 4 Rellekka, 5 Brimhaven, 6 Yanille, 8 Hosidius, 9 Prifddinas, 13 Aldarin; used by cs2 [proc,script5909] line 102). No other values exist, so this list is complete."
+ ],
+ "notDestinations": [
+  {
+   "loc": 1295,
+   "sw": [
+    3888,
+    4981,
+    0
+   ],
+   "what": "young spirit tree in the clan hall template (region 15437); not on any world map"
+  },
+  {
+   "loc": 29229,
+   "sw": [
+    1811,
+    5699,
+    0
+   ],
+   "what": "Spiritual Fairy Tree in the built house showcase (region 7257)"
+  },
+  {
+   "loc": 29229,
+   "sw": [
+    1811,
+    5731,
+    0
+   ],
+   "what": "Spiritual Fairy Tree in the built house showcase (region 7257)"
+  },
+  {
+   "loc": 15482,
+   "sw": [
+    2926,
+    4697,
+    0
+   ],
+   "what": "second copy of the Yanille house portal multiloc, in an off-map region (not a destination; noted so a portal scan does not pick it)"
+  }
+ ]
+}
