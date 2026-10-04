@@ -67,12 +67,16 @@ public final class Scene
 	public String caption = "Travel";
 	/** A one-line notice (stepping aside for another plugin, DESIGN 4.10), or null. */
 	public String notice;
+	/** The mouse while the map owns input there (for hover looks), else null. */
 	public Point mouse;
+	/** Frame time in ms, for pulses and halos. */
 	public long now;
 
 	// ------------------------------------------------------------------ settings
 
+	/** World map place names from index.json. */
 	public boolean placeLabels = true;
+	/** World map icons from index.json, drawn from 2 ppt. */
 	public boolean mapIcons = true;
 	/** The tree card shows everything rather than a short summary. */
 	public boolean fullDetails;
@@ -82,7 +86,9 @@ public final class Scene
 	public boolean keyHints = true;
 	/** Locked trees at half opacity. */
 	public boolean dimLocked;
+	/** The canopy of an available tree. */
 	public Color availableColor = new Color(0x5BD45B);
+	/** The selected tree's ring, halo and label. */
 	public Color selectedColor = new Color(0xFF981F);
 	/** Sprite lookup for map icons; returns null until a sprite is loaded. */
 	public IntFunction<BufferedImage> sprites = id -> null;
@@ -93,6 +99,7 @@ public final class Scene
 	public final List<Hit> hits = new ArrayList<>();
 	/** The info card (or the hint card), which labels and other chrome keep clear of. */
 	public Rectangle card;
+	/** The top bar along the map's top edge. */
 	public Rectangle topBar;
 	/** The large "Back to Gielinor" button on other layers; null on the surface. */
 	public Rectangle backButton;
