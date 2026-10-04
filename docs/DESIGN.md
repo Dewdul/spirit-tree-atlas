@@ -627,17 +627,74 @@ Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging
 
 ### 4.9 Rendering
 
-Exactly Fairy Ring Atlas (its DESIGN 4.8 and the caching deviations): `AtlasOverlay` at
+Fairy Ring Atlas (its DESIGN 4.8 and the caching deviations), but for the loading: `AtlasOverlay` at
 `OverlayPosition.DYNAMIC`, `OverlayLayer.ABOVE_WIDGETS`, `PRIORITY_HIGHEST` (never `ALWAYS_ON_TOP`),
 drawing in canvas coordinates and returning null; an opaque base-map cache rebuilt only when the view
 key or the tile generation changes, retried every 250 ms while incomplete, clipped to the layer
 bounds; a cached translucent chrome layer keyed by value; pre-rendered marker and label sprites;
-`TileStore` with one newest-first worker, stale requests dropped, a soft ~48 MB LRU that keeps the
-last two views' tiles, in-memory decoding, derived levels by 2x2 area averaging, caches released 50
-ticks after the menu closes and at the login screen; bitmap fonts with antialiasing off and vector
-glyphs instead of Unicode arrows; stretched mode is a known limit. The painters (`AtlasPainter`,
-`ChromePainter`, `MapRenderer`, `Ink`) never touch `Client`, so `MapPreview` renders exactly what the
-overlay draws.
+`TileStore` (loading, below) with stale requests dropped, a soft ~48 MB LRU that keeps the last two
+views' tiles, in-memory decoding and derived levels by 2x2 area averaging; bitmap fonts with
+antialiasing off and vector glyphs instead of Unicode arrows; stretched mode is a known limit. The
+painters (`AtlasPainter`, `ChromePainter`, `MapRenderer`, `Ink`) never touch `Client`, so
+`MapPreview` renders exactly what the overlay draws.
+
+**Loading the tiles** (deviation 26). The default view (FIT_ALL) of a large resizable map is z=0
+(0.75 ppt on a 1738x905 map), which is not bundled: each of its ~60 tiles is derived from 16 z=2
+tiles, about 960 PNG decodes. Smaller maps open on z=-1 (bundled; 1100x600 is 0.46 ppt) or z=-2
+(fixed mode, 0.22 ppt, derived from z=-1).
+- **Workers.** `TileStore.newExecutor()`: min(3, cores - 1) daemon threads (at least one) at
+  `NORM_PRIORITY - 1`, ending after 30 s idle. The store keeps its own queue: every request hands
+  the executor one run, and each run takes the **newest** queued tile, so the current view comes
+  first whatever order the executor keeps. A request the latest rebuild did not repeat is dropped,
+  as before. The LRU and its byte count are guarded by one lock; the queue and the requests are
+  concurrent collections.
+- **No tile twice at once.** A tile being loaded or derived is registered; another worker that needs
+  it (a direct request and a derivation reading the same source) waits for it instead of decoding it
+  again. Waits always point to a finer level or another tile, so they cannot deadlock.
+- **Decoding.** Only the PNG reader lookup takes the `ImageIO` class lock (as the client's own
+  loaders do); each worker then decodes with its own reader, in memory.
+- **Deriving.** A coarse tile reads each source once, through the image's own pixel array (no
+  per-pixel `getRGB`/`setRGB`). Sources read only to derive a coarser tile are not kept: the z=1
+  tiles between a z=0 overview and z=2 (four times its size) used to fill the cache and were never
+  drawn. Solid 1x1 tiles are still kept (they cost nothing).
+- **Coarse first.** `MapRenderer` queues the bundled z=-1 tile over each missing tile **after** the
+  view's own tiles, so (newest first) the whole view is covered by z=-1 in about 40 ms before the
+  slow z=0 tiles come in.
+- **Ahead of the menu.** `onMenuOptionClicked`: "Travel" on a spirit tree, or "Tree" on a spiritual
+  fairy tree (game object ops only; ids below, or the target "Spirit tree" / "Spiritual Fairy Tree"),
+  with the menu closed and Map mode the default, queues the tiles of the view the menu will open on
+  (`MapRenderer.prefetch`): the initial view (4.7) on the session's last map rect, or before the first
+  open on the rect the layout would give now (fixed: 512x334; resizable: `MapLayout.compute` around
+  the slot where Use free space would put it). It reads only our own resources and leaves the click
+  alone. Ids (gameval `ObjectID`): the travel locs 26260, 26261, 26263, 35950, 49595, 8355, POH
+  29227, 44936, 40778, and the world trees' multiloc parents 1293, 1294, 1295, 37329, 49598, 8338,
+  8382, 8383, 27116, 33733 (a menu entry carries the parent's id); spiritual fairy trees 29229,
+  27097, 40779. Walking to the tree gives seconds of head start; next to it, one tick (600 ms) is
+  enough for the whole 1738x905 view on the bench machine.
+- **Trimming.** 50 ticks after the menu closes (or after such a click) the tiles finer than z=0 and
+  the map-sized buffers are released; the **overview** (z <= 0, what FIT_ALL opens on) stays for 500
+  ticks (5 minutes), so the next tree of a farming run opens at once; the login screen still releases
+  everything. The overview held is what the last views drew at z <= 0: 18.8 MB after a 1738x905
+  open (60 z=0 tiles and the z=-1 cover), 4.5 MB at 1100x600, 3.0 MB in fixed mode; at most the
+  LRU's soft cap.
+
+**Measured** with `./gradlew bench` (`TileBench`: the real store and executor, rebuilt as the overlay
+does at 50 fps, FIT_ALL; AMD Ryzen 9 9900X, 12 cores / 24 threads, JDK 21; milliseconds from the
+first frame, JIT warm (the median of the rounds after the first); the very first open in a fresh JVM
+in brackets):
+
+| Map | Before: first imagery / covered / complete | After | Warm (second open) before / after |
+|---|---|---|---|
+| 1738x905, z=0 | 30 / 950 / 950 (131 / 1273 / 1304) | 38 / 38 / 223 (139 / 160 / 514) | 10 / 10 |
+| 1100x600, z=-1 | 34 / 34 / 34 | 34 / 34 / 34 | 4 / 4 |
+| 512x334, z=-2 | 32 / 48 / 48 | 31 / 31 / 31 | 1 / 1 |
+
+A 1738x905 open decodes 959 z=2 tiles either way (and derives 60 z=0 tiles through 240 z=1 ones);
+after it the cache holds 18.8 MB instead of 47.8 MB. With the Travel click one tick ahead, every size
+opens complete on its first frame (10 / 4 / 1 ms, the rebuild itself). A cold 1738x905 load now
+rebuilds the base map about 11 times on the client thread (about 10 ms each) instead of 42-50. In
+game the old single `MIN_PRIORITY` worker also yielded to the client and everything else, which
+likely stretched a 1 s load into the few seconds reported.
 
 ### 4.10 Coexistence with other plugins
 
@@ -724,11 +781,15 @@ plugin's event handling against the fake menus: open on the title only, rebuilds
 another menu on the same interface, a script we do not hook, a missed script, reopen within 3
 ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
 wheel on the map and List mode's Map button), `MapViewTest`,
-`LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest`, `TreeDataTest` (the real `trees.json` and
+`LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest` (also the loading of 4.9: newest first, stale
+requests dropped, no tile decoded twice at once, a consistent cache under many workers, sources not
+kept, the trims, the coarse cover first, the prefetch), `PrewarmTest` (the Travel click and the
+trim clock, against the fake menus), `TreeDataTest` (the real `trees.json` and
 `index.json`: unique ids and labels, every tree inside its layer, previous values 1-14 unique, house
 portals 1-6, 8, 9, 13, ASCII and length limits, tiles on disk equal the index, every image at most
 256x256 and under 950,000 bytes decoded, resources at most 7.6 MiB, layers in `index.json`, source
 size), `EventBusRegistrationTest`, `MapPreviewTest`, and the launcher `SpiritTreeAtlasPluginTest`.
+`TileBench` (`gradlew bench`, `-PbenchArgs="rounds prewarmMs"`) times an in-game open (4.9).
 
 **Previews** (`gradlew preview`, `MapPreview` into `build/preview/`): full fit, Grand Exchange at
 4 ppt, 16 ppt, the Prifddinas layer, fixed mode 512x334 with the modern corner (Travel shown), fixed
@@ -809,6 +870,11 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
 - **Data.** Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit
   gate; the last-destination values; what the "Your house" row does when clicked inside your own
   house, and whether a guest at a house party sees it (3.4).
+- **Loading (4.9).** How long the first open takes in game now, on a slower machine too; that a
+  "Travel" click on each kind of tree (world trees by their multiloc parent ids, farming trees, POH
+  trees) and "Tree" on a spiritual fairy tree start the prefetch (the ids and option texts come from
+  the cache, not from a live menu entry); that the estimated rect before the first open gives the
+  same level as the real one.
 
 ## 9. Deviations
 
@@ -904,3 +970,15 @@ from the text above.
 25. **Classic Map mode hides only the parchment model (spec updated, 2.3, 4.3).** The first port
     hid `LJ_LAYER2` itself, which also hid `Menu.KEYLISTENERS` (its static child) and so the
     game's hotkeys, and tripped Better Teleport Menu's title check.
+
+**Loading (2026-10-04)**
+
+26. **Tiles load on a small pool, coarse first, ahead of the menu, and the overview stays (spec
+    updated, 4.9).** The user saw the map take a few seconds to load. Fairy Ring Atlas's design (one
+    `MIN_PRIORITY` newest-first worker, every decode under the `ImageIO` class lock, the z=1 tiles
+    between a z=0 overview and z=2 kept in the cache, the z=-1 cover queued between the slow z=0
+    tiles, everything released 50 ticks after a close) became: up to three workers below normal
+    priority that still take the newest request and drop stale ones, no tile loaded twice at once,
+    only the reader lookup under the lock, sources read for a derivation not kept, the coarse cover
+    queued last (so served first), a prefetch on "Travel" / "Tree", and the overview (z <= 0) kept
+    500 ticks. Previews are pixel-identical (hashes of every `build/preview` image compared).
