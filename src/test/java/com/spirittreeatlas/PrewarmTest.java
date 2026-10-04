@@ -14,10 +14,6 @@ import net.runelite.api.MenuEntry;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.events.ScriptPostFired;
-import net.runelite.api.events.ScriptPreFired;
-import net.runelite.api.events.WidgetClosed;
-import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.ObjectID;
 import net.runelite.client.callback.ClientThread;
 import static org.junit.Assert.assertEquals;
@@ -33,8 +29,6 @@ import org.junit.Test;
  */
 public class PrewarmTest
 {
-	private static final int MODERN_SCRIPT = 9142;
-
 	private final SpiritTreeAtlasPlugin plugin = new SpiritTreeAtlasPlugin();
 	private final FakeMenu f = FakeMenu.modern(FakeMenu.OPTIONS);
 	private final TileStore tiles;
@@ -146,15 +140,10 @@ public class PrewarmTest
 	@Test
 	public void theOverviewOutlastsTheRestOfTheCaches()
 	{
-		// a menu opened and closed, its fine tiles and its overview in the cache
-		f.title().text = FakeMenu.TITLE;
-		plugin.onScriptPreFired(new ScriptPreFired(MODERN_SCRIPT));
-		plugin.onScriptPostFired(new ScriptPostFired(MODERN_SCRIPT));
-		assertTrue(plugin.isOpen());
+		// a Travel click (or a close: the same clock) with fine tiles and the overview in the cache
+		plugin.onMenuOptionClicked(click(MenuAction.GAME_OBJECT_FIRST_OPTION, ObjectID.SPIRITTREE_SMALL, "Travel", "Spirit tree"));
 		assertNotNull(tiles.request(2, 40, 50));
 		assertNotNull(tiles.request(0, 10, 12));
-		plugin.onWidgetClosed(new WidgetClosed(InterfaceID.MENU_NEW, 0, true));
-		f.title().text = "Minecart rides";
 		ticks(49);
 		assertNotNull(tiles.get(2, 40, 50));
 		// about 30 s later the fine tiles go, the overview stays
@@ -184,12 +173,9 @@ public class PrewarmTest
 	}
 
 	@Test
-	public void nothingLoadsAheadWhileTheMenuIsOpen()
+	public void nothingLoadsAheadWhileTheMenuIsOpen() throws Exception
 	{
-		f.title().text = FakeMenu.TITLE;
-		plugin.onScriptPreFired(new ScriptPreFired(MODERN_SCRIPT));
-		plugin.onScriptPostFired(new ScriptPostFired(MODERN_SCRIPT));
-		assertTrue(plugin.isOpen());
+		set(SpiritTreeAtlasPlugin.class, plugin, "open", true);
 		plugin.onMenuOptionClicked(click(MenuAction.GAME_OBJECT_FIRST_OPTION, ObjectID.SPIRITTREE_SMALL, "Travel", "Spirit tree"));
 		assertEquals(0, tiles.cachedBytes());
 	}

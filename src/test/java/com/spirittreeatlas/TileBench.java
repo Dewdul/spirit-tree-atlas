@@ -7,6 +7,7 @@ package com.spirittreeatlas;
 
 import com.google.gson.Gson;
 import java.awt.Color;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
@@ -91,7 +92,7 @@ public class TileBench
 
 	static MapView view(TreeRepository repo, Rectangle r)
 	{
-		return SpiritTreeAtlasPlugin.fitTrees(MapView.of(repo.surface(), r), repo.surfaceMarkers(), SpiritTreeAtlasPlugin.chromeInsets());
+		return SpiritTreeAtlasPlugin.fitTrees(MapView.of(repo.surface(), r), repo.surfaceMarkers(), new Insets(ChromePainter.BAR_H, 0, 0, 0));
 	}
 
 	/** One open: rebuilds as the overlay does until the frame is complete at the wanted level. */
