@@ -1,115 +1,125 @@
-# Ring data
+# Spirit tree data
 
-This folder holds the inputs for `src/main/resources/com/spirittreeatlas/rings.json`, the
-ring list the plugin bundles (DESIGN.md section 3.1). None of it ships in the jar.
+This folder holds the inputs for `src/main/resources/com/spirittreeatlas/trees.json`, the
+destination list the plugin bundles (DESIGN.md section 3.1). None of it ships in the jar.
 
 ## Files
 
 | File | Role |
 |---|---|
-| `fairy_rings.verified.json` | The research dataset and source of truth for codes, landing tiles, the game's `no_staff_return` flag and the `FAIRYRINGS_LOG_*` varbit ids. A byte-identical copy of the research track's verified file (sha256 `9ee09794b468823e57b51596a67689604fa03e7b66b321d0be84b8fc33ecaf43`). |
-| `ring_display.json` | The player-facing text, one entry per ring: short name, area, one-line description, requirement lines, danger lines, points of interest, search tags and notes. Each entry lists the wiki pages it was checked against under `sources`. This text replaces the dataset's own `name`, `description`, `poi` and `notes` fields, which were written as research notes. |
-| `portals.json` | Surface entrances of underground layers, each with its wiki source, plus the reasons other layers have none. |
-| `unlock.json` | What must hold before a first visit can unlock a ring: the quest states, varbits and varps the plugin reads for the card's "Locked - needs ...". Each condition has a source, a confidence and, where it is an inference, the reasoning. Copied into `rings.json` as `unlock`, without the source text. |
+| `spirit_trees.verified.json` | The research dataset and source of truth for menu labels, menu order, `previousValue` (`VarbitID.SPIRIT_TREE_PREVIOUS`), layers, tree tiles and centres, arrival tiles and house portals. A copy of the research track's reconciled `destinations/verified.json` (2026-10-04) with the seven fixes below applied. It keeps the research record: per-entry sources, confidence, unlock analysis and research notes. Nothing in it is shown to players directly. |
+| `tree_display.json` | The player-facing text, one entry per tree: card name, map label, area, locked hint, requirement lines, points of interest, notes and dangers, plus the global requirement and the surface portal of the Prifddinas layer. Each entry lists the wiki pages it was checked against under `sources`. |
 
-`tools/build_rings.py` combines the four into `rings.json`.
+`tools/build_trees.py` combines the two (and the layer bounds of `map/index.json`) into `trees.json`.
 
 ## Regenerating
 
 ```
-python tools/build_rings.py            # validate, then write rings.json
-python tools/build_rings.py --check    # validate only; exit 1 if rings.json is out of date
+python tools/build_trees.py            # validate, then write trees.json
+python tools/build_trees.py --check    # validate only; exit 1 if trees.json is out of date
 ```
 
-The script uses only the Python standard library (3.8 or newer). The output is
-deterministic, so rebuilding unchanged inputs gives identical bytes.
-
-Two optional flags cross-check the data against fresh game data:
-
-```
-python tools/build_rings.py --dbrow dump.dbrow --varbits VarbitID.java
-```
-
-- `--dbrow`: `config/dump.dbrow` from https://github.com/Joshua-F/osrs-dumps. The script
-  checks the 64 `[fairyrings_xxx]` rows of DB table 89. Every code with a description (and
-  DIQ) must be in `rings.json`, at the decoded `dest_coord` and with the same
-  `no_staff_return` flag.
-- `--varbits`: any text holding RuneLite's `VarbitID.FAIRYRINGS_LOG_<CODE> = n` constants
-  (the gameval `VarbitID.java`, or a javap dump of it). Each `logVarbit` must match,
-  including `FAIRYRINGS_LOG_HIDEOUT` for the hideout sequence.
-
-On 2026-10-03 both passed against osrs-dumps `2026-09-30-rev241` and RuneLite API 1.12.38
-gamevals: 64 rows and 56 varbits, with no mismatches.
+The script uses only the Python standard library (3.8 or newer). The output is deterministic:
+rebuilding unchanged inputs gives identical bytes. It needs `map/index.json` (written by
+`tools/mapgen`) for the layer bounds and the place labels.
 
 ## What the script enforces
 
 The build fails with a message for each of these:
 
-- **Codes.** Codes are unique and valid. There are exactly 55 dialable codes, including
-  DIQ, and they plus the 9 unused codes cover all 64 combinations. There is one sequence
-  entry and two exit entries. 42 rings are on the surface.
-- **Coverage.** `ring_display.json` has exactly one entry per dataset entry. Entries are
-  keyed by the code, `HIDEOUT` for the sequence, or the dataset id for the Zanaris exits.
-- **Layers.** Every ring lies inside its layer's bounds from DESIGN 3.3 (inclusive-exclusive)
-  and on plane 0. DIQ is `poh` at 0,0,0. The dataset's `surface` flag agrees with the layer.
-- **Log varbits.** Every code and the hideout have a positive, unique `logVarbit`. The
-  exits have -1.
-- **Requirements.** A ring whose dataset entry has a non-optional requirement must have at
-  least one requirement line, and every quest or skill the dataset names must appear in
-  those lines. Each line starts with `Quest:`, `Skill:`, `Unlock:`, `Item:` or `Diary:`.
-  Optional or recommended items (a light source at AJQ, greegrees at CLR, the 50 Agility
-  shortcut at BIP) go in notes instead.
-- **Text.** Names are at most 28 characters and unique. Descriptions fit on one line of
-  at most 120 characters. List items are at most 140 characters. All text is printable
-  ASCII, because the info card uses RuneScape bitmap fonts. Tags are lowercase. Lists have
-  no duplicates, and there are at most 12 POIs.
-- **Unlock conditions.** Each `unlock.json` code is a dialable ring with requirement lines.
-  A condition is `quest` (a `Quest` constant name and `FINISHED` or `IN_PROGRESS`), `varbit`
-  or `varp` (an id, `>=`, `>` or `==`, an integer, and the gameval constant's `name`), or
-  `unknown` (a need the client cannot read). Labels are at most 32 characters, so "Locked -
-  needs <label>" fits on one line of the compact card. Every condition has a source and a
-  confidence, and a `low` one must be `unknown`, so a guess is only ever a hint. A ring cannot
-  have only `unknown` conditions. `RingDataTest` also checks every quest name against
-  `net.runelite.api.Quest` and every `name` against its gameval id.
-- **Portals.** Each portal is on an underground layer that has rings, inside the surface
-  crop (x 1152-3776, y 2368-4032), with at most one per layer and a source.
-- **Map index.** When `src/main/resources/com/spirittreeatlas/map/index.json` exists (written
-  by `tools/mapgen`), every ring and portal must also lie inside that file's layer bounds,
-  which may be tighter than DESIGN 3.3's.
+- **Trees.** Exactly 14, in menu order (`menuRow` 0-13); ids UPPER_SNAKE and unique; menu
+  labels, map labels and names unique (case-insensitive); `tree_display.json` has exactly
+  one entry per tree.
+- **Previous values.** 1-14, each once; the house is 12.
+- **Kinds and layers.** `kind` in fixed/patch/quest/house (the dataset's `island` for Laguna
+  Aurorae becomes `quest`, DESIGN 2.5); `layer` in surface/prifddinas/poh; only the house is
+  `house`, on `poh`, with no coordinates, and only it matches by `prefix`.
+- **Places.** Every surface tree inside the surface bounds and the Prifddinas tree inside the
+  prifddinas bounds of `index.json`, on plane 0; every house portal inside its layer. House
+  portal values are exactly 1, 2, 3, 4, 5, 6, 8, 9 and 13, all high confidence. There is one
+  portal per off-surface layer (Prifddinas), on integer tiles inside the surface bounds and
+  within 2 tiles of the world map's own surface label for it.
+- **Text.** Printable ASCII only (the plugin draws with RuneScape bitmap fonts); no stray
+  whitespace; `label` and `menuLabel` at most 24 characters, `lockedHint` at most 32, `name`
+  24, `area` 100, list items 140. 3-6 POIs and 0-3 notes per tree; no duplicate list items.
+- **Requirements.** Each line starts with `Quest:`, `Skill:`, `Unlock:`, `Item:` or `Diary:`.
+  Every quest and skill level of the dataset's requirement lines appears in the display's.
+  Patch, quest and house trees have requirement lines. The global requirement names Tree
+  Gnome Village.
 
-The script also prints these warnings without failing:
+It warns, without failing, when an arrival tile is more than 4 tiles from its tree, and
+when "Your house (<town>)" is longer than a map label (today only Pollnivneach, 25
+characters).
 
-- a ring less than one map region (64 tiles) from its layer edge; today only the hideout
-  landing, 24 tiles from Zanaris's west edge;
-- a dialable ring with fewer than 5 POIs. Some islands and realms simply have little there.
+## Fixes applied to the research dataset
+
+From the data challenge of 2026-10-04 (research `challenge/DATA_CHALLENGE.md`, its own scan of
+cache 2727). They are also listed in the dataset's `_fixes`:
+
+1. **Farming Guild planting level.** "Skill: 85 Farming to plant (boostable; the patch is in the
+   advanced tier, which needs 85 to enter)", was 83 (Farming_Guild lines 9, 25, 106, 108;
+   Spirit_Tree_(Farming)/Patches).
+2. **House locations 9 (Prifddinas) and 13 (Aldarin)** are high confidence. Cache enum 252,
+   used by cs2 `[proc,script5909]` line 102, maps exactly 1 Rimmington, 2 Taverley,
+   3 Pollnivneach, 4 Rellekka, 5 Brimhaven, 6 Yanille, 8 Hosidius, 9 Prifddinas and 13
+   Aldarin, so the list is complete; added to `housePortalSources`.
+3. **Hosidius area.** "Hosidius, next to the saltpetre deposits, south-east of the Forthos Ruin
+   (Great Kourend)"; the tree is about 31 tiles south of the nearest Forthos Dungeon entrance,
+   not "just south" (Spirit_tree line 62; Forthos_Dungeon line 22; cache labels Saltpetre
+   1702,3520 and Forthos Ruin 1675,3575).
+4. **Battlefield POI.** "Clock Tower to the south-east": the cache label is at 2573,3242,
+   18 tiles east and 18 south of the tree (the wiki's "east" is from the whole Battlefield).
+5. **Etceteria note.** "The only teleport onto Etceteria (otherwise the Rellekka boat to
+   Miscellania, or moor at 65 Sailing after Royal Trouble)"; Sailing made "the only direct
+   transport" untrue (Etceteria line 53). The optional requirement line "Quest: The
+   Fremennik Trials (for the Rellekka boat, to reach and plant the patch)" is added too
+   (Etceteria line 29).
+6. **House portal centres** are exact footprint centres in tile-index units, as the tree
+   centres are: Rimmington 2951.5,3224; Taverley 2891.5,3465; Pollnivneach 3340,3001.5;
+   Rellekka 2670,3629.5; Brimhaven 2755.5,3178; Yanille 2544,3097.5; Hosidius 1740.5,3517;
+   Prifddinas 3239,6077.5; Aldarin 1422,2962 (unchanged). They were rounded down.
+7. **Last-destination source.** The varbit 20252 op text is on 9 locs, not 7: 40778 (the
+   Christmas house tree) and 44936 (the Leagues house tree) are added to
+   `previousDestination.source`. The value mapping is unchanged.
 
 ## Sources
 
-- **Game cache.** DB table 89 `fairyring` from `dump.dbrow`/`dump.dbtable` (osrs-dumps
-  `2026-09-30-rev241`) gives codes, landing tiles (`dest_coord`) and `no_staff_return`.
-- **RuneLite.** `net.runelite.api.gameval.VarbitID` gives the `FAIRYRINGS_LOG_*` ids.
-  `plugins/fairyring/FairyRing.java` provides the names and search tags that were merged
-  into `tags`.
-- **OSRS Wiki.** https://oldschool.runescape.wiki was read via `?action=raw` on 2026-10-03:
-  - `Fairy_ring` (its points-of-interest column and closest-points list);
-  - every destination page, plus `Farming/Patch_locations` and its `*/Patches`
-    transclusions for farming patches near rings;
-  - quest pages for requirements.
+- **Game cache 2727** (OpenRS2, 2026-09-30), decoded with `net.runelite:cache` 1.13.1 by the
+  research track: loc placements and sizes (tree tiles and centres), multiloc varbits, the
+  conditional "Last-destination" op text (previous values), enum 252 (house towns), the house
+  portal placements, and the world map labels and icons (the Prifddinas portal point; the
+  Clock Tower, Saltpetre and Forthos Ruin labels).
+- **Shortest Path** (Skretzo/shortest-path @18983976) `transports/spirit_trees.tsv`: arrival
+  tiles (not checked in game).
+- **OSRS Wiki**, https://oldschool.runescape.wiki, read via `?action=raw` on 2026-10-04:
+  - `Spirit_tree` (locations, requirements, fastest routes, planting limits, payment, the
+    Treasure Trails challenge answer), `Spirit_Tree_(Farming)/Patches` (gardeners, nearby
+    activities), `Spirit_tree_(Construction)` (house tree requirements; grows at once),
+    `Spirit_Tree_(Incomitatus)`, `Transcript:Spirit_tree` (refusal lines);
+  - the destination pages: `Tree_Gnome_Village_(location)`, `Tree_Gnome_Stronghold`,
+    `Battlefield`, `Grand_Exchange`, `Feldip_Hills`, `Myths'_Guild` (Wrath Altar via its
+    basement), `Corsair_Cove` (its bank after The Corsair Curse), `Prifddinas`, `Etceteria`,
+    `Miscellania_and_Etceteria_dungeon` (sea snakes), `Hosidius`, `Forthos_Dungeon`,
+    `Farming_Guild`, `Poison_Waste_Dungeon`, `Laguna_Aurorae`, `Kurask` (70 Slayer);
+  - quest pages for requirements: `Tree_Gnome_Village`, `The_Grand_Tree`,
+    `Song_of_the_Elves`, `The_Path_of_Glouphrie`, `Pandemonium`.
 
-  Each `ring_display.json` entry names its pages.
+  Each `tree_display.json` entry names its pages.
 
 ## Known uncertainties
 
-- **BLS.** It is unconfirmed that BLS needs a first visit to Great Kourend. The wiki
-  states this for AKR, CIR, CIS and DJR only. The line says "probably".
-- **BLQ.** The `Fairy_ring` page says Land of the Goblins must be partly complete, while
-  the quest and Yu'biusk pages say complete. The requirement names the quest, and a note
-  records the disagreement.
-- **BJR.** The quest guide uses BJR part-way through Holy Grail, so the requirement says
-  partial.
-- **Landing tiles.** These are the game's `dest_coord`. Wiki pins differ by 1-3 tiles for
-  AIS, AKP, AKR, BLQ and DLP, because the arrival tile is anywhere in the ring's 3x3
-  footprint.
-- **Grimstone.** It has no portal. Its dungeon entrance at (2912,4066) is north of the
-  surface crop. If the map generator extends the crop past y 4066, add one to
-  `portals.json`.
+- **Arrival tiles** come from Shortest Path only and are not checked in game. They are
+  informational.
+- **Poison Waste.** The cache's tree turns to its Travel form at The Path of Glouphrie stage
+  37 and from 39 up (38 is talk-only); whether travel is refused at 38 is unchecked. The
+  requirement line says "part way".
+- **Laguna Aurorae.** "Moor at Laguna Aurorae once" comes from the wiki and the tree's refusal
+  line; the client varbit for it (`LAGUNA_AURORAE_VISITED`) is inferred from its name.
+- **Farming Guild locked hint.** "Grow a tree here (85 Farming)" covers both reasons the row
+  could be grey; whether the game greys the row below 85 Farming or only refuses the trip is
+  unknown.
+- **Your house.** No client variable is known for "the house has a spirit tree"; the menu row
+  colour is the only signal.
+- **Tree Gnome Village icon.** The map's transportation icon for this tree sits 5.5 tiles from
+  the tree centre, outside the 3-tile drop radius, so the map still shows it next to the
+  marker (see `tools/mapgen/README.md`).
