@@ -6,11 +6,12 @@
 package com.spirittreeatlas;
 
 import com.google.gson.Gson;
+import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.Area;
 import java.awt.image.BufferedImage;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.imageio.ImageIO;
 
@@ -25,8 +27,10 @@ import javax.imageio.ImageIO;
  * Renders the map offline, without a game client, from the real bundled resources into
  * build/preview/*.png so the drawing can be checked by eye (DESIGN 5). Run with
  * {@code ./gradlew preview}, through MapPreviewTest with STA_PREVIEW=1, or as a main from an IDE.
- * The game's own widgets (the slot, the real Travel row, the close button) are drawn as plain
- * stand-ins where the overlay would leave holes for them.
+ * Where the overlay leaves holes, the game's own parts are drawn as they look in game: the
+ * Travel row on its backdrop (modern: orange text on translucent black; classic: dark brown text
+ * on parchment) and the red close button, so the corner can be judged. Also writes the hub's
+ * icon.png to the repo root when run from it.
  */
 public class MapPreview
 {
@@ -34,14 +38,18 @@ public class MapPreview
 	/** Trees the preview menu lists in grey, and one it does not list at all. */
 	private static final List<String> GREY = Arrays.asList("PRIFDDINAS", "ETCETERIA", "BRIMHAVEN", "POISON_WASTE", "LAGUNA_AURORAE");
 	private static final String ABSENT = "FARMING_GUILD";
+	private static final Color BACKGROUND = new Color(0x2a2620);
+	/** The game world behind the menu: shows only through the translucent modern row. */
+	private static final Color WORLD = new Color(0x4d5a37);
 
-	/** One preview: the view, the selection and hover, the menu style and the card's detail. */
+	/** One preview: the view, the selection, hover and where the player stands, the menu style and the card's detail. */
 	private static final class Shot
 	{
 		final String name;
 		final MapView view;
 		String selected;
 		String hovered;
+		String here;
 		TreeMenu.Style style = TreeMenu.Style.MODERN;
 		boolean fullDetails;
 
@@ -77,14 +85,15 @@ public class MapPreview
 		ge4.hovered = "GRAND_EXCHANGE";
 		render(repo, painter, out, ge4);
 
+		// standing at the Tree Gnome Village tree: the pin, and "You are here" in the Travel cell
 		Tree village = repo.tree("TREE_GNOME_VILLAGE");
 		Shot close = new Shot("3-16ppt", MapView.of(surface, big).focusOn(village.getX() + 0.5, village.getY() + 0.5, 16, in));
 		close.selected = "TREE_GNOME_VILLAGE";
+		close.here = "TREE_GNOME_VILLAGE";
 		render(repo, painter, out, close);
 
-		Layer prif = repo.layer(Layer.PRIFDDINAS);
-		Shot city = new Shot("4-prifddinas", SpiritTreeAtlasPlugin.fitLayer(prif, big, in));
-		city.selected = "PRIFDDINAS";
+		// nothing selected: the hint card and "Pick a tree on the map"
+		Shot city = new Shot("4-prifddinas", SpiritTreeAtlasPlugin.fitLayer(repo.layer(Layer.PRIFDDINAS), big, in));
 		render(repo, painter, out, city);
 
 		Shot modern = new Shot("5-fixed-modern", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
@@ -104,15 +113,30 @@ public class MapPreview
 
 		treeChecks(repo, painter, out);
 
-		// "Use free space" on a 2000x1082 resizable canvas: all of the HUD area but its 6 px inset
+		// "Use free space" on a 2000x1082 resizable canvas: all of the HUD area but its 6 px inset;
+		// the Farming Guild is not in this menu's list
 		Rectangle free = new Rectangle(30, 30, 1738, 905);
 		Shot space = new Shot("9-free-space", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, free), repo.surfaceMarkers(), in));
-		space.selected = "HOSIDIUS";
+		space.selected = ABSENT;
 		space.hovered = "LAGUNA_AURORAE";
 		render(repo, painter, out, space);
 
 		listAndNotice(painter, out);
-		icon(repo, painter, out);
+
+		Shot classicTravel = new Shot("11-fixed-classic-travel",
+			SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+		classicTravel.selected = "HOSIDIUS";
+		classicTravel.style = TreeMenu.Style.CLASSIC;
+		render(repo, painter, out, classicTravel);
+
+		Tree khazard = repo.tree("BATTLEFIELD_OF_KHAZARD");
+		Shot full = new Shot("12-full-card", MapView.of(surface, fixed).focusOn(khazard.getX() + 0.5, khazard.getY() + 0.5, 2, in));
+		full.selected = "BATTLEFIELD_OF_KHAZARD";
+		full.fullDetails = true;
+		render(repo, painter, out, full);
+
+		markerStates(repo, painter, out);
+		icon(repo, out);
 	}
 
 	/**
@@ -163,8 +187,12 @@ public class MapPreview
 
 		Scene s = scene(repo, v, shot.selected, shot.hovered);
 		s.fullDetails = shot.fullDetails;
+		if (shot.here != null)
+		{
+			s.here = shot.here;
+		}
 		TreeMenu.Row row = repo.row(shot.selected);
-		s.rowShown = Scene.rowShown(shot.selected, row, repo.getHere());
+		s.rowShown = Scene.rowShown(shot.selected, row, s.here);
 		s.rowCell = cell;
 		s.closeRect = close;
 		s.holes.add(close);
@@ -172,32 +200,29 @@ public class MapPreview
 		{
 			s.holes.add(cell);
 		}
-		s.standIn = s.rowShown ? null : Scene.standInText(repo.tree(shot.selected), row, repo.getHere());
+		s.standIn = s.rowShown ? null : Scene.standInText(repo.tree(shot.selected), row, s.here);
 
 		BufferedImage canvas = new BufferedImage(rect.x * 2 + rect.width, rect.y * 2 + rect.height, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g2 = canvas.createGraphics();
-		g2.setColor(new Color(0x2a2620));
+		g2.setColor(BACKGROUND);
 		g2.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-		g2.setColor(new Color(0x404640));
+		g2.setColor(WORLD);
 		g2.fill(slot);
-		// stand-ins for the game's own close button and, in the Travel hole, the real row on RowBackdrop
-		g2.setColor(new Color(0x8a2a1a));
-		g2.fill(close);
-		if (s.rowShown)
-		{
-			g2.setColor(modern ? new Color(0, 0, 0) : new Color(0xD9C9A0));
-			g2.fill(cell);
-			g2.setColor(modern ? new Color(0xff981f) : new Color(0x322805));
-			g2.setFont(new Font(Font.DIALOG, Font.PLAIN, 11));
-			String text = row.getKey() + ": " + row.getLabel();
-			g2.drawString(text, cell.x + (cell.width - g2.getFontMetrics().stringWidth(text)) / 2, cell.y + cell.height - 5);
-		}
+		paintGame(g2, painter.ink(), close, s.rowShown ? cell : null, row, modern);
 
 		long t0 = System.nanoTime();
 		BufferedImage base = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_RGB);
 		Layer layer = repo.layer(v.getLayer());
 		MapRenderer.render(base, v, tiles, layer.getBackgroundColor());
 		long t1 = System.nanoTime();
+		// a first frame off screen, as the overlay's previous frame: the card it placed keeps the
+		// map's labels from under it
+		Graphics2D scratch = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_ARGB).createGraphics();
+		chrome.layout(s);
+		painter.paintMap(scratch, s);
+		chrome.paint(scratch, s);
+		scratch.dispose();
+		s.hits.clear();
 		chrome.layout(s);
 		chrome.paintShadow(g2, s);
 		Shape clip = g2.getClip();
@@ -215,9 +240,69 @@ public class MapPreview
 		long t2 = System.nanoTime();
 		g2.dispose();
 		ImageIO.write(canvas, "png", new File(out, shot.name + ".png"));
-		System.out.printf("%-22s ppt=%6.3f z=%d  base=%6.1f ms  paint=%5.1f ms  hits=%d%n",
+		System.out.printf("%-24s ppt=%6.3f z=%d  base=%6.1f ms  paint=%5.1f ms  hits=%d%n",
 			shot.name, v.getPpt(), tiles.levelFor(v.getPpt()), (t1 - t0) / 1e6, (t2 - t1) / 1e6, s.hits.size());
 		tiles.close();
+	}
+
+	/**
+	 * The game's own parts that show through the holes, as the game draws them: the close button
+	 * and, when the Travel row is shown, the real row over RowBackdrop's fill (DESIGN 2.2, 2.3, 4.3).
+	 */
+	static void paintGame(Graphics2D g, Ink ink, Rectangle close, Rectangle cell, TreeMenu.Row row, boolean modern)
+	{
+		closeButton(g, close, modern);
+		if (cell == null || row == null)
+		{
+			return;
+		}
+		// RowBackdrop, then (modern) the row's own black rectangle at transparency 200 (alpha 55)
+		g.setColor(modern ? new Color(0, 0, 0, 200) : new Color(0xD9C9A0));
+		g.fill(cell);
+		g.setColor(modern ? new Color(0x3E3529) : new Color(0x5A4A2A));
+		g.drawRect(cell.x, cell.y, cell.width - 1, cell.height - 1);
+		if (modern)
+		{
+			g.setColor(new Color(0, 0, 0, 55));
+			g.fill(cell);
+		}
+		// p12_full, centred both ways: "<col=ffffff>K</col>: " + option (classic: key in 735a28)
+		String key = row.getKey();
+		String rest = ": " + row.getLabel();
+		int w = ink.width(ink.regular, key) + ink.width(ink.regular, rest);
+		int x = cell.x + (cell.width - w) / 2;
+		int y = cell.y + (cell.height - ink.height(ink.regular)) / 2;
+		Ink.Style st = modern ? Ink.Style.SHADOW : Ink.Style.PLAIN;
+		ink.text(g, key, ink.regular, modern ? Color.WHITE : new Color(0x735a28), x, y, st);
+		ink.text(g, rest, ink.regular, modern ? new Color(0xff981f) : new Color(0x322805), x + ink.width(ink.regular, key), y, st);
+	}
+
+	/** The game's close button (sprites 535 / 537): a small bevelled red-brown square with an X. */
+	private static void closeButton(Graphics2D g, Rectangle c, boolean modern)
+	{
+		g.setColor(new Color(0x14100b));
+		g.fillRect(c.x, c.y, c.width, c.height);
+		g.setColor(modern ? new Color(0x7a2414) : new Color(0x6e3a1c));
+		g.fillRect(c.x + 1, c.y + 1, c.width - 2, c.height - 2);
+		g.setColor(modern ? new Color(0xa9432a) : new Color(0x96562c));
+		g.fillRect(c.x + 1, c.y + 1, c.width - 2, 1);
+		g.fillRect(c.x + 1, c.y + 1, 1, c.height - 2);
+		g.setColor(modern ? new Color(0x461008) : new Color(0x3f200e));
+		g.fillRect(c.x + 1, c.y + c.height - 2, c.width - 2, 1);
+		g.fillRect(c.x + c.width - 2, c.y + 1, 1, c.height - 2);
+		int cx = c.x + c.width / 2;
+		int cy = c.y + c.height / 2;
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		for (int pass = 0; pass < 2; pass++)
+		{
+			int o = pass == 0 ? 1 : 0;
+			g.setColor(pass == 0 ? new Color(0x1a0a05) : new Color(0xE8D2A8));
+			g.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			g.drawLine(cx - 5 + o, cy - 5 + o, cx + 5 + o, cy + 5 + o);
+			g.drawLine(cx + 5 + o, cy - 5 + o, cx - 5 + o, cy + 5 + o);
+		}
+		g.setStroke(new BasicStroke(1f));
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 	}
 
 	static final int CHECK_SIZE = 240;
@@ -239,7 +324,7 @@ public class MapPreview
 		int rows = (trees.size() + cols - 1) / cols;
 		BufferedImage sheet = new BufferedImage(cols * (CHECK_SIZE + 8) + 8, rows * (CHECK_SIZE + 8) + 8, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = sheet.createGraphics();
-		g.setColor(new Color(0x2a2620));
+		g.setColor(BACKGROUND);
 		g.fillRect(0, 0, sheet.getWidth(), sheet.getHeight());
 		for (int i = 0; i < trees.size(); i++)
 		{
@@ -268,13 +353,13 @@ public class MapPreview
 		ChromePainter chrome = new ChromePainter(painter.ink());
 		BufferedImage img = new BufferedImage(1160, 420, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = img.createGraphics();
-		g.setColor(new Color(0x2a2620));
+		g.setColor(BACKGROUND);
 		g.fillRect(0, 0, img.getWidth(), img.getHeight());
 		Rectangle canvas = new Rectangle(0, 0, img.getWidth(), img.getHeight());
 		Rectangle[] slots = {new Rectangle(30, 60, 512, 334), new Rectangle(610, 60, 512, 334)};
 		for (Rectangle slot : slots)
 		{
-			g.setColor(new Color(0x404640));
+			g.setColor(WORLD);
 			g.fill(slot);
 		}
 		// the modern menu's UNIVERSE, centred in its slot, with the Map button above its top-left corner
@@ -287,33 +372,209 @@ public class MapPreview
 		ImageIO.write(img, "png", new File(out, "10-list-and-notice.png"));
 	}
 
+	/** One row of the marker sheet: a name and how the scene shows the tree. */
+	private static final class State
+	{
+		final String name;
+		final Tree.Status status;
+		final boolean selected;
+		final boolean hovered;
+		final boolean here;
+		final boolean last;
+		final boolean key;
+		final boolean dim;
+
+		State(String name, Tree.Status status, String flags)
+		{
+			this.name = name;
+			this.status = status;
+			this.selected = flags.contains("s");
+			this.hovered = flags.contains("h");
+			this.here = flags.contains("y");
+			this.last = flags.contains("l");
+			this.key = flags.contains("k");
+			this.dim = flags.contains("d");
+		}
+	}
+
 	/**
-	 * The hub's 48x72 icon.png (build/preview/icon.png, copied to the repo root by hand): a crop
-	 * of the map around the Grand Exchange with its spirit tree marker selected, drawn large.
+	 * Writes 13-marker-states.png: every marker state of DESIGN 4.7 at 1, 4, 8 and 16 ppt over the
+	 * real map, then the Travel cell's stand-in for every case in both menu styles at their real
+	 * cell sizes, next to the shown row.
 	 */
-	private static void icon(TreeRepository repo, AtlasPainter painter, File out) throws IOException
+	private static void markerStates(TreeRepository repo, AtlasPainter painter, File out) throws IOException
+	{
+		State[] states = {
+			new State("Available", Tree.Status.AVAILABLE, ""),
+			new State("Locked", Tree.Status.LOCKED, ""),
+			new State("Locked, dimLocked", Tree.Status.LOCKED, "d"),
+			new State("Not in the list", Tree.Status.ABSENT, ""),
+			new State("Hover", Tree.Status.AVAILABLE, "h"),
+			new State("Selected", Tree.Status.AVAILABLE, "s"),
+			new State("You are here", Tree.Status.AVAILABLE, "y"),
+			new State("Last trip", Tree.Status.AVAILABLE, "l"),
+			new State("Key", Tree.Status.AVAILABLE, "k"),
+			new State("Locked, selected, key", Tree.Status.LOCKED, "sk"),
+			new State("All of them", Tree.Status.AVAILABLE, "hsylk"),
+		};
+		double[] ppts = {1, 4, 8, 16};
+		int cw = 170;
+		int ch = 64;
+		int lw = 140;
+		Ink ink = painter.ink();
+		int stripH = 2 * 40 + 30;
+		BufferedImage img = new BufferedImage(Math.max(lw + ppts.length * (cw + 6) + 6, 140 + 5 * 186), 28 + states.length * (ch + 6) + 6 + stripH, BufferedImage.TYPE_INT_RGB);
+		Graphics2D g = img.createGraphics();
+		g.setColor(BACKGROUND);
+		g.fillRect(0, 0, img.getWidth(), img.getHeight());
+		TileStore tiles = new TileStore(repo.getIndex(), repo.getLayers(), BASE, Runnable::run);
+		Tree t = repo.tree("FELDIP_HILLS");
+		Layer layer = repo.layer(t.getLayer());
+		for (int c = 0; c < ppts.length; c++)
+		{
+			ink.text(g, ppts[c] + " ppt", ink.small, ChromePainter.GREY, lw + c * (cw + 6) + 4, 8, Ink.Style.SHADOW);
+		}
+		for (int r = 0; r < states.length; r++)
+		{
+			State st = states[r];
+			int y = 28 + r * (ch + 6);
+			ink.text(g, st.name, ink.small, ChromePainter.CREAM, 8, y + ch / 2 - 6, Ink.Style.SHADOW);
+			for (int c = 0; c < ppts.length; c++)
+			{
+				Rectangle rect = new Rectangle(lw + c * (cw + 6), y, cw, ch);
+				MapView v = MapView.of(layer, rect).centerOn(t.getX() + 0.5 + 18 / ppts[c], t.getY() + 0.5 - 4 / ppts[c], ppts[c]);
+				BufferedImage base = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_RGB);
+				MapRenderer.render(base, v, tiles, layer.getBackgroundColor());
+				Scene s = new Scene();
+				s.repo = repo;
+				s.view = v;
+				s.trees = Collections.singletonList(t);
+				s.states.put(t.getId(), st.status);
+				if (st.key)
+				{
+					s.keys.put(t.getId(), "5");
+				}
+				s.selected = st.selected ? t.getId() : null;
+				s.hovered = st.hovered ? t : null;
+				s.here = st.here ? t.getId() : null;
+				s.last = st.last ? t.getId() : null;
+				s.dimLocked = st.dim;
+				s.placeLabels = false;
+				s.now = 400;
+				Shape clip = g.getClip();
+				g.clip(rect);
+				g.drawImage(base, rect.x, rect.y, null);
+				painter.paintMap(g, s);
+				g.setClip(clip);
+			}
+		}
+		tiles.close();
+		standIns(repo, painter, g, 28 + states.length * (ch + 6) + 10);
+		g.dispose();
+		ImageIO.write(img, "png", new File(out, "13-marker-states.png"));
+	}
+
+	/** The stand-in for each case, and the shown row, in both menu styles at their real cell sizes. */
+	private static void standIns(TreeRepository repo, AtlasPainter painter, Graphics2D g, int top)
+	{
+		ChromePainter chrome = new ChromePainter(painter.ink());
+		Ink ink = painter.ink();
+		Tree house = repo.tree("YOUR_HOUSE");
+		Tree village = repo.tree("TREE_GNOME_VILLAGE");
+		Tree hosidius = repo.tree("HOSIDIUS");
+		TreeMenu.Row grey = new TreeMenu.Row(11, "C", house.getMenuLabel(), true, house.getId());
+		TreeMenu.Row usable = repo.row("HOSIDIUS");
+		// selected tree, its row, where the player stands
+		Object[][] cases = {
+			{null, null, null},
+			{house, grey, null},
+			{village, repo.row(village.getId()), village.getId()},
+			{repo.tree(ABSENT), null, null},
+			{hosidius, usable, null},
+		};
+		for (int style = 0; style < 2; style++)
+		{
+			boolean modern = style == 0;
+			int y = top + 18 + style * 40;
+			ink.text(g, modern ? "Modern 161x20" : "Classic 170x16", ink.small, ChromePainter.CREAM, 8, y + 2, Ink.Style.SHADOW);
+			for (int i = 0; i < cases.length; i++)
+			{
+				Tree sel = (Tree) cases[i][0];
+				TreeMenu.Row row = (TreeMenu.Row) cases[i][1];
+				String here = (String) cases[i][2];
+				Rectangle cell = new Rectangle(148 + i * 186, y, modern ? 161 : 170, modern ? 20 : 16);
+				Rectangle map = new Rectangle(cell.x - 8, cell.y - 22, cell.width + 16, cell.height + 30);
+				Scene s = new Scene();
+				s.fromRepository(repo);
+				s.view = MapView.of(repo.surface(), map);
+				s.selected = sel == null ? null : sel.getId();
+				s.here = here;
+				s.now = 400;
+				s.rowCell = cell;
+				s.rowShown = Scene.rowShown(s.selected, row, here);
+				s.standIn = s.rowShown ? null : Scene.standInText(sel, row, here);
+				if (s.rowShown)
+				{
+					s.holes.add(cell);
+				}
+				chrome.layout(s);
+				g.setColor(new Color(0x3a5a2a));
+				g.fill(new Rectangle(map.x, map.y + 4, map.width, map.height - 4));
+				if (s.rowShown)
+				{
+					g.setColor(WORLD);
+					g.fill(cell);
+					paintGame(g, ink, new Rectangle(-100, -100, 1, 1), cell, row, modern);
+				}
+				chrome.paintStandIn(g, s);
+				chrome.paintHoles(g, s);
+			}
+		}
+	}
+
+	/**
+	 * The hub's 48x72 icon.png: a crop of the map with a selected spirit tree marker, drawn large
+	 * enough to read at that size. Written to build/preview and, when run from the repo root
+	 * (as {@code gradlew preview} does), to the root's icon.png.
+	 */
+	private static void icon(TreeRepository repo, File out) throws IOException
 	{
 		TileStore tiles = new TileStore(repo.getIndex(), repo.getLayers(), BASE, Runnable::run);
 		Tree t = repo.tree("GRAND_EXCHANGE");
 		Layer layer = repo.layer(t.getLayer());
-		MapView v = MapView.of(layer, new Rectangle(0, 0, 48, 72)).centerOn(t.getX() + 0.5, t.getY() + 0.5, 1.5);
+		MapView v = MapView.of(layer, new Rectangle(0, 0, 48, 72)).centerOn(t.getX() + 0.5, t.getY() + 0.5 - 3, 2);
 		BufferedImage img = new BufferedImage(48, 72, BufferedImage.TYPE_INT_RGB);
 		MapRenderer.render(img, v, tiles, layer.getBackgroundColor());
 		Graphics2D g = img.createGraphics();
 		Scene s = scene(repo, v, t.getId(), null);
-		g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
-		g.translate(v.screenX(t.getX() + 0.5), v.screenY(t.getY() + 0.5));
-		g.scale(1.9, 1.9);
-		painter.drawMarker(g, 0, 0, 7.5, AtlasPainter.AVAILABLE | AtlasPainter.SELECTED, s);
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+		// darken the map a little so the marker stands out
+		g.setColor(new Color(0, 0, 0, 60));
+		g.fillRect(0, 0, 48, 72);
+		g.translate(24, 36);
+		g.scale(2.3, 2.3);
+		g.setColor(AtlasPainter.withAlpha(s.selectedColor, 70));
+		g.fill(AtlasPainter.circle(0, 0, 9.6));
+		AtlasPainter.drawMarker(g, 0, 0, 7.5, AtlasPainter.AVAILABLE | AtlasPainter.SELECTED, s);
 		g.dispose();
 		ImageIO.write(img, "png", new File(out, "icon.png"));
+		if (new File("runelite-plugin.properties").isFile())
+		{
+			ImageIO.write(img, "png", new File("icon.png"));
+		}
+		BufferedImage x4 = new BufferedImage(48 * 4, 72 * 4, BufferedImage.TYPE_INT_RGB);
+		Graphics2D g4 = x4.createGraphics();
+		g4.drawImage(img, 0, 0, 48 * 4, 72 * 4, null);
+		g4.dispose();
+		ImageIO.write(x4, "png", new File(out, "icon_x4.png"));
 		tiles.close();
 	}
 
 	static List<String> names()
 	{
 		return Arrays.asList("1-fit", "2-grand-exchange-4ppt", "3-16ppt", "4-prifddinas", "5-fixed-modern", "6-fixed-classic",
-			"7-locked-card", "8-checks", "9-free-space", "10-list-and-notice", "icon");
+			"7-locked-card", "8-checks", "9-free-space", "10-list-and-notice", "11-fixed-classic-travel", "12-full-card",
+			"13-marker-states", "icon");
 	}
 }

@@ -14,6 +14,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
@@ -69,7 +70,7 @@ public class AtlasPainter
 	}
 
 	/** A marker on screen: a tree on the view's layer, or a surface stand-in for one. */
-	private static final class Mark
+	static final class Mark
 	{
 		final Tree tree;
 		final double x;
@@ -100,14 +101,14 @@ public class AtlasPainter
 		return ink;
 	}
 
-	/** Marker radius at a zoom: a 15 px glyph, growing slightly past 4 ppt; larger when selected. */
+	/** Marker radius at a zoom: a 16 px glyph, growing slightly past 4 ppt; larger when selected. */
 	static double radius(double ppt, boolean selected)
 	{
-		double r = 7.5 + (ppt > 4 ? Math.min(3, 1.5 * Math.log(ppt / 4) / Math.log(2)) : 0);
+		double r = 8 + (ppt > 4 ? Math.min(3, 1.5 * Math.log(ppt / 4) / Math.log(2)) : 0);
 		return selected ? r * 1.25 : r;
 	}
 
-	int flags(Scene s, Tree t)
+	static int flags(Scene s, Tree t)
 	{
 		Tree.Status st = s.status(t);
 		int f = st == Tree.Status.AVAILABLE ? AVAILABLE : st == Tree.Status.LOCKED ? LOCKED : 0;
@@ -126,13 +127,16 @@ public class AtlasPainter
 		return f;
 	}
 
-	float alpha(Scene s, int flags)
+	static float alpha(Scene s, int flags)
 	{
 		return s.dimLocked && (flags & LOCKED) != 0 && (flags & (SELECTED | HOVER)) == 0 ? 0.5f : 1f;
 	}
 
-	/** The markers on the view: its layer's trees and, on the surface, the stand-ins. */
-	private List<Mark> marks(Scene s)
+	/**
+	 * Where the markers are on screen: the view's layer's trees and, on the surface, the
+	 * stand-ins. The one source of marker positions for drawing, labels and the card's placement.
+	 */
+	static List<Mark> marks(Scene s)
 	{
 		MapView v = s.view;
 		List<Mark> out = new ArrayList<>();
@@ -204,7 +208,7 @@ public class AtlasPainter
 			}
 			if (m.tree.getId().equals(s.here))
 			{
-				paintPin(g, ink, m.x, m.y - rad - 2);
+				paintPin(g, ink, m.x - rad * 0.45, m.y - rad - 1);
 			}
 			g.setComposite(old);
 			int hr = (int) Math.ceil(rad + 3);
@@ -225,7 +229,7 @@ public class AtlasPainter
 	}
 
 	/** Draw and label order: absent, locked, available, last trip, then hovered and selected on top. */
-	private int order(Scene s, Tree t)
+	private static int order(Scene s, Tree t)
 	{
 		int f = flags(s, t);
 		return ((f & SELECTED) != 0 ? 16 : 0) + ((f & HOVER) != 0 ? 8 : 0) + ((f & LAST) != 0 ? 4 : 0)
@@ -247,7 +251,7 @@ public class AtlasPainter
 	{
 		MapView v = s.view;
 		long key = Objects.hash(v, s.selected, s.hovered, s.treeLabels, s.placeLabels, s.keyHints, s.topBar, s.card, s.backButton,
-			s.holes, s.rowCell, s.captionRect, s.states, s.keys, s.here, s.last, s.standIns.size());
+			s.holes, s.rowCell, s.captionRect, s.standInRect, s.states, s.keys, s.here, s.last, s.standIns.size());
 		if (key == layoutKey)
 		{
 			return;
@@ -265,6 +269,10 @@ public class AtlasPainter
 		{
 			placer.addObstacle(grow(h, 4));
 		}
+		if (s.standInRect != null)
+		{
+			placer.addObstacle(grow(s.standInRect, 4));
+		}
 		for (Mark m : marks)
 		{
 			double rad = radius(v.getPpt(), m.tree.getId().equals(s.selected));
@@ -273,6 +281,14 @@ public class AtlasPainter
 			if (s.keyHints && s.key(m.tree) != null)
 			{
 				placer.addObstacle(keyBox(s.key(m.tree), m.x + rad * 0.5, m.y - rad * 0.8));
+			}
+			if (m.tree.getId().equals(s.here))
+			{
+				// the pin and its "You", over the marker's top-left
+				int px = (int) Math.round(m.x - rad * 0.45);
+				int py = (int) Math.round(m.y - rad - 1);
+				int w = ink.width(ink.small, "You") + 15;
+				placer.addObstacle(new Rectangle(px - w, py - 26, w + 7, 26));
 			}
 		}
 		if (Layer.SURFACE.equals(v.getLayer()))
@@ -298,7 +314,7 @@ public class AtlasPainter
 					continue;
 				}
 				double rad = radius(v.getPpt(), m.tree.getId().equals(s.selected));
-				Rectangle at = placer.place(m.x, m.y, ink.width(ink.small, m.tree.getLabel()), h, (int) Math.ceil(rad), 3);
+				Rectangle at = placer.place(m.x, m.y, ink.width(ink.small, m.tree.getLabel()), h, (int) Math.ceil(rad), m.tree == s.hovered ? 6 : 4);
 				if (at != null)
 				{
 					treeLabels.add(new Placed(m, at, null));
@@ -384,61 +400,97 @@ public class AtlasPainter
 	}
 
 	/**
-	 * A spirit tree glyph (round canopy over a short trunk) in a dark disc of radius r: the canopy
-	 * in the state's colour, hollow when the tree is not in the list; a padlock when locked, a
-	 * ring when selected, a white outline on hover, a return-arrow badge for the last trip.
+	 * A spirit tree glyph in a dark disc of radius r: a lobed canopy over a short trunk with a root
+	 * flare, outlined dark. The canopy takes the state's colour, or is drawn hollow when the tree is
+	 * not in the list; a padlock when locked, a ring when selected, a white ring on hover, a
+	 * return-arrow badge for the last trip.
 	 */
-	void drawMarker(Graphics2D g, double cx, double cy, double r, int flags, Scene s)
+	static void drawMarker(Graphics2D g, double cx, double cy, double r, int flags, Scene s)
 	{
 		boolean available = (flags & AVAILABLE) != 0;
 		boolean locked = (flags & LOCKED) != 0;
-		g.setColor(new Color(0, 0, 0, 170));
+		g.setColor(new Color(0, 0, 0, 175));
 		g.fill(circle(cx, cy, r));
+		Area canopy = canopy(cx, cy, r);
 		Path2D trunk = new Path2D.Double();
-		trunk.moveTo(cx - r * 0.13, cy + r * 0.05);
-		trunk.lineTo(cx + r * 0.13, cy + r * 0.05);
-		trunk.lineTo(cx + r * 0.2, cy + r * 0.66);
-		trunk.lineTo(cx - r * 0.2, cy + r * 0.66);
+		trunk.moveTo(cx - r * 0.12, cy);
+		trunk.lineTo(cx + r * 0.12, cy);
+		trunk.lineTo(cx + r * 0.16, cy + r * 0.48);
+		trunk.lineTo(cx + r * 0.32, cy + r * 0.66);
+		trunk.lineTo(cx - r * 0.32, cy + r * 0.66);
+		trunk.lineTo(cx - r * 0.16, cy + r * 0.48);
 		trunk.closePath();
-		Ellipse2D canopy = new Ellipse2D.Double(cx - r * 0.62, cy - r * 0.7, r * 1.24, r * 1.0);
+		Area tree = new Area(canopy);
+		tree.add(new Area(trunk));
+		g.setStroke(new BasicStroke((float) Math.max(1.6, r * 0.2), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+		g.setColor(Ink.DARK);
+		g.draw(tree);
 		if (available || locked)
 		{
+			Color c = available ? s.availableColor : LOCKED_CANOPY;
 			g.setColor(locked ? new Color(0x6A6A6A) : TRUNK);
 			g.fill(trunk);
-			Color c = available ? s.availableColor : LOCKED_CANOPY;
-			g.setColor(c);
+			// the canopy's lower edge in a darker shade, then the lit part, then a highlight: volume
+			g.setColor(shade(c, 0.62));
 			g.fill(canopy);
-			// a highlight on the canopy's upper left gives it some volume
-			g.setColor(withAlpha(Color.WHITE, 70));
-			g.fill(new Ellipse2D.Double(cx - r * 0.42, cy - r * 0.6, r * 0.5, r * 0.36));
+			Area lit = new Area(canopy);
+			lit.intersect(canopy(cx, cy - r * 0.13, r));
+			g.setColor(c);
+			g.fill(lit);
+			g.setColor(withAlpha(Color.WHITE, 95));
+			g.fill(circle(cx - r * 0.14, cy - r * 0.5, r * 0.15));
 		}
 		else
 		{
 			g.setColor(ABSENT);
-			g.setStroke(new BasicStroke(1.2f));
-			g.draw(canopy);
-			g.draw(trunk);
+			g.setStroke(new BasicStroke(1.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			g.draw(tree);
 		}
 		if (locked)
 		{
-			drawPadlock(g, cx + r * 0.45, cy + r * 0.38, Math.max(4.5, r * 0.6), LOCK);
+			drawPadlock(g, cx + r * 0.5, cy + r * 0.42, Math.max(5.5, r * 0.68), LOCK);
 		}
 		if ((flags & SELECTED) != 0)
 		{
 			g.setColor(s.selectedColor);
-			g.setStroke(new BasicStroke(1.8f));
-			g.draw(circle(cx, cy, r + 0.6));
+			g.setStroke(new BasicStroke(2f));
+			g.draw(circle(cx, cy, r + 0.4));
+		}
+		else if (!available && !locked)
+		{
+			// not in the list: a dashed rim, so it reads as "unknown here" rather than as a tree that is off
+			g.setColor(withAlpha(ABSENT, 170));
+			g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[]{2f, 2f}, 0));
+			g.draw(circle(cx, cy, r - 0.5));
 		}
 		if ((flags & HOVER) != 0)
 		{
+			g.setColor(Ink.DARK);
+			g.setStroke(new BasicStroke(3f));
+			g.draw(circle(cx, cy, r + 2.6));
 			g.setColor(Color.WHITE);
-			g.setStroke(new BasicStroke(1.4f));
-			g.draw(circle(cx, cy, r + 2.4));
+			g.setStroke(new BasicStroke(1.5f));
+			g.draw(circle(cx, cy, r + 2.6));
 		}
 		if ((flags & LAST) != 0)
 		{
-			drawLastBadge(g, cx - r * 0.8, cy + r * 0.8, 3.7);
+			drawLastBadge(g, cx - r * 0.8, cy + r * 0.8, Math.max(4.2, r * 0.45));
 		}
+	}
+
+	/** The canopy: four overlapping round lobes, centred on cx and sitting on y = cy. */
+	private static Area canopy(double cx, double cy, double r)
+	{
+		Area a = new Area(circle(cx, cy - r * 0.42, r * 0.33));
+		a.add(new Area(circle(cx - r * 0.35, cy - r * 0.16, r * 0.3)));
+		a.add(new Area(circle(cx + r * 0.35, cy - r * 0.16, r * 0.3)));
+		a.add(new Area(circle(cx, cy - r * 0.14, r * 0.32)));
+		return a;
+	}
+
+	static Color shade(Color c, double f)
+	{
+		return new Color((int) (c.getRed() * f), (int) (c.getGreen() * f), (int) (c.getBlue() * f), c.getAlpha());
 	}
 
 	private void paintHalo(Graphics2D g, double cx, double cy, double r, Color c, long now)
@@ -471,7 +523,7 @@ public class AtlasPainter
 		return new Rectangle((int) Math.round(x), (int) Math.round(y) - h, w, h);
 	}
 
-	/** A "you are here" pin whose tip touches (x, y), with "You" beside its head. */
+	/** A "you are here" pin whose tip touches (x, y), with "You" left of its head. */
 	static void paintPin(Graphics2D g, Ink ink, double x, double y)
 	{
 		Path2D p = new Path2D.Double();
@@ -489,7 +541,8 @@ public class AtlasPainter
 		g.fill(circle(x, y - 10, 2));
 		if (ink != null)
 		{
-			ink.text(g, "You", ink.small, Color.WHITE, (int) Math.round(x + 7), (int) Math.round(y - 15), Ink.Style.OUTLINE);
+			ink.text(g, "You", ink.small, Color.WHITE, (int) Math.round(x - 7) - ink.width(ink.small, "You"), (int) Math.round(y - 16),
+				Ink.Style.OUTLINE);
 		}
 	}
 
@@ -620,6 +673,10 @@ public class AtlasPainter
 
 	private static boolean inHole(Scene s, int x, int y)
 	{
+		if (s.standInRect != null && s.standInRect.contains(x, y))
+		{
+			return true;
+		}
 		for (Rectangle h : s.blockers())
 		{
 			if (h.contains(x, y))

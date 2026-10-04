@@ -105,6 +105,11 @@ public final class Scene
 	public Rectangle backButton;
 	/** The "Travel" caption's box, set by the chrome layout. */
 	public Rectangle captionRect;
+	/**
+	 * The stand-in's box over the covered cell, set by the chrome layout: the cell, widened to the
+	 * left when its one line needs it; null while the row shows. Labels and the card keep clear of it.
+	 */
+	public Rectangle standInRect;
 
 	// ------------------------------------------------------------------ helpers
 

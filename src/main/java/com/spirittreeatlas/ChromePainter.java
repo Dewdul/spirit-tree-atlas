@@ -16,6 +16,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,6 +47,15 @@ public class ChromePainter
 	static final Color DANGER = new Color(0xFF5A4E);
 	static final Color GOOD = new Color(0x6BE36B);
 	static final Color HINT = new Color(0xFFE36B);
+	/** What {@link Scene#standInText} puts before a grey row's hint; the stand-in shows a padlock instead. */
+	private static final String LOCKED = "Locked: ";
+	/** The padlock and the gap after it. */
+	private static final int LOCK_W = 10;
+	/** How far the stand-in may grow left of the cell to fit its line. */
+	static final int STAND_IN_GROW = 24;
+	private static final String LAST_TRIP = "last trip";
+	/** The card title's inset, beside the tree glyph. */
+	private static final int TITLE_INDENT = 17;
 
 	private final Ink ink;
 
@@ -78,6 +88,14 @@ public class ChromePainter
 		{
 			int h = ink.height(ink.small);
 			s.captionRect = new Rectangle(s.rowCell.x - 1, s.rowCell.y - h - 6, ink.width(ink.small, s.caption) + 2, h);
+		}
+		s.standInRect = null;
+		if (s.rowCell != null && !s.rowShown)
+		{
+			// the line is never cut while a little more room to the left (over the map) lets it fit
+			Rectangle c = s.rowCell;
+			int grow = Math.max(0, Math.min(STAND_IN_GROW, standInWidth(standInLine(s), standInLocked(s)) + 6 - c.width));
+			s.standInRect = new Rectangle(c.x - grow, c.y, c.width + grow, c.height);
 		}
 	}
 
@@ -294,6 +312,10 @@ public class ChromePainter
 		final Font font;
 		final Color color;
 		final int gapBefore;
+		/** Left inset (title lines, beside the tree glyph). */
+		int indent;
+		/** The last-trip badge after the text: 0 none, 1 the glyph, 2 the glyph and "last trip". */
+		int badge;
 
 		Line(String text, Font font, Color color, int gapBefore)
 		{
@@ -302,6 +324,12 @@ public class ChromePainter
 			this.color = color;
 			this.gapBefore = gapBefore;
 		}
+	}
+
+	/** Width of the last-trip badge with its words, gap before it included. */
+	private int badgeW()
+	{
+		return 20 + ink.width(ink.small, LAST_TRIP);
 	}
 
 	/**
@@ -328,25 +356,37 @@ public class ChromePainter
 		Tree.Status status = s.status(tree);
 		boolean locked = status == Tree.Status.LOCKED;
 
+		// the title beside a small copy of the tree's map glyph, so the card reads as that marker's
 		List<Line> lines = new ArrayList<>();
-		if (full)
+		List<String> title = full ? ink.wrap(tree.getName(), ink.bold, textW - TITLE_INDENT)
+			: Collections.singletonList(ink.fit(tree.getName(), ink.bold, textW - TITLE_INDENT));
+		for (String t : title)
 		{
-			for (String t : ink.wrap(tree.getName(), ink.bold, textW))
-			{
-				lines.add(new Line(t, ink.bold, TITLE, 0));
-			}
-		}
-		else
-		{
-			lines.add(new Line(ink.fit(tree.getName(), ink.bold, textW), ink.bold, TITLE, 0));
+			Line l = new Line(t, ink.bold, TITLE, 0);
+			l.indent = TITLE_INDENT;
+			lines.add(l);
 		}
 		if (tree.getArea() != null)
 		{
-			lines.add(new Line(ink.fit(tree.getArea(), ink.small, textW), ink.small, GREY, 0));
+			addWrapped(lines, full ? tree.getArea() : ink.fit(tree.getArea(), ink.small, textW), ink.small, GREY, textW, 0);
 		}
-		String st = Scene.statusText(tree, status, s.here) + (tree.getId().equals(s.last) ? " - last trip" : "");
+		// the status, with the last trip as a badge (the map marker's return arrow) after it
+		String st = Scene.statusText(tree, status, s.here);
 		Color stColor = tree.getId().equals(s.here) ? CREAM : status == Tree.Status.AVAILABLE ? s.availableColor : locked ? DANGER : GREY;
-		lines.add(new Line(ink.fit(st, ink.small, textW), ink.small, stColor, 2));
+		List<String> stLines = full ? ink.wrap(st, ink.small, textW) : new ArrayList<>(Collections.singletonList(st));
+		int end = stLines.size() - 1;
+		int badge = 0;
+		if (tree.getId().equals(s.last))
+		{
+			badge = ink.width(ink.small, stLines.get(end)) + badgeW() <= textW ? 2 : 1;
+		}
+		stLines.set(end, ink.fit(stLines.get(end), ink.small, textW - (badge == 2 ? badgeW() : badge == 1 ? 16 : 0)));
+		for (int i = 0; i <= end; i++)
+		{
+			Line l = new Line(stLines.get(i), ink.small, stColor, i == 0 ? 2 : 0);
+			l.badge = i == end ? badge : 0;
+			lines.add(l);
+		}
 		if (full)
 		{
 			boolean first = true;
@@ -420,7 +460,9 @@ public class ChromePainter
 			// the last line shown ends in "..." so the cut is visible
 			Line last = lines.get(cut - 1);
 			String more = last.text.endsWith(".") ? last.text.substring(0, last.text.length() - 1) : last.text;
-			lines.set(cut - 1, new Line(ink.fit(more + " ...", last.font, textW).replace(" ...", "..."), last.font, last.color, last.gapBefore));
+			Line l = new Line(ink.fit(more + " ...", last.font, textW - last.indent).replace(" ...", "..."), last.font, last.color, last.gapBefore);
+			l.indent = last.indent;
+			lines.set(cut - 1, l);
 		}
 		Rectangle card = place(s, left, right, maxW, h, Math.min(h, 100), cardFocus(s));
 		s.card = card;
@@ -435,6 +477,8 @@ public class ChromePainter
 
 		int y = card.y + pad;
 		int bottom = card.y + card.height - pad - stepH;
+		int glyph = AtlasPainter.flags(s, tree) & (AtlasPainter.AVAILABLE | AtlasPainter.LOCKED);
+		AtlasPainter.drawMarker(g, card.x + pad + 6.5, y + ink.height(ink.bold) / 2.0, 6.5, glyph, s);
 		for (int i = 0; i < cut; i++)
 		{
 			Line l = lines.get(i);
@@ -445,7 +489,17 @@ public class ChromePainter
 				break;
 			}
 			y += l.gapBefore;
-			ink.text(g, l.text, l.font, l.color, card.x + pad, y, Ink.Style.SHADOW);
+			int x = card.x + pad + l.indent;
+			ink.text(g, l.text, l.font, l.color, x, y, Ink.Style.SHADOW);
+			if (l.badge > 0)
+			{
+				x += ink.width(l.font, l.text) + 10;
+				AtlasPainter.drawLastBadge(g, x, y + lh / 2.0, 4.2);
+				if (l.badge == 2)
+				{
+					ink.text(g, LAST_TRIP, ink.small, GREY, x + 7, y, Ink.Style.SHADOW);
+				}
+			}
 			y += lh;
 		}
 		if (step != null)
@@ -465,9 +519,17 @@ public class ChromePainter
 	private void paintHint(Graphics2D g, Scene s, int left, int right)
 	{
 		String hint = "Click a tree to travel there";
+		// the legend: each marker look beside its meaning, drawn as the map draws it
+		String[] names = {"Available", "Locked", "Not listed"};
+		int[] looks = {AtlasPainter.AVAILABLE, AtlasPainter.LOCKED, 0};
 		int lh = ink.height(ink.small);
-		int w = Math.max(ink.width(ink.small, hint), 22 + ink.width(ink.small, "Available") + 30 + ink.width(ink.small, "Locked")) + 12;
-		int hh = lh * 2 + 12;
+		int lw = 0;
+		for (String n : names)
+		{
+			lw += 17 + ink.width(ink.small, n) + 8;
+		}
+		int w = Math.max(ink.width(ink.small, hint), lw) + 12;
+		int hh = lh + 30;
 		Rectangle r = place(s, left, right, w, hh, hh, null);
 		// like the card, the hint keeps labels from under it and absorbs presses
 		s.card = r;
@@ -478,15 +540,14 @@ public class ChromePainter
 		s.hits.add(new Hit(Hit.Kind.BLOCK, r, null, null, null, null));
 		panelBox(g, r);
 		ink.text(g, hint, ink.small, GREY, r.x + 6, r.y + 4, Ink.Style.SHADOW);
-		int ly = r.y + 8 + lh;
-		double cy = ly + lh / 2.0;
-		g.setColor(s.availableColor);
-		g.fill(AtlasPainter.circle(r.x + 12, cy - 1, 4));
-		int x = r.x + 22;
-		ink.text(g, "Available", ink.small, s.availableColor, x, ly, Ink.Style.SHADOW);
-		x += ink.width(ink.small, "Available") + 12;
-		AtlasPainter.drawPadlock(g, x + 4, cy, 6, AtlasPainter.LOCK);
-		ink.text(g, "Locked", ink.small, AMBER, x + 14, ly, Ink.Style.SHADOW);
+		int ly = r.y + 11 + lh;
+		int x = r.x + 6;
+		for (int i = 0; i < names.length; i++)
+		{
+			AtlasPainter.drawMarker(g, x + 6.5, ly + lh / 2.0, 6.5, looks[i], s);
+			ink.text(g, names[i], ink.small, i == 0 ? s.availableColor : i == 1 ? AMBER : AtlasPainter.ABSENT, x + 17, ly, Ink.Style.SHADOW);
+			x += 17 + ink.width(ink.small, names[i]) + 8;
+		}
 	}
 
 	private void addWrapped(List<Line> lines, String text, Font f, Color c, int w, int gap)
@@ -505,16 +566,18 @@ public class ChromePainter
 		return f != null && layerCard != null && AtlasPainter.grow(layerCard, 12).contains(f);
 	}
 
-	/** The screen point of the tree the card describes, which the card must not cover. */
+	/** The screen point of the tree the card describes (its marker or surface stand-in), which the card must not cover. */
 	private static Point cardFocus(Scene s)
 	{
 		Tree t = s.hovered != null ? s.hovered : s.tree(s.selected);
-		MapView v = s.view;
-		if (t == null || !t.isMapped() || !v.getLayer().equals(t.getLayer()))
+		for (AtlasPainter.Mark m : AtlasPainter.marks(s))
 		{
-			return null;
+			if (m.tree == t)
+			{
+				return new Point((int) m.x, (int) m.y);
+			}
 		}
-		return new Point((int) v.screenX(t.getX() + 0.5), (int) v.screenY(t.getY() + 0.5));
+		return null;
 	}
 
 	/**
@@ -532,13 +595,17 @@ public class ChromePainter
 			return null;
 		}
 		List<Rectangle> blockers = new ArrayList<>(s.blockers());
+		if (s.standInRect != null)
+		{
+			blockers.add(s.standInRect);
+		}
 		if (s.backButton != null)
 		{
 			blockers.add(s.backButton);
 		}
 		int[][] spots = {{left, 1}, {right - w, 1}, {right - w, 0}, {left, 0}};
 		// a corner that covers no marker at all first, then one clear of the card's own tree only
-		List<Point> marks = markerPoints(s);
+		List<AtlasPainter.Mark> marks = AtlasPainter.marks(s);
 		for (int pass = 0; pass < 2; pass++)
 		{
 			for (int[] spot : spots)
@@ -596,34 +663,12 @@ public class ChromePainter
 		return null;
 	}
 
-	/** Where the markers are on screen: the view's trees and, on the surface, the stand-ins. */
-	private static List<Point> markerPoints(Scene s)
-	{
-		MapView v = s.view;
-		List<Point> out = new ArrayList<>();
-		for (Tree t : s.trees)
-		{
-			if (t.isMapped() && v.getLayer().equals(t.getLayer()))
-			{
-				out.add(new Point((int) v.screenX(t.getX() + 0.5), (int) v.screenY(t.getY() + 0.5)));
-			}
-		}
-		if (Layer.SURFACE.equals(v.getLayer()))
-		{
-			for (TreeRepository.StandIn si : s.standIns)
-			{
-				out.add(new Point((int) si.screenX(v), (int) si.screenY(v)));
-			}
-		}
-		return out;
-	}
-
-	private static boolean clearOf(List<Point> points, Rectangle r)
+	private static boolean clearOf(List<AtlasPainter.Mark> marks, Rectangle r)
 	{
 		Rectangle near = AtlasPainter.grow(r, 10);
-		for (Point p : points)
+		for (AtlasPainter.Mark m : marks)
 		{
-			if (near.contains(p))
+			if (near.contains(m.x, m.y))
 			{
 				return false;
 			}
@@ -649,7 +694,7 @@ public class ChromePainter
 	 * The "Travel" caption over the cell's left end and, while the real row is covered, a disabled
 	 * stand-in in its place that says why in one line and owns its clicks (DESIGN 4.4).
 	 */
-	private void paintStandIn(Graphics2D g, Scene s)
+	void paintStandIn(Graphics2D g, Scene s)
 	{
 		Rectangle cell = s.rowCell;
 		if (cell == null)
@@ -664,21 +709,47 @@ public class ChromePainter
 		{
 			return;
 		}
+		Rectangle box = s.standInRect != null ? s.standInRect : cell;
 		g.setColor(new Color(0, 0, 0, 90));
-		g.fillRect(cell.x - 2, cell.y + cell.height + 2, cell.width + 5, 3);
-		g.fillRect(cell.x + cell.width + 2, cell.y - 1, 3, cell.height + 3);
+		g.fillRect(box.x - 2, box.y + box.height + 2, box.width + 5, 3);
+		g.fillRect(box.x + box.width + 2, box.y - 1, 3, box.height + 3);
 		g.setColor(new Color(0x2a241b));
-		g.fillRect(cell.x, cell.y, cell.width, cell.height);
+		g.fillRect(box.x, box.y, box.width, box.height);
 		g.setColor(FRAME);
-		g.drawRect(cell.x - 1, cell.y - 1, cell.width + 1, cell.height + 1);
+		g.drawRect(box.x - 1, box.y - 1, box.width + 1, box.height + 1);
 		g.setColor(BRONZE);
-		g.drawRect(cell.x - 3, cell.y - 3, cell.width + 5, cell.height + 5);
-		String t = ink.fit(s.standIn == null ? "" : s.standIn, ink.small, cell.width - 8);
+		g.drawRect(box.x - 3, box.y - 3, box.width + 5, box.height + 5);
+		boolean locked = standInLocked(s);
+		// "..." only when even the widened box is too narrow
+		String t = ink.fit(standInLine(s), ink.small, box.width - 6 - (locked ? LOCK_W : 0));
+		Color c = s.selected == null ? GREY : locked ? AMBER : CREAM;
+		int x = box.x + (box.width - standInWidth(t, locked) + 1) / 2;
+		if (locked)
+		{
+			AtlasPainter.drawPadlock(g, x + 3.5, box.y + box.height / 2.0, 7, AMBER);
+			x += LOCK_W;
+		}
+		ink.text(g, t, ink.small, c, x, box.y + (box.height - ink.height(ink.small)) / 2, Ink.Style.SHADOW);
+		s.hits.add(new Hit(Hit.Kind.BLOCK, AtlasPainter.grow(box, 3), null, null, null, null));
+	}
+
+	/** The stand-in's line: {@link Scene#standIn}, a grey row's hint without its "Locked: " (the padlock says it). */
+	private static String standInLine(Scene s)
+	{
+		String t = s.standIn == null ? "" : s.standIn;
+		return t.startsWith(LOCKED) ? t.substring(LOCKED.length()) : t;
+	}
+
+	private static boolean standInLocked(Scene s)
+	{
 		Tree sel = s.tree(s.selected);
-		Color c = sel == null ? GREY : s.status(sel) == Tree.Status.LOCKED ? AMBER : CREAM;
-		ink.text(g, t, ink.small, c, cell.x + (cell.width - ink.width(ink.small, t)) / 2, cell.y + (cell.height - ink.height(ink.small)) / 2,
-			Ink.Style.SHADOW);
-		s.hits.add(new Hit(Hit.Kind.BLOCK, AtlasPainter.grow(cell, 3), null, null, null, null));
+		return s.standIn != null && (s.standIn.startsWith(LOCKED) || sel != null && s.standIn.equals(sel.getLockedHint()));
+	}
+
+	/** The stand-in line's width: the text and, for a grey row, the padlock before it. */
+	int standInWidth(String text, boolean locked)
+	{
+		return (locked ? LOCK_W : 0) + ink.width(ink.small, text);
 	}
 
 	private void paintFrame(Graphics2D g, Scene s)
