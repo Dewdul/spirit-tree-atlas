@@ -180,14 +180,15 @@ public class PluginEventsTest
 	}
 
 	@Test
-	public void aClassicRebuildNeverLeavesUsHoldingWhatTheGameHid() throws Exception
+	public void aClassicRebuildNeverLeavesUsHoldingWhatOthersHid() throws Exception
 	{
 		start(FakeMenu.classic(FakeMenu.OPTIONS));
 		script(CLASSIC_SCRIPT);
 		plugin.select("GRAND_EXCHANGE");
 		FakeMenu.W bar = f.get(InterfaceID.Menu.LJ_SCROLL_BAR);
 		assertTrue(bar.hidden);
-		// 217 runs again with 12 rows: they fit, so the game hides the scrollbar itself
+		// 217 runs again; at its ScriptPostFired, before ours, Better Teleport Menu's "Expand scroll
+		// menu" makes the list taller and hides the scrollbar it no longer needs
 		plugin.onScriptPreFired(new ScriptPreFired(CLASSIC_SCRIPT));
 		assertFalse(bar.hidden);
 		f.rebuild(Arrays.copyOf(FakeMenu.OPTIONS, 12));
@@ -358,15 +359,27 @@ public class PluginEventsTest
 	}
 
 	@Test
-	public void theWheelOverTheTravelRowNeverReachesTheGame() throws Exception
+	public void theWheelOnTheMapNeverReachesTheGame() throws Exception
 	{
 		start(FakeMenu.classic(FakeMenu.OPTIONS));
 		script(CLASSIC_SCRIPT);
 		plugin.select("GRAND_EXCHANGE");
+		MapView v = plugin.frameView(FakeMenu.SLOT);
 		Rectangle hole = new Rectangle(100 + 334, 200 + 312, 170, 16);
 		plugin.publish(Collections.emptyList(), Collections.singletonList(hole), null, hole);
+		// on the map: zoom
+		assertTrue(input.mouseWheelMoved(wheel(300, 300)).isConsumed());
+		MapView zoomed = plugin.frameView(FakeMenu.SLOT);
+		assertNotEquals(v.getPpt(), zoomed.getPpt(), 1e-9);
+		// over the Travel row: kept from the game, which would scroll the list; no zoom
 		assertTrue(input.mouseWheelMoved(wheel(hole.x + 5, hole.y + 5)).isConsumed());
-		// elsewhere with no map drawn yet the game keeps it
+		assertEquals(zoomed.getPpt(), plugin.frameView(FakeMenu.SLOT).getPpt(), 1e-9);
+		// while a right-click menu is open too
+		set(SpiritTreeAtlasPlugin.class, plugin, "menuOpen", true);
+		assertTrue(input.mouseWheelMoved(wheel(300, 300)).isConsumed());
+		assertEquals(zoomed.getPpt(), plugin.frameView(FakeMenu.SLOT).getPpt(), 1e-9);
+		set(SpiritTreeAtlasPlugin.class, plugin, "menuOpen", false);
+		// off the map the game keeps it
 		assertFalse(input.mouseWheelMoved(wheel(5, 5)).isConsumed());
 		// in List mode the list is the game's
 		plugin.setMode(SpiritTreeAtlasPlugin.Mode.LIST);

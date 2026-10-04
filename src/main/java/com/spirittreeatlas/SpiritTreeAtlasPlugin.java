@@ -264,7 +264,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	/**
 	 * The setup script of the open menu is about to run again (a rebuild, or another menu built in
 	 * the same interface): put the menu back as the game made it first, so the script works on
-	 * the game's own state and whatever it hides or moves itself is never taken for ours.
+	 * the game's own state, and whatever is hidden or moved during the rebuild (by the script, or
+	 * by another plugin after it, such as Better Teleport Menu's taller classic list hiding its
+	 * scrollbar) is never taken for ours.
 	 */
 	@Subscribe
 	public void onScriptPreFired(ScriptPreFired e)
@@ -955,14 +957,14 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	}
 
 	/**
-	 * Whether the point is over the real Travel row in Map mode. The classic list scrolls (240 px
-	 * of rows in 232), so the mouse wheel there must not reach the game: it would scroll the row
-	 * out of its place until the next tick.
+	 * Whether the point is on the map in Map mode, holes and an open menu included. The classic
+	 * list scrolls (240 px of rows in 232), so no mouse wheel event there may reach the game: over
+	 * the Travel row it would scroll the row out of its place until the next tick.
 	 */
-	boolean isInTravelHole(int x, int y)
+	boolean isOverMap(int x, int y)
 	{
-		Rectangle h = travelHole;
-		return open && notice == null && mode == Mode.MAP && h != null && h.contains(x, y);
+		MapView v = view;
+		return open && notice == null && mode == Mode.MAP && v != null && v.contains(x, y);
 	}
 
 	/** Whether the point is on List mode's Map button (and no menu is open). */

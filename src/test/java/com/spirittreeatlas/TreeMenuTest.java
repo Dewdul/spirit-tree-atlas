@@ -556,7 +556,7 @@ public class TreeMenuTest
 	}
 
 	@Test
-	public void aRebuildOnTheGamesOwnStateNeverShowsWhatTheGameHid()
+	public void aRebuildOnTheGamesOwnStateNeverShowsWhatOthersHid()
 	{
 		FakeMenu f = FakeMenu.classic(FakeMenu.OPTIONS);
 		TreeMenu menu = open(f, TreeMenu.Style.CLASSIC);
@@ -566,7 +566,8 @@ public class TreeMenuTest
 		// before the setup script runs again, everything is put back...
 		menu.restore();
 		assertFalse(bar.hidden);
-		// ...so what the script then hides itself (12 rows fit: no scrollbar) is the game's
+		// ...so what is hidden during the rebuild is not taken for ours (Better Teleport Menu's
+		// "Expand scroll menu" hides the scrollbar at ScriptPostFired(217) when the list fits)
 		f.rebuild(Arrays.copyOf(FakeMenu.OPTIONS, 12));
 		bar.hidden = true;
 		menu.rebuilt(TREES, GREY);
