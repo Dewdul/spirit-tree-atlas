@@ -87,7 +87,7 @@ public class TreeRepositoryTest
 		assertEquals(Arrays.asList("surface", "prifddinas"), ids(r.getLayers()));
 		assertTrue(r.standIns().isEmpty());
 		r.placeHouse(1);
-		r.locate(3184, 3509, 0, true);
+		r.locate(3184, 3509, 0);
 		assertNull(r.getHere());
 		assertFalse(new TileStore(r.getIndex(), r.getLayers(), "/nowhere/", Runnable::run).hasImagery());
 	}
@@ -113,22 +113,29 @@ public class TreeRepositoryTest
 	{
 		TreeRepository r = repo();
 		// the Grand Exchange tree's centre is 3184.5,3509.5: 6 tiles away is still here, 7 is not
-		r.locate(3190, 3509, 0, false);
+		r.locate(3190, 3509, 0);
 		assertEquals("GRAND_EXCHANGE", r.getHere());
-		r.locate(3192, 3509, 0, false);
+		r.locate(3192, 3509, 0);
 		assertNull(r.getHere());
-		r.locate(3184, 3509, 1, false);
+		r.locate(3184, 3509, 1);
 		assertNull(r.getHere());
 		// Prifddinas is real world coordinates on its own layer
-		r.locate(3270, 6120, 0, false);
+		r.locate(3270, 6120, 0);
 		assertEquals("PRIFDDINAS", r.getHere());
-		// in an instance (the house) with no tree near: the house
-		r.locate(1900, 5700, 0, true);
-		assertEquals("YOUR_HOUSE", r.getHere());
-		// standing at the house portal is not standing at the house's tree
-		r.placeHouse(1);
-		r.locate(2951, 3224, 0, false);
-		assertNull(r.getHere());
+		// the house is never here: in a player-owned house (an instance, far from every tree) we
+		// cannot tell whose it is, and in a friend's our own house is a place to travel to
+		for (int value : new int[]{1, 9})
+		{
+			r.placeHouse(value);
+			r.locate(1900, 5700, 0);
+			assertNull(r.getHere());
+			// so its Travel row shows, whatever the stand-in would say
+			TreeMenu.Row house = row(11, "C", "YOUR_HOUSE", false);
+			assertTrue(Scene.rowShown("YOUR_HOUSE", house, r.getHere()));
+			// standing at the house portal is not standing at the house's tree
+			r.locate((int) r.tree("YOUR_HOUSE").getX(), (int) r.tree("YOUR_HOUSE").getY(), 0);
+			assertNull(r.getHere());
+		}
 	}
 
 	@Test
@@ -242,7 +249,7 @@ public class TreeRepositoryTest
 		TreeRepository r = repo();
 		r.applyRows(Arrays.asList(row(3, "4", "GRAND_EXCHANGE", false), row(5, "6", "PRIFDDINAS", true)));
 		r.setLast(4);
-		r.locate(3270, 6120, 0, false);
+		r.locate(3270, 6120, 0);
 		Scene s = new Scene();
 		s.fromRepository(r);
 		assertEquals(14, s.trees.size());

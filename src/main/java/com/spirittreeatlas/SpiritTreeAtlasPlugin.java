@@ -30,7 +30,6 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
-import net.runelite.api.WorldView;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
@@ -405,14 +404,13 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		Player p = client.getLocalPlayer();
 		if (p == null)
 		{
-			repo.locate(Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, -1, false);
+			repo.locate(Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, -1);
 			return;
 		}
 		WorldPoint wp = p.getWorldLocation();
 		playerX = wp.getX();
 		playerY = wp.getY();
-		WorldView wv = client.getTopLevelWorldView();
-		repo.locate(wp.getX(), wp.getY(), wp.getPlane(), wv != null && wv.isInstance());
+		repo.locate(wp.getX(), wp.getY(), wp.getPlane());
 	}
 
 	/**

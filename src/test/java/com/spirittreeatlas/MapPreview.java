@@ -147,7 +147,7 @@ public class MapPreview
 	{
 		repo.placeHouse(1);
 		repo.setLast(4);
-		repo.locate(0, 0, 0, false);
+		repo.locate(0, 0, 0);
 		List<TreeMenu.Row> rows = new ArrayList<>();
 		for (Tree t : repo.getTrees())
 		{

@@ -335,9 +335,10 @@ public class TreeRepository
 
 	/**
 	 * Where the player is when the menu opens: the tree whose centre is within {@link #HERE_TILES}
-	 * tiles on the same plane; failing that, in an instance (a player-owned house), the house.
+	 * tiles on the same plane, or none. Never the house: in a player-owned house (an instance) we
+	 * cannot tell whose house it is, and in a friend's, ours is somewhere else to travel to.
 	 */
-	public void locate(int x, int y, int plane, boolean instanced)
+	public void locate(int x, int y, int plane)
 	{
 		here = null;
 		double best = Double.MAX_VALUE;
@@ -349,11 +350,6 @@ public class TreeRepository
 				best = d;
 				here = t.getId();
 			}
-		}
-		Tree house = house();
-		if (here == null && instanced && house != null)
-		{
-			here = house.getId();
 		}
 		rehash();
 	}

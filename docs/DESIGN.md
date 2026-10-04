@@ -379,8 +379,13 @@ Loads `trees.json` and `map/index.json` with the injected Gson (the bundled Rune
   available; with a grey row, unavailable; with no row (or only a row someone else hid), absent
   (unknown). Updated whenever the rows are read (3.3).
 - **here:** the tree whose centre is within 6 tiles (Chebyshev, same plane) of the player when the
-  menu opened. When none is and the player is in an instanced region, the house (a POH spirit tree
-  or spiritual fairy tree). Otherwise null.
+  menu opened, never the house; otherwise null. **The house is never "here"**: in a player-owned
+  house (an instance) the client cannot tell whose house it is. In a friend's house (a house party,
+  using the host's spirit tree or spiritual fairy tree) the "Your house (<town>)" row still means
+  the player's own house, a real destination, so marking it "here" would put the "You" pin on the
+  wrong house and hide its Travel row. In the player's own house, the row shows as Travel too and
+  clicking it only asks the server, which decides. So with `FIT_ALL`, using the tree in a house
+  in Prifddinas opens the surface overview, not the Prifddinas layer (4.7).
 - **last:** the tree whose `previousValue` equals `SPIRIT_TREE_PREVIOUS`, when non-zero.
 - **The house:** `placeHouse(value)` puts the `house` tree at `housePortals[value]` (and its layer);
   unknown values leave it unplaced (not drawn). Read at start-up when logged in, on every open, and
@@ -801,7 +806,8 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
   put back, mouse-over text on again); logout and world hop with the menu open; LOADING and a brief
   connection loss keep the map.
 - **Data.** Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit
-  gate; the last-destination values.
+  gate; the last-destination values; what the "Your house" row does when clicked inside your own
+  house, and whether a guest at a house party sees it (3.4).
 
 ## 9. Deviations
 
@@ -854,7 +860,9 @@ from the text above.
 
 **Data and state (`TreeRepository`, `Tree`, `Portal`)**
 
-15. **The house is left out of the 6-tile "here" check**; it is "here" only in an instance (a POH).
+15. **The house is never "here" (spec updated, 3.4)**: it is left out of the 6-tile check, and the
+    first port's "in an instance, the house" rule is gone (it marked our own house "here" in a
+    friend's house, and opened the Prifddinas layer in a house in Prifddinas).
 16. **Portal coordinates are doubles**, because the house portal centres have half tiles (3.1).
 
 **Drawing (`AtlasOverlay`, `RowBackdrop`; and, for the record, the painters)**
