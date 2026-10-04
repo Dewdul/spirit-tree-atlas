@@ -63,8 +63,11 @@ sources and the Plugin Hub. Confidence is marked [H]igh, [M]edium or [L]ow where
    more. Every bundled PNG is at most 256x256 and decodes to under 950,000 bytes. Keep total bundled
    resources at **7.6 MiB (7,969,177 bytes) or less** so the jar stays under the hub's 8 MiB warning.
 7. **Source size.** The review bot counts only `src/main/java`, comments stripped, against a 200k-token
-   budget. Keep the Java lean; `TreeDataTest` fails when `src/main/java` passes 200,000 raw bytes.
-   Generators live in `tools/` as standalone projects; the root `settings.gradle` must not include them.
+   budget. Keep the Java lean; `TreeDataTest` fails when `src/main/java` passes 300,000 raw bytes
+   (line ends counted as one byte), as Fairy Ring Atlas's `RingDataTest` does: an early warning far
+   below the bot's budget (Fairy Ring Atlas measured about 178 KB of Java as roughly 50k tokens with
+   comments stripped). Generators live in `tools/` as standalone projects; the root `settings.gradle`
+   must not include them.
 8. **Act only on the spirit tree's menu.** Interfaces 947 and 187 are shared by many menus (skills
    necklace, obelisks, minecarts, Xeric's talisman, capes, Leagues). Everything keys off the title
    "Spirit Tree Locations" (3.3).
@@ -93,9 +96,18 @@ Both must be supported.
   arguments.** Read the title and rows from the widgets after the setup script has run (3.3).
 - `ScriptPostFired(9142)` / `ScriptPostFired(217)` fire once the layout is final. `ScriptPostFired`
   of 9143/218 fire once per entry. 9142 and 217 may run again inside an open menu (`cc_deleteall`
-  first): rebuild every time they run. `WidgetLoaded(947/187)` and `WidgetClosed(947/187)` fire on
-  open and close; do not rely on their order relative to the scripts [M].
-- Script 378 `menu_indexed` also uses 187 (numbers, no hotkeys). Not used by spirit trees.
+  first): rebuild every time they run. `ScriptPreFired` of a server-run script fires before it runs,
+  with its `ScriptEvent` (the injected client posts it for every top-level script; Teleport Maps and
+  Better Teleport Menu rely on `ScriptPreFired(9142)`) [H, bytecode]. `WidgetLoaded(947/187)` and
+  `WidgetClosed(947/187)` fire on open and close; do not rely on their order relative to the
+  scripts [M].
+- `WidgetClosed` also fires, with `isUnload()` false, when an open interface is only moved to
+  another parent (IF_MOVESUB, as on the switch between fixed and resizable): the injected client's
+  one call with unload false is followed at once by the open at the new parent [M, from the
+  bytecode]. The interface's widgets stay the same objects, with our changes on them.
+- Script 378 `menu_indexed` also uses 187 (numbers, no hotkeys) and calls the same proc 219. Not used
+  by spirit trees, but it could build another menu in an open 187, so it counts as a classic setup
+  script (3.3).
 
 ### 2.2 Modern menu, group 947 [H]
 
@@ -149,8 +161,17 @@ All of 187's components are roots in the slot. After proc 219 (called from 217 w
 - Entries (proc 218): `LJ_LAYER1` dynamic child i is a text component, x 0 centre-anchored, y = 16*i
   (top-anchored), width minus 0 (386), height 16 for one line, p12_full colour 0x322805 (0x524825 on
   hover), centred; text `<col=735a28>K</col>: ` + option.
-- 15 entries take 240 px of a 232 px list: the list scrolls by 8 px.
-- 219 sets 187:3's position with `if_setposition`, so a rebuild resets our move (re-apply after 217).
+- 15 entries take 240 px of a 232 px list: the list scrolls by 8 px. When it overflows, 217 calls
+  proc 31 `scrollbar_vertical`, which builds the scrollbar's children and sets a mouse-wheel handler
+  on 187:3 itself (`if_setonscrollwheel`), so the wheel over the moved row would scroll it out of
+  its cell (4.4) [H, cs2].
+- 219 deletes the children of 187:0, 187:2 and 187:3, sets 187:0 to (0,0) 512x334 and 187:3 / 187:2
+  with `if_setposition`, so a rebuild resets our move of 187:3; it hides and shows nothing [H, cs2].
+- Better Teleport Menu's "Expand scroll menu" (default on) runs at `ScriptPostFired(217)` before us
+  (priority 1): in resizable mode, when the list overflows, it makes the slot, 187:0, 187:2 and
+  187:3 taller by the overflow (8 px today), hides the scroll model, hides the scrollbar it no
+  longer needs, and draws the parchment itself after 187:0 (`drawAfterLayer`, so not while 187:0
+  is hidden).
 
 ### 2.4 Rows, keys and availability [H unless marked]
 
@@ -296,17 +317,31 @@ overview; solid tiles not shipped (`solid` per level); `index.json` holds `cache
 `TreeMenu` is the one place that knows the two menus. Client thread only. Its parsing and geometry
 are pure static methods with unit tests.
 
-**Recognising the menu.** On `ScriptPostFired(9142)` (MODERN) or `ScriptPostFired(217)` (CLASSIC):
+**Recognising the menu.** On `ScriptPostFired(9142)` (MODERN) or `ScriptPostFired(217)` /
+`ScriptPostFired(378)` (CLASSIC; 378 is `menu_indexed`, 2.1):
 - Read the title from the widgets: MODERN, the first dynamic child of `MenuNew.TITLE` of type TEXT;
   CLASSIC, the first dynamic child of `Menu.LJ_LAYER2` of type TEXT. Strip tags and trim.
 - It is the spirit tree menu when the title equals `trees.json` `title` ("Spirit Tree Locations"),
   case-insensitive. Otherwise it is not ours: if we were open on that interface, treat it as a close.
 - Also check on `startUp` (the menu may already be open) and once per `GameTick` while not open
   (missed script events), by the same title test on whichever group is loaded and visible.
+- **While open**, each `GameTick` checks that the menu is still mounted and visible and, unless we
+  are stepping aside (4.10), that its title still passes: a menu built in the same interface by a
+  script we do not hook is a close within a tick. (Teleport Maps deletes the classic title when it
+  builds its map, so the title is not checked while stepping aside.)
+- **Rebuilds.** On `ScriptPreFired` of the open style's setup script (9142; 217 or 378), everything
+  we changed is put back (4.3) before the script runs, so it works on the game's own state and
+  whatever is hidden or moved during the rebuild (by the script, or by another plugin at its
+  `ScriptPostFired`) is never recorded as ours. `ScriptPostFired` then re-reads the rows, re-checks
+  stepping aside and re-applies Map mode with fresh records.
+- **Interface moves.** A `WidgetClosed` with `isUnload()` false (2.1) is not a close.
 
 **Reading the rows.** MODERN: the dynamic children of `MenuNew.TEXT`; CLASSIC: the dynamic children
-of `Menu.LJ_LAYER1`. For each child of type TEXT with non-empty text, `parseRow(rawText)`:
-1. `grey` = the raw text contains `<col=5f5f5f>` (case-insensitive) anywhere after the first `: `.
+of `Menu.LJ_LAYER1`. A child hidden by the game or another plugin (self-hidden, and not by us) is
+not listed: Better Teleport Menu hides disabled rows. For each other child of type TEXT with
+non-empty text, `parseRow(rawText)`:
+1. `grey` = the raw text contains `<col=5f5f5f>` (case-insensitive) anywhere after the first `: `
+   (anywhere when it has no `: `, as Better Teleport Menu writes an unbound row).
 2. Strip all tags (`Text.removeTags`), collapse whitespace, trim.
 3. If the result is "Please wait..." the row is mid-teleport: keep the mapping it had.
 4. `key` = the text before the first `": "` when that part is 1-6 characters; `label` = the rest
@@ -316,10 +351,14 @@ of `Menu.LJ_LAYER1`. For each child of type TEXT with non-empty text, `parseRow(
    stripped text, longest label first (covers Better Teleport Menu's forms). "Cancel" and unknown
    rows map to no tree.
 
-The result is a list of `Row {index, key, label, grey, treeId}` held until the next rebuild. Row
-widgets are always fetched live by index (`getChild(index)`), never cached across events.
+The result is a list of `Row {index, key, label, grey, treeId}`. The rows are read at open, at
+every rebuild and again on every `GameTick` while open: Better Teleport Menu can rebind a row's key
+(re-text it) while the menu is open, and the key badges must show what the rows show. The tick read
+is cheap: the raw texts are compared with the last read and parsed only when they differ, and
+"Please wait..." keeps the row's mapping (step 3). Row widgets are always fetched live by index
+(`getChild(index)`), never cached across events.
 
-**Who is open.** `TreeMenu.style()` is MODERN, CLASSIC or null. `TreeMenu.slot(client)` is the main
+**Who is open.** `TreeMenu.getStyle()` is MODERN, CLASSIC or null. `TreeMenu.slot()` is the main
 modal slot widget that holds the menu (the parent of `MenuNew.INFINITE`, or of `Menu.LJ_LAYER2`);
 its bounds are the "menu rect" (512x334) that the map layout grows from, as the dials' rect did in
 Fairy Ring Atlas.
@@ -329,7 +368,8 @@ Fairy Ring Atlas.
 Loads `trees.json` and `map/index.json` with the injected Gson (the bundled RuneLite Gson is old: no
 `JsonParser.parseString`). Per open of the menu, on the client thread:
 - **available / grey / absent** per tree, from `TreeMenu`'s rows: a tree with a non-grey row is
-  available; with a grey row, unavailable; with no row, absent (unknown).
+  available; with a grey row, unavailable; with no row (or only a row someone else hid), absent
+  (unknown). Updated whenever the rows are read (3.3).
 - **here:** the tree whose centre is within 6 tiles (Chebyshev, same plane) of the player when the
   menu opened. When none is and the player is in an instanced region, the house (a POH spirit tree
   or spiritual fairy tree). Otherwise null.
@@ -360,7 +400,8 @@ on). The overlay draws only while the menu is open.
   CLASSIC: the scroll's top-left, slot (55,37)), which switches back. The top bar's **List** button
   switches to it.
 - **Stepping aside** (4.10): when another plugin is drawing its own spirit tree map or rearranging the
-  rows, nothing is changed and the overlay draws only a one-line notice above the menu.
+  rows, nothing is changed and the overlay draws only a one-line notice above the menu. Map or List
+  mode is kept underneath and comes back if stepping aside ends while the menu is open.
 
 A reopen within 3 ticks keeps the mode, selection and view; otherwise the selection is cleared and
 the initial view (4.7) applies.
@@ -381,12 +422,14 @@ Unchanged from Fairy Ring Atlas, with the dials' rect replaced by the menu rect 
   defined and laid out) **with the menu's root filling it exactly** (MODERN: `MenuNew.INFINITE` laid
   out at 0,0 512x334; CLASSIC: `Menu.LJ_LAYER2` at 0,0 512x334); anchored ABSOLUTE_RIGHT /
   ABSOLUTE_BOTTOM; written again or restored only while its fields still hold what we wrote; wait for
-  the HUD to be laid out after a canvas resize; recompute on `GameTick` and config changes. Restore
-  triggers: List mode, the menu closing (`WidgetClosed`, the per-tick check, a non-spirit-tree menu on
-  the same interface), `GameStateChanged` to anything but LOGGED_IN/LOADING/CONNECTION_LOST, shutdown,
-  the menu's parent no longer being the held slot, a `WidgetLoaded` of any other group while held,
-  the option turned off, no worthwhile corner. Better Teleport Menu may resize the slot for the classic
-  menu; the pristine guard then leaves it alone.
+  the HUD to be laid out after a canvas resize; recompute on `GameTick`, config changes and
+  `ResizeableChanged`. Restore triggers: List mode, stepping aside, the menu closing (`WidgetClosed`
+  with unload, the per-tick check, a non-spirit-tree menu on the same interface),
+  `GameStateChanged` to anything but LOGGED_IN/LOADING/CONNECTION_LOST, shutdown, the menu's parent
+  no longer being the held slot (checked at once on a `WidgetLoaded` of any group while held, the
+  menu's own included: the fixed/resizable switch moves the menu into the other toplevel's slot),
+  the option turned off, no worthwhile corner. Better Teleport Menu may resize the slot for the
+  classic menu (2.3); the pristine guard then leaves it alone.
 
 ### 4.3 Widget changes in Map mode (`TreeMenu.apply` / `restore`)
 
@@ -426,12 +469,17 @@ coordinates (`slotW` x `slotH`, 512x334). Margins: `RIGHT = 8`, `BOTTOM = 6`.
 intersected with the row widget's live bounds when it is shown. The close rect is the close button's
 live bounds.
 
-**Re-apply** after every `ScriptPostFired(9142/217)` (the rows are new: drop the records of dynamic
-children first; static components keep theirs), on each `GameTick`, and when the selection changes.
+**Re-apply** after every `ScriptPostFired` of the setup script (the rows are new: any records of
+dynamic children left are dropped; static components keep theirs), on each `GameTick`, when the
+selection changes, when Map mode comes back and when stepping aside ends. `apply` writes only what
+differs. A move is recorded again whenever the widget no longer holds what we wrote (the game laid
+it out afresh), so that new place is what a restore puts back.
 **Restore** (exactly what we recorded, only while each widget is the live widget for its id and,
-for hidden ones, still self-hidden; never unhide anything we did not hide) on List mode, close, the
-title test failing, game state changes, stepping aside and shutdown (on the client thread, after the
-overlay is removed).
+for hidden ones, still self-hidden; a move only while the widget still holds what we wrote; never
+unhide anything we did not hide) at `ScriptPreFired` of the open style's setup script (3.3), on
+List mode, close (including the per-tick title test failing and a non-spirit-tree menu on the same
+interface), logout and hop (whatever is still live), stepping aside and shutdown (on the client
+thread, after the overlays are removed).
 
 **Backdrop.** The real row has no solid background of its own once the parchment (classic) is
 hidden or the frame (modern) hangs away. A second overlay, `RowBackdrop` (`OverlayLayer.UNDER_WIDGETS`,
@@ -441,9 +489,17 @@ draws nothing else and takes no input.
 
 ### 4.4 Holes, the Travel slot and the stand-in
 
-- **Holes** (the overlay draws nothing there and `AtlasInput` consumes nothing there): the close rect
-  always; the Travel row cell only while `Scene.rowShown()`. Each hole gets Fairy Ring Atlas's thin
-  frame and drop shadow; the frames set their own stroke.
+- **Holes** (the overlay draws nothing there and `AtlasInput` consumes no press there): the close
+  rect always; the Travel row cell only while `Scene.rowShown()`. Each hole gets Fairy Ring Atlas's
+  thin frame and drop shadow; the frames set their own stroke.
+- **The mouse wheel never reaches the game anywhere on the map in Map mode**, holes included and
+  while a right-click menu is open: where the map has input it zooms, elsewhere on the map (the
+  holes, an open menu) it is consumed and does nothing. The classic list scrolls (2.3): the wheel
+  over the moved row, or over the parts of the hanging list the map covers, would scroll the row
+  up to 8 px out of its cell until the next tick's re-apply, leaving the hole and the backdrop
+  behind. Consuming the event only keeps it from the game and sends nothing; re-applying on every
+  scroll instead would still show the jump and needs a per-frame check. In List mode, and outside
+  the map, the wheel is the game's.
 - **`rowShown()`:** a tree is selected, it has a row in the current menu, the row is not grey, it is
   not `here`, and the row text still maps to the selected tree (re-checked every frame from the live
   widget; "Please wait..." keeps the old mapping).
@@ -531,13 +587,16 @@ Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging
   the view is clamped so the layer cannot be dragged out of sight; fits respect the top bar inset.
 - `AtlasInput` (a `MouseAdapter` + `MouseWheelListener`, registered with the normal appending calls
   so Stretched Mode translates first) is active only while the menu is open, in Map mode, no menu is
-  open, the point is inside the map rect and not in a hole. A marker press is held: release within
-  4 px selects, a drag pans. A button press is let through only when `onPostMenuSort` built the
-  game's menu for that same hit (`menuKey`), otherwise swallowed. Empty-map presses start a pan.
-  Drag and move events are never consumed; release and click are consumed until release.
+  open, the point is inside the map rect and not in a hole (the wheel: anywhere on the map, 4.4). A
+  marker press is held: release within 4 px selects, a drag pans. A button press is let through only
+  when `onPostMenuSort` built the game's menu for that same hit (`menuKey`), otherwise swallowed.
+  Empty-map presses start a pan. Drag and move events are never consumed; release and click are
+  consumed until release.
 - `onPostMenuSort` (menu closed): inside the map and outside the holes, remove every entry but
   CANCEL (no "Walk here" through the map, no hidden rows), then add ours. In List mode only the
-  floating Map button owns its rect.
+  floating Map button owns its rect: its "Show Map" entry, and a left press there is let through
+  only when the game's menu was built for the button (otherwise swallowed), as for buttons on the
+  map. While stepping aside nothing is ours.
 - While the map shows, the game's mouse-over text is turned off (`setMouseoverTextEnabled(false)`)
   and turned back on only if we turned it off.
 - **Threading:** the input thread touches only volatile/atomic state; all widget and var access is
@@ -563,14 +622,27 @@ overlay draws.
   menu with its own map when enabled and its config `teleportmaps.showSpiritTreeMap` is not "false"
   (default true). Then **step aside**: change nothing, draw only the notice "Teleport Maps is showing
   its spirit tree map - turn that off in Teleport Maps to use Spirit Tree Atlas". Detect by plugin
-  class name and `PluginManager.isPluginEnabled`, on each open. Do **not** declare `conflicts`:
-  RuneLite would turn off all seven of Teleport Maps' maps.
+  class name and `PluginManager.isPluginEnabled`. Do **not** declare `conflicts`: RuneLite would turn
+  off all seven of Teleport Maps' maps. Teleport Maps acts only when the menu is built
+  (`ScriptPreFired(219/9142)`: it hides the menu, then builds its map in an `invokeLater`).
 - **Spirit Tree Menu** (`com.spirit.SpiritTreeMenuPlugin`) rearranges classic rows: when enabled and
   the menu is CLASSIC, step aside with "Spirit Tree Menu is rearranging this menu - turn it off to use
-  Spirit Tree Atlas".
-- **Better Teleport Menu** (abex): coexist. Its re-texted rows still parse (3.3); its row hiding is
-  respected (never unhide); its "Set Hotkey" op shows on the Travel row; its slot resize disables
-  "Use free space" through the pristine guard.
+  Spirit Tree Atlas". It acts only on `WidgetLoaded(187)` (re-texts, re-fonts, moves and resizes the
+  rows).
+- **When it is checked.** At open and at every rebuild (when those plugins act), and again whenever
+  a plugin starts or stops (`PluginChanged`) or a `teleportmaps` setting changes while the menu is
+  open. Stepping aside **starts** at once: everything we changed is put back. It **ends** at once
+  only if the other plugin did not have the menu at its last build (it was turned on and off again
+  while the menu stayed open, so it never touched it); otherwise the menu may still hold its
+  changes (Teleport Maps' hidden layers and leftover widgets, Spirit Tree Menu's moved rows), so the
+  notice becomes "Close and reopen the spirit tree menu to use Spirit Tree Atlas" until the menu is
+  opened again.
+- **Better Teleport Menu** (abex): coexist. Its re-texted rows still parse (3.3), also when it
+  rebinds a key while the menu is open (the rows are read each tick); the rows it hides are not
+  listed and never unhidden; its "Set Hotkey" op shows on the Travel row; its "Expand scroll menu"
+  slot resize (2.3) disables "Use free space" for the classic menu through the pristine guard, and
+  the Map mode geometry follows the taller slot because it is computed from live values. Its own
+  hotkeys replace the game's key listeners (it clears them and listens itself); we touch neither.
 - Fairy Ring Atlas: unrelated interfaces; both can be enabled.
 
 ### 4.11 Config (`SpiritTreeAtlasConfig`)
@@ -622,7 +694,12 @@ Dropped from FRA: `DialMath`, `FavouriteOrder`, `RingGroups`, `TravelLogControll
 
 **Tests** in `src/test/java/com/spirittreeatlas/`: `ComplianceTest` (the full list in rule 1),
 `TreeMenuTest` (row parsing for both menus, grey rows, Better Teleport Menu forms, "Please wait...",
-house prefix, Cancel; the 4.3 geometry for 15 and 12 rows, modern and classic), `MapViewTest`,
+house prefix, Cancel; the 4.3 geometry for 15 and 12 rows, modern and classic; the changes and
+restores against fake menus, the tick re-read and rows hidden by others), `PluginEventsTest` (the
+plugin's event handling against the fake menus: open on the title only, rebuilds put back first,
+another menu on the same interface, a script we do not hook, a missed script, reopen within 3
+ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
+wheel on the map and List mode's Map button), `MapViewTest`,
 `LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest`, `TreeDataTest` (the real `trees.json` and
 `index.json`: unique ids and labels, every tree inside its layer, previous values 1-14 unique, house
 portals 1-6, 8, 9, 13, ASCII and length limits, tiles on disk equal the index, every image at most
@@ -667,10 +744,107 @@ selected spirit tree marker).
 
 ## 8. Not verified without the game (test in game)
 
-- The hanging UNIVERSE (modern) and LJ_LAYER1 (classic) show only their part inside the slot, and the
-  moved row and close button click normally; the hotkeys still work with the rows hidden.
-- The classic Travel row is readable on the backdrop; the modern one on its own rectangle.
-- What a grey row and the tree you stand at do when clicked; whether grey rows have `</col>`.
-- Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit gate.
-- Fixed, resizable classic and resizable modern layouts; Use free space; opening the bank right after.
-- With Better Teleport Menu on; with Teleport Maps on (stepping aside); logout/hop with the menu open.
+Nothing below has been seen in the game yet. Everything was built from the cache, the decoded cs2,
+the injected client's bytecode, other plugins' sources and fake widgets in the tests.
+
+- **Layout.** The hanging UNIVERSE (modern) and LJ_LAYER1 (classic) show only their part inside the
+  slot; the moved row and close button click normally ("Continue" travels, "Close" closes); the
+  hotkeys still work with the rows hidden. Fixed, resizable classic and resizable modern layouts;
+  Use free space (and the slot put back when the bank or another interface opens right after).
+- **Readability.** The classic Travel row on the parchment backdrop; the modern one on its own
+  rectangle over the black backdrop.
+- **Events.** `ScriptPreFired(9142/217)` fires before the setup script, and the put-back there leaves
+  no flicker (2.1); a rebuild while the map shows comes back with the selection kept; the order of
+  `WidgetClosed`/`WidgetLoaded` against the scripts; `WidgetClosed` with `isUnload()` false on the
+  fixed/resizable switch, with the map staying up across it.
+- **The wheel.** Over the classic Travel row nothing scrolls; elsewhere on the map it zooms.
+- **Rows.** What a grey row and the tree you stand at do when clicked; whether grey rows have
+  `</col>`; that "Please wait..." after a key press keeps the Travel row in place until the menu
+  closes.
+- **Other plugins.** Better Teleport Menu: re-texted rows parse, a key rebound while the menu is open
+  shows on the marker within a tick, its hidden rows count as not listed, "Expand scroll menu" with
+  the classic menu in resizable mode (the slot 8 px taller: the Travel cell and the close button
+  still in the corner, Use free space off). Teleport Maps and Spirit Tree Menu: the notice at open;
+  turning them on with the map showing (everything put back at once) and off again (the map comes
+  back, or the reopen notice when they had the menu at open).
+- **Lifecycle.** Turning the plugin on with the menu open, and off with the map showing (everything
+  put back, mouse-over text on again); logout and world hop with the menu open; LOADING and a brief
+  connection loss keep the map.
+- **Data.** Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit
+  gate; the last-destination values.
+
+## 9. Deviations
+
+Where the code differs from this spec as first written, checked against the code on 2026-10-04.
+Items marked **(spec updated)** are now described in the sections above; the others still differ
+from the text above.
+
+**Menu handling (`TreeMenu`, `SpiritTreeAtlasPlugin`)**
+
+1. **Rebuilds start from the game's own state (spec updated, 3.3, 4.3).** The spec dropped the
+   dynamic children's records after `ScriptPostFired`. The code puts everything back at
+   `ScriptPreFired` of the open style's setup script, so the script, and any plugin acting after
+   it, works on an unchanged menu; nothing hidden during the rebuild (Better Teleport Menu hides the
+   classic scrollbar there) can be mistaken for ours and unhidden later.
+2. **378 `menu_indexed` counts as a classic setup script (spec updated, 2.1, 3.3)**, so a numbered
+   menu built in an open 187 is a close at once.
+3. **The title is checked every tick while open (spec updated, 3.3)**, unless stepping aside. The
+   first port checked only that the menu was still open, because Teleport Maps deletes the classic
+   title; that case is still covered, since we change nothing while stepping aside.
+4. **Rows are read every tick (spec updated, 3.3)**, cheaply (texts compared first), so key badges
+   and availability follow Better Teleport Menu's rebinding while the menu is open.
+5. **A row the game or another plugin hid is not listed (spec updated, 3.3, 3.4)**: its tree is
+   absent ("Not in this tree's list"). Such a row is also never moved or shown, not even as the
+   Travel row (hard rule 4).
+6. **Moves are restored only while the widget still holds what we wrote.** If the game has laid it
+   out afresh since (proc 219 resets the classic list), it is left where the game put it, and that
+   place becomes the record on the next apply. Stricter than "live and self-hidden" (4.3).
+7. **Modern geometry is measured relative to INFINITE** (UNIVERSE's parent), not the slot. It gives
+   the same result while INFINITE fills the slot, as it always does after 9142.
+8. **An interface move is not a close (spec updated, 2.1, 3.3)**: `WidgetClosed` with
+   `isUnload()` false is ignored, so the map survives the fixed/resizable switch.
+9. **Logout and hop put back whatever is still live (4.3)** rather than dropping the records unseen,
+   as the first port did (Fairy Ring Atlas drops them).
+10. **Stepping aside is re-checked while the menu is open (spec updated, 4.10)**, on
+    `PluginChanged` and `teleportmaps` config changes, with the reopen notice when the other plugin
+    had the menu at its last build. The spec checked only on each open.
+11. **Grey without a key (spec updated, 3.3)**: with no `": "` in the row, `<col=5f5f5f>` anywhere
+    makes it grey (Better Teleport Menu's unbound rows).
+
+**Input and ownership (`AtlasInput`, `SpiritTreeAtlasPlugin`)**
+
+12. **The mouse wheel is kept from the game anywhere on the map (spec updated, 4.4, 4.8)**, in the
+    holes and while a right-click menu is open too, so the classic list never scrolls the Travel row
+    out of its cell. The spec said nothing is consumed in the holes; presses still are not.
+13. **List mode's Map button checks its menu (spec updated, 4.8)**: a left press there goes to the
+    game only when the game's menu was built for the button; otherwise it is swallowed, so a stale
+    entry (such as "Walk here") built one frame earlier never runs.
+14. **Use free space re-checks on a `WidgetLoaded` of any group while held (spec updated, 4.2)**, the
+    menu's own included, not only other groups.
+
+**Data and state (`TreeRepository`, `Tree`, `Portal`)**
+
+15. **The house is left out of the 6-tile "here" check**; it is "here" only in an instance (a POH).
+16. **Portal coordinates are doubles**, because the house portal centres have half tiles (3.1).
+
+**Drawing (`AtlasOverlay`, `RowBackdrop`; and, for the record, the painters)**
+
+17. **`RowBackdrop` fills the Travel hole as the map overlay drew it in the previous frame** (it
+    draws under the widgets, before the map overlay of the same frame).
+18. **Stand-in fallback.** Between two tick reads, a row re-texted to another tree makes the stand-in
+    say "Not in this tree's list" (the live text no longer maps; 4.4) while the marker still shows
+    the tree as available; the next read makes them agree.
+19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then falls back
+    to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna Aurorae under the card.
+20. **The card's "last trip" badge is the text " - last trip"** after the status line, not a drawn
+    badge (4.6). (The painters belong to the visual work; recheck 19 and 20 after it is merged.)
+
+**Smaller differences**
+
+21. `Scene.layer()` is a method, not a field.
+22. The stand-in's "Open Prifddinas map" entry is option "Open" with target "Prifddinas map".
+23. The source-size test counts each line end as one byte, so a CRLF checkout measures the same as
+    the committed files (rule 7).
+24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes, child creation,
+    other listeners, key managers and network classes, and fails if any code refers to the
+    key-listener layers.
