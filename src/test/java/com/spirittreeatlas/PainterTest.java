@@ -227,6 +227,92 @@ public class PainterTest
 		assertNull(shown.standInRect);
 	}
 
+	/**
+	 * DESIGN 4.6, deviation 19: in fixed mode (a 512x334 map) the fitted overview has a marker near
+	 * every corner, so the card slides along an edge rather than cover one. For the real data, both
+	 * menu styles, each house town and each tree selected in turn (and none), the card covers no
+	 * marker centre, Laguna Aurorae's in the bottom-left corner included.
+	 */
+	@Test
+	public void theFixedModeCardCoversNoMarker()
+	{
+		TreeRepository real = TreeRepository.load(new Gson(), SpiritTreeAtlasPlugin.RESOURCES);
+		Rectangle fixed = new Rectangle(4, 4, 512, 334);
+		for (int house : new int[]{1, 9})
+		{
+			real.placeHouse(house);
+			real.setLast(4);
+			MapView v = SpiritTreeAtlasPlugin.fitTrees(MapView.of(real.surface(), fixed), real.surfaceMarkers(), SpiritTreeAtlasPlugin.chromeInsets());
+			List<String> selections = new ArrayList<>();
+			selections.add(null);
+			for (Tree t : real.getTrees())
+			{
+				selections.add(t.getId());
+			}
+			// the selected tree's card is taller while it is locked (its first requirement shows)
+			for (boolean locked : new boolean[]{false, true})
+			{
+				for (boolean modern : new boolean[]{true, false})
+				{
+					for (String selected : selections)
+					{
+						List<TreeMenu.Row> rows = new ArrayList<>();
+						for (Tree t : real.getTrees())
+						{
+							int i = t.getPreviousValue() - 1;
+							rows.add(new TreeMenu.Row(i, String.valueOf(FakeMenu.KEYS.charAt(i)), t.getMenuLabel(), locked && t.getId().equals(selected), t.getId()));
+						}
+						real.applyRows(rows);
+						Scene s = fixedScene(real, v, selected, modern);
+						String at = "house " + house + (modern ? " modern " : " classic ") + (locked ? "locked " : "") + selected;
+						assertNotNull(at, s.card);
+						assertFalse(at, s.card.intersects(s.closeRect));
+						assertFalse(at, s.card.intersects(s.rowCell));
+						for (AtlasPainter.Mark m : AtlasPainter.marks(s))
+						{
+							assertFalse(at + " covers " + m.tree.getId() + " with " + s.card, s.card.contains(m.x, m.y));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/** A fixed-mode scene laid out as the overlay does it: a first frame off screen, then the real one. */
+	private static Scene fixedScene(TreeRepository r, MapView v, String selected, boolean modern)
+	{
+		Scene s = new Scene();
+		s.fromRepository(r);
+		s.view = v;
+		s.selected = selected;
+		s.now = 1000;
+		Rectangle slot = v.rect();
+		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0) : TreeMenu.classic(512, 334, 386, 16, 0);
+		s.rowCell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
+		s.closeRect = modern ? new Rectangle(slot.x + 468, slot.y + 273, 26, 23)
+			: new Rectangle(slot.x + g.getClose().x, slot.y + g.getClose().y, 26, 23);
+		s.holes.add(s.closeRect);
+		TreeMenu.Row row = r.row(selected);
+		s.rowShown = Scene.rowShown(selected, row, r.getHere());
+		if (s.rowShown)
+		{
+			s.holes.add(s.rowCell);
+		}
+		s.standIn = s.rowShown ? null : Scene.standInText(r.tree(selected), row, r.getHere());
+		AtlasPainter painter = new AtlasPainter();
+		ChromePainter chrome = new ChromePainter(painter.ink());
+		for (int frame = 0; frame < 2; frame++)
+		{
+			s.hits.clear();
+			Graphics2D gr = new BufferedImage(520, 342, BufferedImage.TYPE_INT_ARGB).createGraphics();
+			chrome.layout(s);
+			painter.paintMap(gr, s);
+			chrome.paint(gr, s);
+			gr.dispose();
+		}
+		return s;
+	}
+
 	/** DESIGN 4.7: every marker state draws differently, at the base size and past 4 ppt. */
 	@Test
 	public void markerStatesAreDistinct()

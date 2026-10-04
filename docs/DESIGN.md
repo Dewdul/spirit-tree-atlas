@@ -864,8 +864,12 @@ from the text above.
 18. **Stand-in fallback.** Between two tick reads, a row re-texted to another tree makes the stand-in
     say "Not in this tree's list" (the live text no longer maps; 4.4) while the marker still shows
     the tree as available; the next read makes them agree.
-19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then falls back
-    to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna Aurorae under the card.
+19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then the first
+    spot along the bottom edge, the top, the left and the right (8 px steps) that covers none, and
+    only then falls back to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna
+    Aurorae under the card. On a 512x334 map (fixed mode) every corner covers a marker, so the card
+    slides: right along the bottom for a compact card, to the left edge's middle for a taller
+    locked one (`PainterTest.theFixedModeCardCoversNoMarker`).
 20. **The card also keeps clear of a surface stand-in it describes**, and of the widened stand-in
     box (`Scene.standInRect`).
 

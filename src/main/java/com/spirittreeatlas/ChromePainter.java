@@ -35,6 +35,8 @@ public class ChromePainter
 	/** Width of the default, compact card. */
 	static final int CARD_W_COMPACT = 280;
 	static final int CARD_MAX_H = 260;
+	/** The step of the card's slide along the map's edges. */
+	private static final int SLIDE = 8;
 
 	static final Color FRAME = new Color(0x1e1a14);
 	static final Color BRONZE = new Color(0x6b5a40);
@@ -582,8 +584,10 @@ public class ChromePainter
 
 	/**
 	 * Finds a spot for a card: bottom-left, else bottom-right, top-right or top-left, clear of the
-	 * holes, the Travel cell and its caption, the Back button and the tree it describes. Failing
-	 * that, it slides a corner spot off them, shrinking to at least minH.
+	 * holes, the Travel cell and its caption, the Back button and the tree it describes, and
+	 * covering no marker; else the first such spot along the bottom edge, then the top, the left
+	 * and the right; else a corner that may cover other markers. Failing that, it slides a corner spot off them,
+	 * shrinking to at least minH.
 	 */
 	private Rectangle place(Scene s, int left, int right, int w, int h, int minH, Point focus)
 	{
@@ -604,17 +608,37 @@ public class ChromePainter
 			blockers.add(s.backButton);
 		}
 		int[][] spots = {{left, 1}, {right - w, 1}, {right - w, 0}, {left, 0}};
-		// a corner that covers no marker at all first, then one clear of the card's own tree only
+		// a corner that covers no marker at all first; then the first spot along the bottom edge,
+		// the top, the left or the right that covers none (a small fitted map has a marker near
+		// every corner); then a corner clear of the card's own tree only
 		List<AtlasPainter.Mark> marks = AtlasPainter.marks(s);
-		for (int pass = 0; pass < 2; pass++)
+		for (int[] spot : spots)
 		{
-			for (int[] spot : spots)
+			Rectangle r = new Rectangle(spot[0], spot[1] == 1 ? bottom - h : top, w, h);
+			if (r.y >= top && clear(blockers, r, focus) && clearOf(marks, r))
 			{
-				Rectangle r = new Rectangle(spot[0], spot[1] == 1 ? bottom - h : top, w, h);
-				if (r.y >= top && clear(blockers, r, focus) && (pass == 1 || clearOf(marks, r)))
+				return r;
+			}
+		}
+		for (int edge = 0; edge < 4 && bottom - h >= top; edge++)
+		{
+			boolean across = edge < 2;
+			for (int at = across ? left : top; at <= (across ? right - w : bottom - h); at += SLIDE)
+			{
+				Rectangle r = across ? new Rectangle(at, edge == 0 ? bottom - h : top, w, h)
+					: new Rectangle(edge == 2 ? left : right - w, at, w, h);
+				if (clear(blockers, r, focus) && clearOf(marks, r))
 				{
 					return r;
 				}
+			}
+		}
+		for (int[] spot : spots)
+		{
+			Rectangle r = new Rectangle(spot[0], spot[1] == 1 ? bottom - h : top, w, h);
+			if (r.y >= top && clear(blockers, r, focus))
+			{
+				return r;
 			}
 		}
 		Rectangle best = null;
