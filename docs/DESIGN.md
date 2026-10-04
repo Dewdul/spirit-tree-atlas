@@ -781,15 +781,16 @@ plugin's event handling against the fake menus: open on the title only, rebuilds
 another menu on the same interface, a script we do not hook, a missed script, reopen within 3
 ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
 wheel on the map and List mode's Map button), `MapViewTest`,
-`LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest` (also the loading of 4.9: newest first, stale
-requests dropped, no tile decoded twice at once, a consistent cache under many workers, sources not
-kept, the trims, the coarse cover first, the prefetch), `PrewarmTest` (the Travel click and the
-trim clock, against the fake menus), `TreeDataTest` (the real `trees.json` and
+`LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest`, `TreeDataTest` (the real `trees.json` and
 `index.json`: unique ids and labels, every tree inside its layer, previous values 1-14 unique, house
 portals 1-6, 8, 9, 13, ASCII and length limits, tiles on disk equal the index, every image at most
 256x256 and under 950,000 bytes decoded, resources at most 7.6 MiB, layers in `index.json`, source
 size), `EventBusRegistrationTest`, `MapPreviewTest`, and the launcher `SpiritTreeAtlasPluginTest`.
-`TileBench` (`gradlew bench`, `-PbenchArgs="rounds prewarmMs"`) times an in-game open (4.9).
+`TileStoreTest` also covers the loading of 4.9 (newest first, stale requests dropped, no tile
+decoded twice at once, a consistent cache under many workers, sources not kept, the trims, the
+coarse cover first, the prefetch), and `PrewarmTest` the Travel click and the trim clock against
+the fake menus. `TileBench` (`gradlew bench`, `-PbenchArgs="rounds prewarmMs"`) times an in-game
+open (4.9).
 
 **Previews** (`gradlew preview`, `MapPreview` into `build/preview/`): full fit, Grand Exchange at
 4 ppt, 16 ppt, the Prifddinas layer, fixed mode 512x334 with the modern corner (Travel shown), fixed
