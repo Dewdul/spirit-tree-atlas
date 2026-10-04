@@ -434,8 +434,13 @@ public class TreeMenuTest
 		assertEquals(new Point(100 + 55, 200 + 37), menu.anchor());
 		TreeMenu.Row ge = row(menu, "GRAND_EXCHANGE");
 		menu.apply(ge);
-		assertTrue(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		// only the parchment model is hidden: LJ_LAYER2 holds the key listeners, and its title is
+		// what Better Teleport Menu checks before it redraws its own parchment
+		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertTrue(f.parchmentModel().hidden);
+		assertFalse(f.title().hidden);
 		assertTrue(f.get(InterfaceID.Menu.LJ_SCROLL_BAR).hidden);
+		assertNull(f.hotkeysBlocked());
 		FakeMenu.W list = f.get(InterfaceID.Menu.LJ_LAYER1);
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 226, 312}, list.position());
 		assertEquals(386, list.w);
@@ -452,7 +457,6 @@ public class TreeMenuTest
 		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 478, 285},
 			f.get(InterfaceID.Menu.ROOT_GRAPHIC3).position());
 		assertEquals(new Rectangle(100 + 478, 200 + 285, 26, 23), menu.closeRect());
-		// the title is still read from the hidden parchment layer
 		assertEquals(FakeMenu.TITLE, menu.title(TreeMenu.Style.CLASSIC));
 
 		menu.restore();
@@ -464,13 +468,80 @@ public class TreeMenuTest
 	public void classicNeverShowsWhatItDidNotHide()
 	{
 		FakeMenu f = FakeMenu.classic(FakeMenu.OPTIONS);
-		// hidden by the game or another plugin before we came
+		// hidden by the game or another plugin before we came (Better Teleport Menu's "Expand scroll
+		// menu" hides the parchment model and draws its own)
 		f.get(InterfaceID.Menu.LJ_SCROLL_BAR).hidden = true;
+		f.parchmentModel().hidden = true;
 		TreeMenu menu = open(f, TreeMenu.Style.CLASSIC);
 		menu.apply(null);
+		assertEquals(0, f.parchmentModel().writes);
 		menu.restore();
 		assertTrue(f.get(InterfaceID.Menu.LJ_SCROLL_BAR).hidden);
+		assertTrue(f.parchmentModel().hidden);
+		assertEquals(0, f.parchmentModel().writes);
 		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+	}
+
+	@Test
+	public void theParchmentIsFoundByTypeAndItsRecordDiesWithARebuild()
+	{
+		FakeMenu f = FakeMenu.classic(FakeMenu.OPTIONS);
+		FakeMenu.W layer2 = f.get(InterfaceID.Menu.LJ_LAYER2);
+		// the model at another index: found by its type, the title left alone
+		FakeMenu.W title = layer2.children[1];
+		layer2.children = new FakeMenu.W[]{title, layer2.children[0]};
+		TreeMenu menu = open(f, TreeMenu.Style.CLASSIC);
+		menu.apply(null);
+		assertTrue(layer2.children[1].hidden);
+		assertFalse(title.hidden);
+		menu.restore();
+		assertFalse(layer2.children[1].hidden);
+
+		// proc 219 runs while the map shows: a new parchment; the old one's record is dropped
+		f = FakeMenu.classic(FakeMenu.OPTIONS);
+		menu = open(f, TreeMenu.Style.CLASSIC);
+		menu.apply(null);
+		FakeMenu.W old = f.parchmentModel();
+		assertTrue(old.hidden);
+		f.rebuild(FakeMenu.OPTIONS);
+		int writes = old.writes;
+		menu.rebuilt(TREES, GREY);
+		menu.apply(null);
+		assertTrue(f.parchmentModel().hidden);
+		menu.restore();
+		assertFalse(f.parchmentModel().hidden);
+		assertEquals(writes, old.writes);
+		assertEquals(FakeMenu.TITLE, menu.title(TreeMenu.Style.CLASSIC));
+	}
+
+	/**
+	 * Hard rule 4: the client skips a hidden component's whole subtree, so in Map mode, with and
+	 * without a selection, across a new selection and a rebuild, no layer holding either menu's
+	 * key listeners is hidden and every key listener stays effectively visible.
+	 */
+	@Test
+	public void hotkeysKeepWorkingInMapMode()
+	{
+		for (TreeMenu.Style style : TreeMenu.Style.values())
+		{
+			FakeMenu f = style == TreeMenu.Style.MODERN ? FakeMenu.modern(FakeMenu.OPTIONS) : FakeMenu.classic(FakeMenu.OPTIONS);
+			int keys = style == TreeMenu.Style.MODERN ? InterfaceID.MenuNew.KEYLISTENERS : InterfaceID.Menu.KEYLISTENERS;
+			TreeMenu menu = open(f, style);
+			assertNull(style.name(), f.hotkeysBlocked());
+			menu.apply(null);
+			assertNull(style.name(), f.hotkeysBlocked());
+			menu.apply(row(menu, "GRAND_EXCHANGE"));
+			assertNull(style.name(), f.hotkeysBlocked());
+			menu.apply(row(menu, "LAGUNA_AURORAE"));
+			assertNull(style.name(), f.hotkeysBlocked());
+			f.rebuild(FakeMenu.OPTIONS);
+			menu.rebuilt(TREES, GREY);
+			menu.apply(row(menu, "HOSIDIUS"));
+			assertNull(style.name(), f.hotkeysBlocked());
+			menu.restore();
+			assertNull(style.name(), f.hotkeysBlocked());
+			assertKeyListenersUntouched(f, keys);
+		}
 	}
 
 	@Test
@@ -577,6 +648,7 @@ public class TreeMenuTest
 		menu.close();
 		assertTrue(bar.hidden);
 		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertFalse(f.parchmentModel().hidden);
 		for (FakeMenu.W r : f.get(InterfaceID.Menu.LJ_LAYER1).children)
 		{
 			assertFalse(r.hidden);

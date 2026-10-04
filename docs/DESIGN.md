@@ -148,15 +148,17 @@ modes 0 = absolute, 1 = minus):
 
 ### 2.3 Classic menu, group 187 [H]
 
-All of 187's components are roots in the slot. After proc 219 (called from 217 with 33):
+187:0, 187:2, 187:3 and 187:4 are roots in the slot. **187:1 (`KEYLISTENERS`) is not a root: it is a
+static child of 187:0** at (0,0) 1x1 (cache: parent 187:0), so hiding 187:0 hides the hotkeys too.
+After proc 219 (called from 217 with 33):
 
-| child | constant | id | layout after 219 | contents |
-|---|---|---|---|---|
-| 0 | `LJ_LAYER2` | 12255232 | (0,0) 512x334 | dynamic children: 0 the parchment scroll model (model 26397), 1 the title text (quill_oblique_large, 0x322805) |
-| 1 | `KEYLISTENERS` | 12255233 | | one key-listener rectangle per entry. **Never touched.** |
-| 2 | `LJ_SCROLL_BAR` | 12255234 | (441,70) 16x232 | vertical scrollbar (only when the list overflows) |
-| 3 | `LJ_LAYER1` | 12255235 | (55,70) 386x232, scroll layer | the entries |
-| 4 | `ROOT_GRAPHIC3` | 12255236 | (449,36) 26x23 | close button, sprite 537 (538 hover), op "Close", script 29 |
+| child | constant | id | parent | layout after 219 | contents |
+|---|---|---|---|---|---|
+| 0 | `LJ_LAYER2` | 12255232 | the slot | (0,0) 512x334 | the static child 187:1; dynamic children: 0 the parchment scroll model (model 26397), 1 the title text (quill_oblique_large, 0x322805) |
+| 1 | `KEYLISTENERS` | 12255233 | 187:0 | (0,0) 1x1 | one key-listener rectangle per entry. **Never touched, and 187:0 is never hidden.** |
+| 2 | `LJ_SCROLL_BAR` | 12255234 | the slot | (441,70) 16x232 | vertical scrollbar (only when the list overflows) |
+| 3 | `LJ_LAYER1` | 12255235 | the slot | (55,70) 386x232, scroll layer | the entries |
+| 4 | `ROOT_GRAPHIC3` | 12255236 | the slot | (449,36) 26x23 | close button, sprite 537 (538 hover), op "Close", script 29 |
 
 - Entries (proc 218): `LJ_LAYER1` dynamic child i is a text component, x 0 centre-anchored, y = 16*i
   (top-anchored), width minus 0 (386), height 16 for one line, p12_full colour 0x322805 (0x524825 on
@@ -165,13 +167,17 @@ All of 187's components are roots in the slot. After proc 219 (called from 217 w
   proc 31 `scrollbar_vertical`, which builds the scrollbar's children and sets a mouse-wheel handler
   on 187:3 itself (`if_setonscrollwheel`), so the wheel over the moved row would scroll it out of
   its cell (4.4) [H, cs2].
-- 219 deletes the children of 187:0, 187:2 and 187:3, sets 187:0 to (0,0) 512x334 and 187:3 / 187:2
-  with `if_setposition`, so a rebuild resets our move of 187:3; it hides and shows nothing [H, cs2].
+- 219 deletes the dynamic children of 187:0, 187:2 and 187:3 (`cc_deleteall`; 187:0's static child
+  187:1 stays, and 217 clears its rectangles itself), sets 187:0 to (0,0) 512x334 and 187:3 / 187:2
+  with `if_setposition`, so a rebuild resets our move of 187:3 and replaces the parchment model; it
+  hides and shows nothing [H, cs2].
 - Better Teleport Menu's "Expand scroll menu" (default on) runs at `ScriptPostFired(217)` before us
   (priority 1): in resizable mode, when the list overflows, it makes the slot, 187:0, 187:2 and
   187:3 taller by the overflow (8 px today), hides the scroll model, hides the scrollbar it no
-  longer needs, and draws the parchment itself after 187:0 (`drawAfterLayer`, so not while 187:0
-  is hidden).
+  longer needs, and draws the parchment itself after 187:0 (`drawAfterLayer`). It redoes this at
+  every `ScriptPostFired(909)` (`toplevel_resize`: canvas resizes, toplevel sub changes), but gives
+  up and stops drawing when the title (187:0 child 1) `isHidden()`, which follows the parents: so
+  neither 187:0 nor the title is ever hidden, or List mode would come back with no parchment.
 
 ### 2.4 Rows, keys and availability [H unless marked]
 
@@ -182,7 +188,8 @@ All of 187's components are roots in the slot. After proc 219 (called from 217 w
 - **Keys:** 1-9, then A-Z (enum 1401/1402), for the first 35 entries, case-insensitive, only when the
   setup script's keys flag is on (always off on mobile). Pressing the key resumes that row, sets its
   text to "Please wait..." and debounces for 20 client cycles. Hotkeys live under the key-listener
-  layers; hiding those (or UNIVERSE) turns them off, so we never hide them.
+  layers; hiding those, or any component that holds them (947: INFINITE, UNIVERSE, CONTENT_FRAME,
+  CONTENT; 187: LJ_LAYER2), turns them off, so we never hide any of them.
 - **Unavailable destinations stay listed**, with `<col=5f5f5f>` before the name (the key keeps its
   colour). A `</col>` may or may not follow: strip all tags before matching. Clicking a grey row is
   refused by the server with an explanation [M].
@@ -372,8 +379,13 @@ Loads `trees.json` and `map/index.json` with the injected Gson (the bundled Rune
   available; with a grey row, unavailable; with no row (or only a row someone else hid), absent
   (unknown). Updated whenever the rows are read (3.3).
 - **here:** the tree whose centre is within 6 tiles (Chebyshev, same plane) of the player when the
-  menu opened. When none is and the player is in an instanced region, the house (a POH spirit tree
-  or spiritual fairy tree). Otherwise null.
+  menu opened, never the house; otherwise null. **The house is never "here"**: in a player-owned
+  house (an instance) the client cannot tell whose house it is. In a friend's house (a house party,
+  using the host's spirit tree or spiritual fairy tree) the "Your house (<town>)" row still means
+  the player's own house, a real destination, so marking it "here" would put the "You" pin on the
+  wrong house and hide its Travel row. In the player's own house, the row shows as Travel too and
+  clicking it only asks the server, which decides. So with `FIT_ALL`, using the tree in a house
+  in Prifddinas opens the surface overview, not the Prifddinas layer (4.7).
 - **last:** the tree whose `previousValue` equals `SPIRIT_TREE_PREVIOUS`, when non-zero.
 - **The house:** `placeHouse(value)` puts the `house` tree at `housePortals[value]` (and its layer);
   unknown values leave it unplaced (not drawn). Read at start-up when logged in, on every open, and
@@ -453,10 +465,15 @@ coordinates (`slotW` x `slotH`, 512x334). Margins: `RIGHT = 8`, `BOTTOM = 6`.
    tree's when it is to be shown (4.4); move that one's TEXT and GRAPHICS child to the row cell
    (record their position modes and x/y; set ABSOLUTE_LEFT/TOP and the cell's x/y).
 4. Leave FRAME, TITLE and its children, CONTENT_FRAME, SCROLLBAR and KEYLISTENERS alone (they are
-   under the map, or hang outside the slot).
+   under the map, or hang outside the slot). UNIVERSE is moved, never hidden: it, CONTENT_FRAME and
+   CONTENT hold KEYLISTENERS.
 
 **CLASSIC (187):**
-1. Hide `LJ_LAYER2` (parchment and title) and `LJ_SCROLL_BAR`, when not already hidden.
+1. Hide `LJ_LAYER2`'s parchment model (its dynamic child of type MODEL, index 0 today, recorded as a
+   dynamic child `(LJ_LAYER2, index)`, so a rebuild drops the record) and `LJ_SCROLL_BAR` (a root),
+   each only when not already hidden (Better Teleport Menu may have hidden the model; then it is not
+   ours and is never shown again). **Never `LJ_LAYER2` itself**: it holds `Menu.KEYLISTENERS` (2.3).
+   The title (child 1) stays visible under the map, so Better Teleport Menu's title check passes.
 2. Let `rw` = LJ_LAYER1's width (386), `rh` = the row height (16), `cw` = min(`rw`, 170) the
    visible cell width. Move LJ_LAYER1 (record its modes and x/y) to ABSOLUTE_LEFT/TOP,
    `x = slotW - RIGHT - cw - (rw - cw)/2`, `y = slotH - BOTTOM - rh`. It hangs below the slot.
@@ -701,7 +718,8 @@ Dropped from FRA: `DialMath`, `FavouriteOrder`, `RingGroups`, `TravelLogControll
 **Tests** in `src/test/java/com/spirittreeatlas/`: `ComplianceTest` (the full list in rule 1),
 `TreeMenuTest` (row parsing for both menus, grey rows, Better Teleport Menu forms, "Please wait...",
 house prefix, Cancel; the 4.3 geometry for 15 and 12 rows, modern and classic; the changes and
-restores against fake menus, the tick re-read and rows hidden by others), `PluginEventsTest` (the
+restores against fake menus parented as in the cache, the tick re-read and rows hidden by others;
+in Map mode no component holding either key-listener layer is hidden), `PluginEventsTest` (the
 plugin's event handling against the fake menus: open on the title only, rebuilds put back first,
 another menu on the same interface, a script we do not hook, a missed script, reopen within 3
 ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
@@ -770,7 +788,16 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
 - **Rows.** What a grey row and the tree you stand at do when clicked; whether grey rows have
   `</col>`; that "Please wait..." after a key press keeps the Travel row in place until the menu
   closes.
-- **Other plugins.** Better Teleport Menu: re-texted rows parse, a key rebound while the menu is open
+- **Hotkeys in classic Map mode.** With the classic menu (Better Teleport Menu off), a row's key
+  travels while the map shows, with and without a selection (187:0 stays visible; only its parchment
+  model is hidden).
+- **Other plugins.** Better Teleport Menu with the classic menu in Map mode: its own parchment
+  (drawn after 187:0, so now also while the map shows) and the game's title stay under the map and
+  do not show through the Travel and close holes or below the slot beside the lowered list; after a
+  window resize in Map mode (script 909), List mode still has a parchment; after the fixed to
+  resizable switch in Map mode (it may hide the model and the scrollbar we hid, and we show them
+  again in List mode), the parchment does not look doubled and no needless scrollbar shows beside
+  the taller list. Better Teleport Menu: re-texted rows parse, a key rebound while the menu is open
   shows on the marker within a tick, its hidden rows count as not listed, "Expand scroll menu" with
   the classic menu in resizable mode (the slot 8 px taller: the Travel cell and the close button
   still in the corner, Use free space off). Teleport Maps and Spirit Tree Menu: the notice at open;
@@ -780,7 +807,8 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
   put back, mouse-over text on again); logout and world hop with the menu open; LOADING and a brief
   connection loss keep the map.
 - **Data.** Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit
-  gate; the last-destination values.
+  gate; the last-destination values; what the "Your house" row does when clicked inside your own
+  house, and whether a guest at a house party sees it (3.4).
 
 ## 9. Deviations
 
@@ -833,7 +861,9 @@ from the text above.
 
 **Data and state (`TreeRepository`, `Tree`, `Portal`)**
 
-15. **The house is left out of the 6-tile "here" check**; it is "here" only in an instance (a POH).
+15. **The house is never "here" (spec updated, 3.4)**: it is left out of the 6-tile check, and the
+    first port's "in an instance, the house" rule is gone (it marked our own house "here" in a
+    friend's house, and opened the Prifddinas layer in a house in Prifddinas).
 16. **Portal coordinates are doubles**, because the house portal centres have half tiles (3.1).
 
 **Drawing (`AtlasOverlay`, `RowBackdrop`; and, for the record, the painters)**
@@ -843,8 +873,12 @@ from the text above.
 18. **Stand-in fallback.** Between two tick reads, a row re-texted to another tree makes the stand-in
     say "Not in this tree's list" (the live text no longer maps; 4.4) while the marker still shows
     the tree as available; the next read makes them agree.
-19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then falls back
-    to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna Aurorae under the card.
+19. **The card first tries a corner that covers no marker** (`ChromePainter.place`), then the first
+    spot along the bottom edge, the top, the left and the right (8 px steps) that covers none, and
+    only then falls back to Fairy Ring Atlas's rules; otherwise the fitted overview hides Laguna
+    Aurorae under the card. On a 512x334 map (fixed mode) every corner covers a marker, so the card
+    slides: right along the bottom for a compact card, to the left edge's middle for a taller
+    locked one (`PainterTest.theFixedModeCardCoversNoMarker`).
 20. **The card also keeps clear of a surface stand-in it describes**, and of the widened stand-in
     box (`Scene.standInRect`).
 
@@ -855,5 +889,18 @@ from the text above.
 23. The source-size test counts each line end as one byte, so a CRLF checkout measures the same as
     the committed files (rule 7).
 24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes, child creation,
-    other listeners, key managers and network classes, and fails if any code refers to the
-    key-listener layers.
+    other listeners, widget restyles (`setTextShadowed`, `setFontId` and the like), key managers,
+    network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
+    event) and `setParam0` / `setParam1` / `setIdentifier` (retargeting a game menu entry), and fails
+    if any code refers to the key-listener layers. It scans each file with comments stripped and
+    whitespace collapsed, matching names as whole words, so method references
+    (`client::runScript`) and spaced calls (`runScript (`) are caught; every `setType(` must be
+    `setType(MenuAction.RUNELITE)`; and, structurally, `setHidden(true)` appears only in
+    `TreeMenu.hide`, whose only static target is `LJ_SCROLL_BAR` (nothing that holds a key-listener
+    layer is ever hidden).
+
+**Review fixes (2026-10-04)**
+
+25. **Classic Map mode hides only the parchment model (spec updated, 2.3, 4.3).** The first port
+    hid `LJ_LAYER2` itself, which also hid `Menu.KEYLISTENERS` (its static child) and so the
+    game's hotkeys, and tripped Better Teleport Menu's title check.

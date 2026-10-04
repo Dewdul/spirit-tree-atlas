@@ -135,6 +135,15 @@ public class PluginEventsTest
 		{
 			assertEquals("row " + i, i != shown, text[i].hidden);
 		}
+		assertNull(f.hotkeysBlocked());
+		assertFalse(f.mouseover);
+	}
+
+	/** Map mode is in place on the classic menu: the parchment model hidden, never the layer holding the key listeners. */
+	private void assertClassicMap()
+	{
+		assertTrue(f.parchmentModel().hidden);
+		assertNull(f.hotkeysBlocked());
 		assertFalse(f.mouseover);
 	}
 
@@ -194,11 +203,11 @@ public class PluginEventsTest
 		f.rebuild(Arrays.copyOf(FakeMenu.OPTIONS, 12));
 		bar.hidden = true;
 		plugin.onScriptPostFired(new ScriptPostFired(CLASSIC_SCRIPT));
-		assertTrue(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertClassicMap();
 		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER1).children[3].hidden);
 		plugin.setMode(SpiritTreeAtlasPlugin.Mode.LIST);
 		assertTrue(bar.hidden);
-		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertFalse(f.parchmentModel().hidden);
 		plugin.onWidgetClosed(new WidgetClosed(InterfaceID.MENU, 0, true));
 		assertTrue(bar.hidden);
 	}
@@ -209,7 +218,7 @@ public class PluginEventsTest
 		start(FakeMenu.classic(FakeMenu.OPTIONS));
 		script(CLASSIC_SCRIPT);
 		assertTrue(plugin.isOpen());
-		assertTrue(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertClassicMap();
 		f.title().text = "Minecart rides";
 		tick();
 		assertFalse(plugin.isOpen());
@@ -225,7 +234,7 @@ public class PluginEventsTest
 		start(FakeMenu.classic(FakeMenu.OPTIONS));
 		tick();
 		assertTrue(plugin.isOpen());
-		assertTrue(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		assertClassicMap();
 	}
 
 	@Test
@@ -279,7 +288,7 @@ public class PluginEventsTest
 		{
 			gameState(s);
 			assertTrue(s.name(), plugin.isOpen());
-			assertTrue(s.name(), f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+			assertTrue(s.name(), f.parchmentModel().hidden);
 		}
 		gameState(GameState.HOPPING);
 		assertFalse(plugin.isOpen());

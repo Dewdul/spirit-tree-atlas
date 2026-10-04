@@ -101,6 +101,19 @@ public class AtlasPainter
 		return ink;
 	}
 
+	/**
+	 * Drops the laid-out label sprites and the marker sprites (DESIGN 4.9: released 50 ticks after
+	 * the menu closes and at the login screen); the next frame lays out and draws them afresh.
+	 */
+	void release()
+	{
+		treeLabels.clear();
+		placeLabels.clear();
+		markerSprites.clear();
+		layoutKey = Long.MIN_VALUE;
+		colourKey = 0;
+	}
+
 	/** Marker radius at a zoom: a 16 px glyph, growing slightly past 4 ppt; larger when selected. */
 	static double radius(double ppt, boolean selected)
 	{
