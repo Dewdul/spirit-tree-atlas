@@ -1,4 +1,4 @@
-// Standalone map-tile generator for Fairy Ring Atlas.
+// Standalone map-tile generator for Spirit Tree Atlas.
 // NOT part of the plugin build: the root settings.gradle does not include it.
 // Run from the repo root:  ./gradlew -p tools/mapgen render
 plugins {

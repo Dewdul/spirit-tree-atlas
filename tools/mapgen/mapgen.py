@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Fairy Ring Atlas map pipeline, step 0 and step 2.
+"""Spirit Tree Atlas map pipeline, step 0 and step 2.
 
     python tools/mapgen/mapgen.py plan     # writes tools/mapgen/regions.json
     ./gradlew -p tools/mapgen render       # step 1 (Java): renders build/raw/2/*.png + labels/icons
     python tools/mapgen/mapgen.py build    # filters, builds z=-1, quantises, writes resources + index.json
 
 `build` writes into src/main/resources/com/spirittreeatlas/map/ (wiping the old
-tiles first) and prints the budget. Requires Pillow and numpy.
+tiles first), compares the surface tiles with Fairy Ring Atlas's when that
+checkout is present, and prints the budget. Requires Pillow and numpy.
 See README.md next to this file.
 """
 import argparse
@@ -25,16 +26,22 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-RINGS_SRC = os.path.join(REPO, "tools", "data", "fairy_rings.verified.json")
-RINGS_JSON = os.path.join(REPO, "src", "main", "resources", "com", "fairyringatlas", "rings.json")
-OUT = os.path.join(REPO, "src", "main", "resources", "com", "fairyringatlas", "map")
+TREES_SRC = os.path.join(REPO, "tools", "data", "spirit_trees.verified.json")
+RESOURCES = os.path.join(REPO, "src", "main", "resources")
+TREES_JSON = os.path.join(RESOURCES, "com", "spirittreeatlas", "trees.json")
+OUT = os.path.join(RESOURCES, "com", "spirittreeatlas", "map")
 RAW = os.path.join(HERE, "build", "raw")
 REGIONS_JSON = os.path.join(HERE, "regions.json")
+# Fairy Ring Atlas's shipped map (same cache, same renderer): the surface tiles must match it
+# byte for byte. A sibling checkout by default; MAPGEN_FRA overrides, an empty value skips the check.
+FRA_MAP = os.environ.get("MAPGEN_FRA", os.path.normpath(os.path.join(
+    REPO, "..", "FairyRingAtlas", "src", "main", "resources", "com", "fairyringatlas", "map")))
 
 CACHE_PROVENANCE = "openrs2 2727 (2026-09-30, build 241)"
 TILE = 256
 REGION = 64
 BUDGET = int(7.6 * 1024 * 1024)  # all of src/main/resources; keeps the jar under the hub's 8 MiB warning
+DECODED_MAX = 950000  # w*h*4 of every bundled PNG stays under this; the hub bot rejects about 1 MiB decoded
 PSNR_MIN = float(os.environ.get("MAPGEN_PSNR", "40.0"))  # below this a PNG8 candidate counts as "visibly degraded"
 # The whole surface. The world map's own "Gielinor Surface" (worldmap details file 0) shows
 # exactly the 64x64 map squares rx 15-62, ry 32-65 (1632 squares, all at their own position;
@@ -46,110 +53,69 @@ SURFACE_RENDER = [960, 2048, 4032, 4224]
 SURFACE_BOUNDS = [1016, 2104, 3976, 4168]
 SURFACE_VOID = (0x20, 0x2f, 0x3d)
 
-# Off-surface layers (DESIGN 3.3). Bounds are world tiles, [x0, y0, x1, y1),
-# region-aligned so one z=2 tile is exactly one region.
-def around(x, y, r=1):
-    rx, ry = x // REGION, y // REGION
-    return [(rx - r) * REGION, (ry - r) * REGION, (rx + r + 1) * REGION, (ry + r + 1) * REGION]
+# Prifddinas. The world map's "Prifddinas" (worldmap file 29, safeName prifddinas) shows exactly
+# the 16 map squares rx 49-52, ry 93-96 (x 3136-3391, y 5952-6207); cmd_build checks this.
+PRIF_RENDER = [3136, 5952, 3392, 6208]
+PRIF_MAP = "prifddinas"
 
-#   "bounds": region-aligned area rendered (DESIGN 3.3 rough bounds).
-#   "keep":   optional subset of regions [rx, ry] that belong to the destination.
-#             The DESIGN bounds come from wiki basemaps and also pull in unrelated
-#             neighbouring areas packed into the same part of the cache (checked by
-#             eye on a contact sheet of every layer); those regions are not shipped.
-# The index bounds of an off-surface layer are the bounding box of its non-empty
-# pixels in the kept regions, plus MARGIN tiles, clamped to the kept regions.
-# Pixels outside the index bounds are painted with the layer background so no
-# unrelated content leaks in at the edges.
+# The index bounds of an off-surface layer are the bounding box of its non-empty pixels in its
+# regions, plus MARGIN tiles, clamped to those regions. Pixels outside the index bounds are
+# painted with the layer background so no unrelated content leaks in at the edges.
 MARGIN = 8
-TRANSPORT_SPRITE = 1504  # SpriteID.Mapfunction.TRANSPORTATION, the fairy ring map icon
+TRANSPORT_SPRITE = 1504  # SpriteID.Mapfunction.TRANSPORTATION: beside every fixed spirit tree
+FARMING_SPRITE = 1501    # SpriteID.Mapfunction.FARMING_PATCH: the only icon on a patch tree
+ICON_RADIUS = 3          # tiles, per axis, from a tree centre within which those icons are dropped
 
+#   "bounds": region-aligned area rendered.
+#   "keep":   optional subset of regions [rx, ry] that belong to the layer. None is needed:
+#             all 16 Prifddinas map squares are the city and its forest (checked on the preview).
 LAYERS = [
     # surface bounds are SURFACE_BOUNDS, set in plan_layers()
     {"id": "surface", "name": "Gielinor", "bounds": None},
-    {"id": "zanaris", "name": "Zanaris", "bounds": [2304, 4288, 2560, 4544]},
-    # Abyssal Nexus (DIP) + the Abyss/Abyssal Area (ALR); the outer ring of the
-    # 5x5 holds unrelated buildings and a surface-like village.
-    {"id": "abyss", "name": "The Abyss", "bounds": [2880, 4672, 3200, 4992],
-     "keep": [[rx, ry] for ry in range(74, 77) for rx in range(46, 49)]},
-    # (43,80) holds two unrelated huts
-    {"id": "dorgesh_south", "name": "Dorgesh-Kaan South Dungeon", "bounds": [2624, 5120, 2816, 5312],
-     "keep": [[42, 81], [42, 82]]},
-    {"id": "fisher_realm", "name": "Fisher Realm", "bounds": [2560, 4608, 2752, 4800]},
-    {"id": "enchanted_valley", "name": "Enchanted Valley", "bounds": [2944, 4416, 3136, 4608],
-     "keep": [[47, 70]]},
-    # ring (2437,5126) +- ~1.5 regions inside map 23's [2304,4928]-[2624,5248];
-    # row 81 is empty and row 78 holds unrelated areas, so the city is 3x2.
-    {"id": "mor_ul_rek", "name": "Mor Ul Rek", "bounds": [2368, 5056, 2560, 5248],
-     "keep": [[rx, ry] for ry in range(79, 81) for rx in range(37, 40)]},
-    # (31,75) boat area, (33,75) pillars, (32,76)/(33,76) buildings are unrelated
-    # its west edge picks up a ground-blend band from (31,75), so clip it by hand
-    {"id": "cosmic_plane", "name": "Cosmic entity's plane", "bounds": [1984, 4736, 2176, 4928],
-     "keep": [[32, 75]], "clip": [2056, 4800, 2112, 4864]},
-    # (48,82) holds unrelated caves
-    {"id": "gorak_plane", "name": "Gorak Plane", "bounds": [2944, 5248, 3136, 5440],
-     "keep": [[47, 83]]},
-    {"id": "yubiusk", "name": "Yu'biusk", "bounds": around(3572, 4372)},
-    {"id": "grimstone", "name": "Grimstone Dungeon", "bounds": around(2926, 10455),
-     "keep": [[44, 163], [45, 163]]},
-    {"id": "hollows", "name": "Myreque Hideout (The Hollows)", "bounds": [3328, 9728, 3584, 9984]},
+    {"id": "prifddinas", "name": "Prifddinas", "bounds": list(PRIF_RENDER)},
 ]
 
-# Extra regions rendered only to explore/verify (not shipped unless inside a layer).
-EXTRA_RENDER = [
-    [2304, 4928, 2624, 5248],  # all of map 23 (Mor Ul Rek) to check the crop
-]
 
-# Which layer each non-surface ring belongs to (by code or by dataset name).
-RING_LAYER = {
-    "AJQ": "dorgesh_south", "ALR": "abyss", "DIP": "abyss", "BJR": "fisher_realm",
-    "BKQ": "enchanted_valley", "BKS": "zanaris", "BLP": "mor_ul_rek", "BLQ": "yubiusk",
-    "CKP": "cosmic_plane", "DIR": "gorak_plane", "DLP": "grimstone", "DLS": "hollows",
-    "DIQ": "poh",
-}
-
-
-def load_rings():
-    with open(RINGS_SRC, encoding="utf-8") as f:
-        rings = json.load(f)
+def load_trees():
+    """Every map place in the dataset: the trees, and the house portals as kind 'portal'."""
+    with open(TREES_SRC, encoding="utf-8") as f:
+        data = json.load(f)
     out = []
-    for r in rings:
-        if r.get("x") is None:
-            continue
-        code = r.get("code")
-        if r.get("surface"):
-            layer = "surface"
-        elif code in RING_LAYER:
-            layer = RING_LAYER[code]
-        else:
-            layer = "zanaris"  # hideout sequence landing and the Zanaris exit rings
-        out.append({"code": code, "name": r["name"], "x": r["x"], "y": r["y"], "layer": layer, "kind": r["kind"]})
+    for d in data["destinations"]:
+        t = d.get("tree")
+        if t is None:
+            continue  # the house: placed at a portal below
+        out.append({"id": d["id"], "x": t["center"][0], "y": t["center"][1], "layer": d["layer"], "kind": d["kind"]})
+    for p in data["housePortals"]:
+        out.append({"id": "HOUSE_%d" % p["value"], "x": p["center"][0], "y": p["center"][1], "layer": p["layer"],
+                    "kind": "portal"})
     return out
 
 
-def plan_layers(rings):
+def plan_layers(trees):
     layers = json.loads(json.dumps(LAYERS))
     layers[0]["bounds"] = list(SURFACE_BOUNDS)
     layers[0]["renderBounds"] = list(SURFACE_RENDER)
     return layers
 
 
-def check_surface_extent():
-    """The world map's surface squares (exported by MapGen) must be exactly SURFACE_BOUNDS."""
+def check_world_map_extents():
+    """The world map's surface and Prifddinas squares (exported by MapGen) must be exactly the render areas."""
     p = os.path.join(RAW, "worldmaps.json")
     if not os.path.exists(p):
-        print("WARNING: %s missing; cannot check the surface extent" % p)
+        print("WARNING: %s missing; cannot check the world map extents" % p)
         return
     with open(p, encoding="utf-8") as f:
         maps = json.load(f)
-    surf = [m for m in maps if m.get("surface")]
-    sq = {(s[2], s[3]) for m in surf for s in m.get("squares", [])}
-    want = set(regions_in(SURFACE_RENDER))
-    if sq != want:
-        print("WARNING: world map surface squares differ from SURFACE_BOUNDS: %d extra, %d missing"
-              % (len(sq - want), len(want - sq)))
-    else:
-        print("Surface extent: the world map's %d surface squares are exactly SURFACE_RENDER %s" % (len(sq), SURFACE_RENDER))
+    for what, match, render in (("surface", lambda m: m.get("surface"), SURFACE_RENDER),
+                                (PRIF_MAP, lambda m: m.get("safeName") == PRIF_MAP, PRIF_RENDER)):
+        sq = {(s[2], s[3]) for m in maps if match(m) for s in m.get("squares", [])}
+        want = set(regions_in(render))
+        if sq != want:
+            print("WARNING: world map %s squares differ from %s: %d extra, %d missing"
+                  % (what, render, len(sq - want), len(want - sq)))
+        else:
+            print("World map extent: the %d %s squares are exactly %s" % (len(sq), what, render))
 
 
 def surface_content(z2):
@@ -191,26 +157,26 @@ def layer_regions(l):
     return regions_in(l["bounds"] if "renderBounds" not in l else l["renderBounds"])
 
 
-def check_rings_in_layers(rings, layers):
+def check_trees_in_layers(trees, layers):
     by_id = {l["id"]: l for l in layers}
     bad = []
-    for r in rings:
-        b = by_id[r["layer"]]["bounds"]
-        if not (b[0] <= r["x"] < b[2] and b[1] <= r["y"] < b[3]):
-            bad.append(r)
-    for r in bad:
-        print("RING OUTSIDE LAYER BOUNDS:", r)
-    print("Ring/layer bounds check: %d rings, %d outside" % (len(rings), len(bad)))
+    for t in trees:
+        l = by_id.get(t["layer"])
+        if l is None or not (l["bounds"][0] <= t["x"] < l["bounds"][2] and l["bounds"][1] <= t["y"] < l["bounds"][3]):
+            bad.append(t)
+    for t in bad:
+        print("TREE OUTSIDE LAYER BOUNDS:", t)
+    print("Tree/layer bounds check: %d trees and house portals, %d outside" % (len(trees), len(bad)))
     return not bad
 
 
 def cmd_plan(_):
-    rings = load_rings()
-    layers = plan_layers(rings)
-    ok = check_rings_in_layers(rings, layers)
+    trees = load_trees()
+    layers = plan_layers(trees)
+    ok = check_trees_in_layers(trees, layers)
     want = []
     seen = set()
-    for b in [l.get("renderBounds", l["bounds"]) for l in layers] + EXTRA_RENDER:
+    for b in [l.get("renderBounds", l["bounds"]) for l in layers]:
         for rc in regions_in(b):
             if rc not in seen:
                 seen.add(rc)
@@ -218,7 +184,7 @@ def cmd_plan(_):
     with open(REGIONS_JSON, "w") as f:
         json.dump({"layers": layers, "regions": want}, f, separators=(",", ":"))
     for l in layers:
-        b = l["bounds"]
+        b = l.get("renderBounds", l["bounds"])
         print("  %-17s %s  %dx%d regions" % (l["id"], b, (b[2] - b[0]) // REGION, (b[3] - b[1]) // REGION))
     print("Wrote %s: %d regions" % (REGIONS_JSON, len(want)))
     if not ok:
@@ -255,7 +221,6 @@ def encode_tile(rgb_bytes):
             cands.append((len(d), d, "png8", 99.0))
         else:
             # median cut can merge colours; build an exact palette instead
-            pal = {}
             flat = ref.reshape(-1, 3)
             keys = (flat[:, 0].astype(np.int32) << 16) | (flat[:, 1].astype(np.int32) << 8) | flat[:, 2]
             uniq, inv = np.unique(keys, return_inverse=True)
@@ -320,11 +285,9 @@ def solid_colour(arr):
 
 
 def cmd_build(args):
-    with open(REGIONS_JSON) as f:
-        plan = json.load(f)
-    layers = plan_layers(load_rings())  # from code, not regions.json, so edits apply without re-rendering
-    rings = load_rings()
-    check_surface_extent()
+    trees = load_trees()
+    layers = plan_layers(trees)  # from code, not regions.json, so edits apply without re-rendering
+    check_world_map_extents()
 
     # ---- load z=2 raw tiles per layer
     z2 = {}           # (rx,ry) -> array
@@ -338,6 +301,8 @@ def cmd_build(args):
             a = load_raw(*rc)
             if a is not None:
                 z2[rc] = a.copy()
+            elif l["id"] != "surface":
+                print("WARNING: %s region %s has no render" % (l["id"], rc))
 
     # ---- backgrounds
     bg = {}
@@ -372,6 +337,8 @@ def cmd_build(args):
         b = [int(v) for v in (max(ext[0], x0 - MARGIN), max(ext[1], y0 - MARGIN), min(ext[2], x1 + MARGIN), min(ext[3], y1 + MARGIN))]
         if l.get("clip"):
             b = list(l["clip"])
+        print("  %s: content %s, bounds %s (content + %d tiles, inside %s)"
+              % (l["id"], [int(x0), int(y0), int(x1), int(y1)], b, MARGIN, ext))
         l["renderBounds"] = l["bounds"]
         l["bounds"] = b
         paint_outside(z2, regs, b, bg[l["id"]])
@@ -383,13 +350,13 @@ def cmd_build(args):
     paint_outside(z2, [rc for rc in layer_regions(surface) if rc in z2], surface["bounds"], bg["surface"])
     for l in layers:
         print("  %-17s bounds %-28s background %s" % (l["id"], l["bounds"], l["background"]))
-    if not check_rings_in_layers(rings, layers):
+    if not check_trees_in_layers(trees, layers):
         sys.exit(1)
 
     # ---- optional surface tightening: drop regions far from land
     surface_drop = set()
     if args.tighten:
-        surface_drop = tighten_surface(layers[0], z2, bg["surface"], rings)
+        surface_drop = tighten_surface(layers[0], z2, bg["surface"], trees)
 
     # ---- decide z=2 tiles
     ship2 = {}
@@ -416,7 +383,9 @@ def cmd_build(args):
                 blocks.add((tx, ty))
     for (tx, ty) in sorted(blocks):
         canvas = np.zeros((2048, 2048, 3), dtype=np.uint8)
-        # fill colour: background of the first layer whose bounds touch this block
+        # fill colour: background of the first layer whose bounds touch this block. Regions of
+        # no layer keep it, so the surface's northern row of tiles (ty 8), where Fairy Ring
+        # Atlas also drew Zanaris and the realms, shows plain sea there.
         fill = None
         for l in layers:
             b = l["bounds"]
@@ -431,8 +400,6 @@ def cmd_build(args):
                 a = None
                 if rc in z2 and rc not in surface_drop:
                     a = z2[rc]
-                elif rc in owner:
-                    a = None
                 if a is None:
                     if rc in owner:
                         canvas[(7 - j) * 256:(8 - j) * 256, i * 256:(i + 1) * 256] = bg[owner[rc]]
@@ -471,7 +438,7 @@ def cmd_build(args):
                 psnrs.append(s)
 
     # ---- labels and icons
-    labels, icons = export_labels_icons(layers)
+    labels, icons = export_labels_icons(layers, trees)
 
     index = {
         "cache": CACHE_PROVENANCE,
@@ -482,7 +449,7 @@ def cmd_build(args):
             "-1": ["%d_%d" % rc for rc in sorted(zm1, key=lambda t: (t[1], t[0]))],
         },
         "solid": {"2": solid2, "-1": solidm1},
-        # "poh" (DIQ) has no map and therefore no entry here (DESIGN 3.3: card only)
+        # "poh" (the house) has no map and therefore no entry here (DESIGN 3.2: card only)
         "layers": [{"id": l["id"], "name": l["name"], "bounds": l["bounds"], "background": l["background"]} for l in layers],
         "labels": labels,
         "icons": icons,
@@ -491,11 +458,14 @@ def cmd_build(args):
         json.dump(index, f, ensure_ascii=False, separators=(",", ":"))
 
     report(stats, sizes, psnrs, ship2, zm1, solid2, solidm1, surface_drop, labels, icons)
-    previews(layers, bg, z2, zm1, surface_drop)
+    res = compare_with_fra(index)
+    if res is not None:
+        print_fra(res)
+    previews(layers, bg, trees)
 
 
-def tighten_surface(surface, z2, sea, rings):
-    """Regions to drop: no land within +-2 regions and further than 2 regions from any ring."""
+def tighten_surface(surface, z2, sea, trees):
+    """Regions to drop: no land within +-2 regions and further than 2 regions from any tree."""
     land = set()
     for rc in layer_regions(surface):
         a = z2.get(rc)
@@ -506,10 +476,10 @@ def tighten_surface(surface, z2, sea, rings):
         for dx in range(-2, 3):
             for dy in range(-2, 3):
                 keep.add((rx + dx, ry + dy))
-    for r in rings:
-        if r["layer"] != "surface":
+    for t in trees:
+        if t["layer"] != "surface":
             continue
-        rx, ry = r["x"] // REGION, r["y"] // REGION
+        rx, ry = int(t["x"]) // REGION, int(t["y"]) // REGION
         for dx in range(-2, 3):
             for dy in range(-2, 3):
                 keep.add((rx + dx, ry + dy))
@@ -518,12 +488,7 @@ def tighten_surface(surface, z2, sea, rings):
     return drop
 
 
-# Labels the cache puts where a player cannot go from the ring. The Fight Cave name sits in the
-# arena instance (region 9551); the entrance players walk to is north of BLP.
-LABEL_MOVES = {("Fight Cave", "mor_ul_rek"): (2439, 5172)}
-
-
-def export_labels_icons(layers):
+def export_labels_icons(layers, trees):
     def layer_of(x, y):
         for l in layers:
             b = l["bounds"]
@@ -549,27 +514,34 @@ def export_labels_icons(layers):
             continue
         seen.add(key)
         o = {"t": t, "x": l["x"], "y": l["y"], "s": max(0, min(2, l["s"])), "layer": lid}
-        moved = LABEL_MOVES.get((t, lid))
-        if moved:
-            o["x"], o["y"] = moved
         if l["c"] != "#ffffff":
             o["c"] = l["c"]  # optional text colour (orange/cyan in-game labels); absent = white
         labels.append(o)
     labels.sort(key=lambda o: (o["layer"], -o["s"], o["t"]))
-    # The plugin draws its own ring markers, so drop the game's transportation
-    # icon (sprite 1504) sitting on each fairy ring we know about.
-    rings = load_rings()
+    # The plugin draws its own tree markers, so drop the game's icon under each one: the
+    # transportation icon beside every spirit tree and the farming patch icon on every patch
+    # tree. Every other map-function icon stays, fairy rings included.
+    plants = [t for t in trees if t["kind"] != "portal"]
+    patches = [t for t in plants if t["kind"] == "patch"]
+
+    def near(x, y, ts):
+        return [t for t in ts if abs(x - t["x"]) <= ICON_RADIUS and abs(y - t["y"]) <= ICON_RADIUS]
+
     icons = []
     seen = set()
-    dropped = 0
+    covered = set()
+    dropped = Counter()
     for i in raw_icons:
         if i["z"] != 0:
             continue
         lid = layer_of(i["x"], i["y"])
         if lid is None:
             continue
-        if i["sprite"] == TRANSPORT_SPRITE and any(abs(i["x"] - r["x"]) <= 3 and abs(i["y"] - r["y"]) <= 3 for r in rings):
-            dropped += 1
+        under = (near(i["x"], i["y"], plants) if i["sprite"] == TRANSPORT_SPRITE
+                 else near(i["x"], i["y"], patches) if i["sprite"] == FARMING_SPRITE else [])
+        if under:
+            dropped[i["sprite"]] += 1
+            covered.update(t["id"] for t in under)
             continue
         key = (i["x"], i["y"], i["sprite"])
         if key in seen:
@@ -578,7 +550,11 @@ def export_labels_icons(layers):
         icons.append([i["x"], i["y"], i["sprite"]])
     # compact [x, y, sprite] triples: they are most of index.json, which ships as source text
     icons.sort(key=lambda o: (o[1], o[0]))
-    print("Icons: dropped %d fairy-ring transport icons under ring markers" % dropped)
+    print("Icons: dropped %d transportation icons beside trees and %d farming patch icons on patch trees"
+          % (dropped[TRANSPORT_SPRITE], dropped[FARMING_SPRITE]))
+    for t in plants:
+        if t["id"] not in covered:
+            print("  note: no icon dropped for %s (none within %d tiles of %s,%s)" % (t["id"], ICON_RADIUS, t["x"], t["y"]))
     return labels, icons
 
 
@@ -592,9 +568,25 @@ def dir_bytes(path):
     return total, count
 
 
+def png_limits(path):
+    """(PNG count, offenders): every PNG must be at most 256x256 and under DECODED_MAX bytes decoded."""
+    n = 0
+    bad = []
+    for root, _, files in os.walk(path):
+        for fn in files:
+            if fn.endswith(".png"):
+                n += 1
+                with Image.open(os.path.join(root, fn)) as im:
+                    w, h = im.size
+                if w > TILE or h > TILE or w * h * 4 >= DECODED_MAX:
+                    bad.append(os.path.relpath(os.path.join(root, fn), path))
+    return n, bad
+
+
 def report(stats, sizes, psnrs, ship2, zm1, solid2, solidm1, surface_drop, labels, icons):
     mapb, mapn = dir_bytes(OUT)
-    ringsb = os.path.getsize(RINGS_JSON) if os.path.exists(RINGS_JSON) else 0
+    treesb = os.path.getsize(TREES_JSON) if os.path.exists(TREES_JSON) else 0
+    resb, resn = dir_bytes(RESOURCES)
     idxb = os.path.getsize(os.path.join(OUT, "index.json"))
     print()
     print("=== budget ===")
@@ -606,18 +598,84 @@ def report(stats, sizes, psnrs, ship2, zm1, solid2, solidm1, surface_drop, label
     if surface_drop:
         print("surface regions dropped by tightening: %d" % len(surface_drop))
     print("map/ total: %d bytes in %d files" % (mapb, mapn))
-    print("rings.json: %d bytes%s" % (ringsb, "" if ringsb else " (not present yet; budget assumes 150000)"))
-    total = mapb + (ringsb or 150000)
-    print("TOTAL: %d bytes = %.3f MiB (budget %.1f MiB) -> %s" % (total, total / 1048576, BUDGET / 1048576, "OK" if total <= BUDGET else "OVER"))
-    # sanity: every shipped PNG <= 256x256
-    big = 0
-    for root, _, files in os.walk(OUT):
-        for fn in files:
-            if fn.endswith(".png"):
-                with Image.open(os.path.join(root, fn)) as im:
-                    if im.size[0] > TILE or im.size[1] > TILE:
-                        big += 1
-    print("PNGs larger than 256x256: %d" % big)
+    print("trees.json: %d bytes%s" % (treesb, "" if treesb else " (not present yet)"))
+    print("src/main/resources: %d bytes in %d files = %.3f MiB (budget %d bytes) -> %s"
+          % (resb, resn, resb / 1048576, BUDGET, "OK" if resb <= BUDGET else "OVER"))
+    n, bad = png_limits(RESOURCES)
+    print("PNGs: %d; over 256x256 or %d bytes decoded: %d %s" % (n, DECODED_MAX, len(bad), bad[:5]))
+
+
+# ---------------------------------------------------------------- Fairy Ring Atlas comparison
+
+def compare_with_fra(index):
+    """Compares the surface tiles with Fairy Ring Atlas's shipped ones (same cache, same renderer).
+
+    Every surface z=2 tile (and solid entry) must be byte-identical. A surface z=-1 tile may
+    differ only when it touches one of Fairy Ring Atlas's off-surface layers (Zanaris and the
+    realms north of the surface), whose pixels are now outside every layer and painted with the
+    surface background. Returns None when the checkout is absent.
+    """
+    if not FRA_MAP or not os.path.isfile(os.path.join(FRA_MAP, "index.json")):
+        print("Fairy Ring Atlas map not found at %r: surface identity not checked" % FRA_MAP)
+        return None
+    with open(os.path.join(FRA_MAP, "index.json"), encoding="utf-8") as f:
+        fra = json.load(f)
+    fra_off = [l["bounds"] for l in fra["layers"] if l["id"] != "surface"]
+    res = {"z2_same": 0, "z2_diff": [], "z2_missing": [], "solid_diff": [],
+           "zm1_same": 0, "zm1_explained": [], "zm1_diff": [], "zm1_missing": []}
+
+    def read(base, z, key):
+        with open(os.path.join(base, z, key + ".png"), "rb") as f:
+            return f.read()
+
+    def order(k):
+        return tuple(reversed([int(v) for v in k.split("_")]))
+
+    # z=2: one tile per region; the surface regions are those of SURFACE_RENDER
+    surf2 = {"%d_%d" % rc for rc in regions_in(SURFACE_RENDER)}
+    ours, theirs = set(index["tiles"]["2"]) & surf2, set(fra["tiles"]["2"]) & surf2
+    for key in sorted(ours | theirs, key=order):
+        if key not in ours or key not in theirs:
+            res["z2_missing"].append(key)
+        elif read(OUT, "2", key) == read(FRA_MAP, "2", key):
+            res["z2_same"] += 1
+        else:
+            res["z2_diff"].append(key)
+    for key in sorted(surf2, key=order):
+        if index["solid"]["2"].get(key) != fra["solid"]["2"].get(key):
+            res["solid_diff"].append(key)
+
+    # z=-1: one tile per 8x8 regions; the surface tiles are those touching SURFACE_BOUNDS
+    def touches(b, tx, ty):
+        return b[0] < (tx + 1) * 512 and b[2] > tx * 512 and b[1] < (ty + 1) * 512 and b[3] > ty * 512
+
+    sb = SURFACE_BOUNDS
+    surf1 = {"%d_%d" % (tx, ty) for ty in range(sb[1] // 512, (sb[3] - 1) // 512 + 1)
+             for tx in range(sb[0] // 512, (sb[2] - 1) // 512 + 1)}
+    ours, theirs = set(index["tiles"]["-1"]) & surf1, set(fra["tiles"]["-1"]) & surf1
+    for key in sorted(ours | theirs, key=order):
+        tx, ty = map(int, key.split("_"))
+        explained = any(touches(b, tx, ty) for b in fra_off)
+        if key not in ours or key not in theirs:
+            (res["zm1_explained"] if explained else res["zm1_missing"]).append(key)
+        elif read(OUT, "-1", key) == read(FRA_MAP, "-1", key):
+            res["zm1_same"] += 1
+        else:
+            (res["zm1_explained"] if explained else res["zm1_diff"]).append(key)
+    res["ok"] = not (res["z2_diff"] or res["z2_missing"] or res["solid_diff"] or res["zm1_diff"] or res["zm1_missing"])
+    return res
+
+
+def print_fra(res):
+    print()
+    print("=== surface tiles vs Fairy Ring Atlas (%s) ===" % FRA_MAP)
+    print("z=2 : %d byte-identical; %d differ %s; %d on one side only %s; solid entries differ %s"
+          % (res["z2_same"], len(res["z2_diff"]), res["z2_diff"][:10], len(res["z2_missing"]), res["z2_missing"][:10],
+             res["solid_diff"][:10]))
+    print("z=-1: %d byte-identical; %d differ where FRA's tile held its off-surface layers %s; %d other differences %s %s"
+          % (res["zm1_same"], len(res["zm1_explained"]), res["zm1_explained"], len(res["zm1_diff"]) + len(res["zm1_missing"]),
+             res["zm1_diff"], res["zm1_missing"]))
+    print("surface identity: %s" % ("OK" if res["ok"] else "FAILED"))
 
 
 # ---------------------------------------------------------------- previews
@@ -643,51 +701,43 @@ def fit(img, longest=2500):
     return img
 
 
-def previews(layers, bg, z2, zm1, surface_drop):
+def span(lo, hi):
+    return list(range(lo // 64, (hi - 1) // 64 + 1))
+
+
+def previews(layers, bg, trees):
+    from PIL import ImageDraw
     os.makedirs(PREVIEWS, exist_ok=True)
+    # the whole surface at z=-1, with every surface tree (yellow) and house portal (cyan) ringed
     surf = layers[0]["bounds"]
     txs = list(range(surf[0] // 512, (surf[2] - 1) // 512 + 1))
     tys = list(range(surf[1] // 512, (surf[3] - 1) // 512 + 1))
     img = stitch(os.path.join(OUT, "-1"), txs, tys, bg["surface"])
-    # crop to the surface bounds
     x0 = (surf[0] - txs[0] * 512) // 2
     y0 = ((tys[-1] + 1) * 512 - surf[3]) // 2
     img = img.crop((x0, y0, x0 + (surf[2] - surf[0]) // 2, y0 + (surf[3] - surf[1]) // 2))
+    d = ImageDraw.Draw(img)
+    for t in trees:
+        if t["layer"] == "surface":
+            px, py = (t["x"] + 0.5 - surf[0]) / 2, (surf[3] - t["y"] - 0.5) / 2
+            d.ellipse([px - 7, py - 7, px + 7, py + 7], outline=(0, 255, 255) if t["kind"] == "portal" else (255, 255, 0), width=2)
     fit(img).save(os.path.join(PREVIEWS, "surface_z-1.png"))
     # Lumbridge / Draynor 4x3 regions at z=2 (shipped, quantised tiles)
     fit(stitch(os.path.join(OUT, "2"), list(range(47, 51)), list(range(49, 52)), bg["surface"])).save(
         os.path.join(PREVIEWS, "lumbridge_draynor_z2.png"))
-    def span(lo, hi):
-        return list(range(lo // 64, (hi - 1) // 64 + 1))
-
-    zb = next(l for l in layers if l["id"] == "zanaris")["bounds"]
-    fit(stitch(os.path.join(OUT, "2"), span(zb[0], zb[2]), span(zb[1], zb[3]), (0, 0, 0))).save(
-        os.path.join(PREVIEWS, "zanaris_z2.png"))
-    # contact sheet: every off-surface layer at z=2 (shipped tiles), 1 px per game tile,
-    # cropped to the index bounds, with the rings marked
-    from PIL import ImageDraw
-    rings = load_rings()
-    cell = 400
-    sheet = Image.new("RGB", (4 * cell, 3 * cell), (40, 40, 40))
-    d = ImageDraw.Draw(sheet)
-    for k, l in enumerate(layers[1:]):
-        b = l["bounds"]
-        xs, ys = span(b[0], b[2]), span(b[1], b[3])
-        img = stitch(os.path.join(OUT, "2"), xs, ys, (0, 0, 0))
-        ox, oy = (b[0] - xs[0] * 64) * 4, ((ys[-1] + 1) * 64 - b[3]) * 4
-        img = img.crop((ox, oy, ox + (b[2] - b[0]) * 4, oy + (b[3] - b[1]) * 4))
-        scale = min((cell - 10) / img.size[0], (cell - 24) / img.size[1], 1.0)
-        img = img.resize((max(1, round(img.size[0] * scale)), max(1, round(img.size[1] * scale))), Image.LANCZOS)
-        x, y = (k % 4) * cell + 5, (k // 4) * cell + 20
-        sheet.paste(img, (x, y))
-        d.text((x, y - 16), "%s %s" % (l["id"], b), fill=(255, 255, 255))
-        for r in rings:
-            if r["layer"] == l["id"]:
-                px = x + (r["x"] - b[0] + 0.5) * 4 * scale
-                py = y + (b[3] - r["y"] - 0.5) * 4 * scale
-                d.ellipse([px - 5, py - 5, px + 5, py + 5], outline=(255, 255, 0), width=2)
-                d.text((px + 7, py - 6), r["code"] or "x", fill=(255, 255, 0))
-    sheet.save(os.path.join(PREVIEWS, "offsurface_layers_z2.png"))
+    # Prifddinas at z=2 (shipped tiles) cropped to its index bounds, the tree and house portal ringed
+    b = next(l for l in layers if l["id"] == "prifddinas")["bounds"]
+    xs, ys = span(b[0], b[2]), span(b[1], b[3])
+    img = stitch(os.path.join(OUT, "2"), xs, ys, (0, 0, 0))
+    ox, oy = (b[0] - xs[0] * 64) * 4, ((ys[-1] + 1) * 64 - b[3]) * 4
+    img = img.crop((ox, oy, ox + (b[2] - b[0]) * 4, oy + (b[3] - b[1]) * 4))
+    d = ImageDraw.Draw(img)
+    for t in trees:
+        if t["layer"] == "prifddinas":
+            px, py = (t["x"] + 0.5 - b[0]) * 4, (b[3] - t["y"] - 0.5) * 4
+            d.ellipse([px - 16, py - 16, px + 16, py + 16], outline=(255, 255, 0), width=3)
+            d.text((px + 20, py - 6), t["id"], fill=(255, 255, 0))
+    img.save(os.path.join(PREVIEWS, "prifddinas_z2.png"))
     print("Previews in", PREVIEWS)
 
 
@@ -696,7 +746,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("plan")
     b = sub.add_parser("build")
-    b.add_argument("--tighten", action="store_true", help="drop open-sea surface regions far from land and rings")
+    b.add_argument("--tighten", action="store_true", help="drop open-sea surface regions far from land and trees")
     args = ap.parse_args()
     {"plan": cmd_plan, "build": cmd_build}[args.cmd](args)
 
