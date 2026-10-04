@@ -601,7 +601,7 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 
 | File | Responsibility | From FRA |
 |---|---|---|
-| `SpiritTreeAtlasPlugin` | lifecycle, events, mode, selection, view state, menu ownership, stepping aside | adapted from `FairyRingAtlasPlugin` |
+| `SpiritTreeAtlasPlugin` | lifecycle, events, mode, selection, view state, menu ownership, stepping aside | adapted from `SpiritTreeAtlasPlugin` |
 | `SpiritTreeAtlasConfig` | config interface | adapted |
 | `Tree` | one destination (data) | replaces `Ring` |
 | `TreeRepository` | loads `trees.json` + `index.json`; availability, here, last, house placement, surface stand-ins | replaces `RingRepository` |

@@ -1,0 +1,538 @@
+{
+ "_about": "PROVISIONAL: generated from the research dataset to unblock the port; tools/build_trees.py replaces it.",
+ "title": "Spirit Tree Locations",
+ "unavailableColour": "5f5f5f",
+ "global": {
+  "requirements": [
+   "Quest: Tree Gnome Village (every spirit tree; without it no tree will talk or open the menu)"
+  ]
+ },
+ "trees": [
+  {
+   "id": "TREE_GNOME_VILLAGE",
+   "menuLabel": "Tree Gnome Village",
+   "match": "exact",
+   "previousValue": 1,
+   "name": "Tree Gnome Village",
+   "label": "Tree Gnome Village",
+   "area": "Centre of the Gnome Maze, Tree Gnome Village (Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "x": 2544.5,
+   "y": 3169.5,
+   "plane": 0,
+   "arrival": [
+    2542,
+    3170,
+    0
+   ],
+   "lockedHint": "Not available yet",
+   "requirements": [],
+   "poi": [
+    "King Bolren (Tree Gnome Village, The Path of Glouphrie)",
+    "Elkoy, who guides you through the maze",
+    "Tree Gnome Village Dungeon",
+    "Fishing Trawler to the east (Port Khazard)"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "GNOME_STRONGHOLD",
+   "menuLabel": "Gnome Stronghold",
+   "match": "exact",
+   "previousValue": 2,
+   "name": "Gnome Stronghold",
+   "label": "Gnome Stronghold",
+   "area": "Tree Gnome Stronghold, south of the Grand Tree (north-west Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "x": 2461.5,
+   "y": 3446.5,
+   "plane": 0,
+   "arrival": [
+    2461,
+    3444,
+    0
+   ],
+   "lockedHint": "Not available yet",
+   "requirements": [],
+   "poi": [
+    "Grand Tree, with the gnome glider on its top level",
+    "Gnome Stronghold Agility Course",
+    "Stronghold Slayer Cave and Nieve",
+    "Gianne's Restaurant",
+    "Brimstail (rune essence teleport)"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "BATTLEFIELD_OF_KHAZARD",
+   "menuLabel": "Battlefield of Khazard",
+   "match": "exact",
+   "previousValue": 3,
+   "name": "Battlefield of Khazard",
+   "label": "Battlefield of Khazard",
+   "area": "The Battlefield, just south of West Ardougne (Kandarin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "x": 2555.5,
+   "y": 3260.5,
+   "plane": 0,
+   "arrival": [
+    2555,
+    3259,
+    0
+   ],
+   "lockedHint": "Not available yet",
+   "requirements": [],
+   "poi": [
+    "West Ardougne to the north",
+    "Clock Tower to the east",
+    "Ourania Cave (ZMI altar) to the west",
+    "Ardougne Monastery to the south-east (Ardougne cloak teleport)",
+    "Tree Gnome Village to the south"
+   ],
+   "notes": [],
+   "danger": [
+    "Gnome troops and Khazard troopers fight on the battlefield (low level)."
+   ]
+  },
+  {
+   "id": "GRAND_EXCHANGE",
+   "menuLabel": "Grand Exchange",
+   "match": "exact",
+   "previousValue": 4,
+   "name": "Grand Exchange",
+   "label": "Grand Exchange",
+   "area": "North-east corner of the Grand Exchange, Varrock (Misthalin)",
+   "kind": "fixed",
+   "layer": "surface",
+   "x": 3184.5,
+   "y": 3509.5,
+   "plane": 0,
+   "arrival": [
+    3185,
+    3508,
+    0
+   ],
+   "lockedHint": "Not available yet",
+   "requirements": [],
+   "poi": [
+    "Grand Exchange clerks and bank booths",
+    "Tunnel west to Edgeville",
+    "Varrock to the south-east",
+    "Wilderness ditch to the north"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "FELDIP_HILLS",
+   "menuLabel": "Feldip Hills",
+   "match": "exact",
+   "previousValue": 5,
+   "name": "Feldip Hills",
+   "label": "Feldip Hills",
+   "area": "South-west corner of the Feldip Hills, next to the Myths' Guild",
+   "kind": "fixed",
+   "layer": "surface",
+   "x": 2486.5,
+   "y": 2850.5,
+   "plane": 0,
+   "arrival": [
+    2488,
+    2850,
+    0
+   ],
+   "lockedHint": "Not available yet",
+   "requirements": [],
+   "poi": [
+    "Myths' Guild (Dragon Slayer II)",
+    "Wrath Altar (Dragon Slayer II)",
+    "Corsair Cove and its bank (The Corsair Curse)",
+    "Feldip Hills Hunter area"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "PRIFDDINAS",
+   "menuLabel": "Prifddinas",
+   "match": "exact",
+   "previousValue": 6,
+   "name": "Prifddinas",
+   "label": "Prifddinas",
+   "area": "Meilyr district (north-east) of Prifddinas, near the north bank (Tirannwn)",
+   "kind": "quest",
+   "layer": "prifddinas",
+   "x": 3274.5,
+   "y": 6124.5,
+   "plane": 0,
+   "arrival": [
+    3274,
+    6123,
+    0
+   ],
+   "lockedHint": "Needs Song of the Elves",
+   "requirements": [
+    "Quest: Song of the Elves"
+   ],
+   "poi": [
+    "Prifddinas north bank (Hefin district)",
+    "Meilyr district market stalls and shops",
+    "Crwys district: crystal tree patch, sawmill, Branwen",
+    "Tower of Voices at the city centre"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "PORT_SARIM",
+   "menuLabel": "Port Sarim",
+   "match": "exact",
+   "previousValue": 7,
+   "name": "Port Sarim",
+   "label": "Port Sarim",
+   "area": "Spirit tree patch on the east side of Port Sarim (Asgarnia)",
+   "kind": "patch",
+   "layer": "surface",
+   "x": 3060,
+   "y": 3258,
+   "plane": 0,
+   "arrival": [
+    3058,
+    3257,
+    0
+   ],
+   "lockedHint": "Grow a spirit tree here first",
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "poi": [
+    "Ships to Entrana (Law Altar), the Void Knights' Outpost and Great Kourend",
+    "Charter ships",
+    "Port Sarim and Rimmington shops",
+    "Draynor Village farming patches"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "ETCETERIA",
+   "menuLabel": "Etceteria",
+   "match": "exact",
+   "previousValue": 8,
+   "name": "Etceteria",
+   "label": "Etceteria",
+   "area": "South-east Etceteria (Fremennik Isles)",
+   "kind": "patch",
+   "layer": "surface",
+   "x": 2613,
+   "y": 3858,
+   "plane": 0,
+   "arrival": [
+    2613,
+    3855,
+    0
+   ],
+   "lockedHint": "Grow a spirit tree here first",
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "poi": [
+    "Advisor Ghrim (Managing Miscellania)",
+    "Miscellania and Etceteria dungeon entrance behind the castle",
+    "Bush patch in the south-west of the island",
+    "Ship to Rellekka"
+   ],
+   "notes": [],
+   "danger": [
+    "Sea snake hatchlings and young on this side of the Miscellania and Etceteria dungeon."
+   ]
+  },
+  {
+   "id": "BRIMHAVEN",
+   "menuLabel": "Brimhaven",
+   "match": "exact",
+   "previousValue": 9,
+   "name": "Brimhaven",
+   "label": "Brimhaven",
+   "area": "North-east Brimhaven, near the Agility Arena (Karamja)",
+   "kind": "patch",
+   "layer": "surface",
+   "x": 2802,
+   "y": 3203,
+   "plane": 0,
+   "arrival": [
+    2800,
+    3203,
+    0
+   ],
+   "lockedHint": "Grow a spirit tree here first",
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "poi": [
+    "Fruit tree patch",
+    "Brimhaven Agility Arena",
+    "Brimhaven Dungeon",
+    "Charter ship"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "HOSIDIUS",
+   "menuLabel": "Hosidius",
+   "match": "exact",
+   "previousValue": 10,
+   "name": "Hosidius",
+   "label": "Hosidius",
+   "area": "Hosidius, by the saltpetre and just south of the Forthos Dungeon entrance (Great Kourend)",
+   "kind": "patch",
+   "layer": "surface",
+   "x": 1693,
+   "y": 3542,
+   "plane": 0,
+   "arrival": [
+    1693,
+    3540,
+    0
+   ],
+   "lockedHint": "Grow a spirit tree here first",
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count"
+   ],
+   "poi": [
+    "Forthos Dungeon",
+    "Tithe Farm",
+    "Hosidius allotment, flower and herb patches",
+    "Saltpetre and the charcoal furnace",
+    "Sand crabs"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "FARMING_GUILD",
+   "menuLabel": "Farming Guild",
+   "match": "exact",
+   "previousValue": 11,
+   "name": "Farming Guild",
+   "label": "Farming Guild",
+   "area": "Advanced tier of the Farming Guild (Kebos Lowlands)",
+   "kind": "patch",
+   "layer": "surface",
+   "x": 1253,
+   "y": 3750,
+   "plane": 0,
+   "arrival": [
+    1251,
+    3750,
+    0
+   ],
+   "lockedHint": "Grow a spirit tree here first",
+   "requirements": [
+    "Skill: 83 Farming to plant (boostable)",
+    "Item: a spirit sapling planted here, fully grown (about 58h 40m) and health-checked",
+    "Unlock: 1, 2, 3, 4 or any number planted at 83, 88, 93, 96 or 99 Farming (boostable); the house tree does not count",
+    "Skill: 85 Farming every time you travel here (boostable)"
+   ],
+   "poi": [
+    "Farming Guild patches, including Hespori",
+    "Farming contracts (Guildmaster Jane)",
+    "Bank chest and seed vault",
+    "Skills necklace and Farming cape teleport point"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "YOUR_HOUSE",
+   "menuLabel": "Your house",
+   "match": "prefix",
+   "previousValue": 12,
+   "name": "Your house",
+   "label": "Your house",
+   "area": "Superior garden of your player-owned house (an instance); drawn at your house portal",
+   "kind": "house",
+   "layer": "poh",
+   "lockedHint": "Build a spirit tree in your house",
+   "requirements": [
+    "Skill: 75 Construction (boostable, but not with the crystal saw)",
+    "Skill: 83 Farming (boostable)",
+    "Unlock: a superior garden in your house",
+    "Item: a spirit sapling and a watering can"
+   ],
+   "poi": [
+    "Your house portal in the town you chose",
+    "Altar, pool, jewellery box and portal nexus, if built",
+    "A fairy ring too, if the tree is a Spiritual Fairy Tree"
+   ],
+   "notes": [],
+   "danger": []
+  },
+  {
+   "id": "POISON_WASTE",
+   "menuLabel": "Poison Waste",
+   "match": "exact",
+   "previousValue": 13,
+   "name": "Poison Waste",
+   "label": "Poison Waste",
+   "area": "Canyon east of the Poison Waste (Tirannwn), by the Poison Waste Dungeon",
+   "kind": "quest",
+   "layer": "surface",
+   "x": 2339,
+   "y": 3111,
+   "plane": 0,
+   "arrival": [
+    2339,
+    3109,
+    0
+   ],
+   "lockedHint": "Needs The Path of Glouphrie",
+   "requirements": [
+    "Quest: The Path of Glouphrie (part way: heal Incomitatus with the crystal chime)"
+   ],
+   "poi": [
+    "Poison Waste Dungeon entrance just west (warped terrorbirds and tortoises, 56 Slayer, cannon allowed)",
+    "Grapple across the river towards Castle Wars and fairy ring BKP",
+    "Zul-Andra to the south-west (reached another way)"
+   ],
+   "notes": [],
+   "danger": [
+    "Warped terrorbirds and tortoises inside the Poison Waste Dungeon, not at the tree."
+   ]
+  },
+  {
+   "id": "LAGUNA_AURORAE",
+   "menuLabel": "Laguna Aurorae",
+   "match": "exact",
+   "previousValue": 14,
+   "name": "Laguna Aurorae",
+   "label": "Laguna Aurorae",
+   "area": "Laguna Aurorae, an island in the Sunset Ocean south-west of Aldarin",
+   "kind": "quest",
+   "layer": "surface",
+   "x": 1202.5,
+   "y": 2786.5,
+   "plane": 0,
+   "arrival": [
+    1202,
+    2785,
+    0
+   ],
+   "lockedHint": "Needs Pandemonium and a visit",
+   "requirements": [
+    "Quest: Pandemonium",
+    "Skill: 58 Sailing (to moor at the island)",
+    "Unlock: moor at Laguna Aurorae once"
+   ],
+   "poi": [
+    "Kurask Lair next to the tree (70 Slayer)",
+    "Harpoon and big net fishing spot next to the tree",
+    "Lantern harpooning on the south shore",
+    "Island amenities to build: water pump, cooking range, loom",
+    "Locked chest (serrated key: crystal glider's outfit)"
+   ],
+   "notes": [],
+   "danger": [
+    "Aggressive pygmy krakens around the mooring point (at sea).",
+    "Moss giants and leeches on the island."
+   ]
+  }
+ ],
+ "housePortals": [
+  {
+   "value": 1,
+   "town": "Rimmington",
+   "x": 2951.5,
+   "y": 3224,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 2,
+   "town": "Taverley",
+   "x": 2891.5,
+   "y": 3465,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 3,
+   "town": "Pollnivneach",
+   "x": 3340,
+   "y": 3001.5,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 4,
+   "town": "Rellekka",
+   "x": 2670,
+   "y": 3629.5,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 5,
+   "town": "Brimhaven",
+   "x": 2755.5,
+   "y": 3178,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 6,
+   "town": "Yanille",
+   "x": 2544,
+   "y": 3097.5,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 8,
+   "town": "Hosidius",
+   "x": 1740.5,
+   "y": 3517,
+   "plane": 0,
+   "layer": "surface"
+  },
+  {
+   "value": 9,
+   "town": "Prifddinas",
+   "x": 3239,
+   "y": 6077.5,
+   "plane": 0,
+   "layer": "prifddinas"
+  },
+  {
+   "value": 13,
+   "town": "Aldarin",
+   "x": 1422,
+   "y": 2962,
+   "plane": 0,
+   "layer": "surface"
+  }
+ ],
+ "portals": [
+  {
+   "layer": "prifddinas",
+   "x": 2240,
+   "y": 3328,
+   "label": "Prifddinas",
+   "description": "The elven city, on its own map"
+  }
+ ]
+}

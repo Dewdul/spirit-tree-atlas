@@ -32,7 +32,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 application {
-	mainClass = 'com.fairyringatlas.mapgen.MapGen'
+	mainClass = 'com.spirittreeatlas.mapgen.MapGen'
 	applicationDefaultJvmArgs = ['-Xmx6g']
 }
 
@@ -41,7 +41,7 @@ tasks.register('render', JavaExec) {
 	group = 'application'
 	description = 'Renders z=2 region tiles and exports labels/icons from the OSRS cache'
 	classpath = sourceSets.main.runtimeClasspath
-	mainClass = 'com.fairyringatlas.mapgen.MapGen'
+	mainClass = 'com.spirittreeatlas.mapgen.MapGen'
 	maxHeapSize = '6g'
 	def cacheDir = project.findProperty('cache') ?: "${projectDir}/cache/cache"
 	def outDir = project.findProperty('out') ?: "${projectDir}/build/raw"

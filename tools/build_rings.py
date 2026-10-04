@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build src/main/resources/com/fairyringatlas/rings.json (DESIGN.md section 3.1).
+"""Build src/main/resources/com/spirittreeatlas/rings.json (DESIGN.md section 3.1).
 
 Inputs (all under tools/data/):
   fairy_rings.verified.json  research dataset: codes, landing tiles, game flags, log varbits

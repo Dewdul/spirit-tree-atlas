@@ -5,7 +5,7 @@
     ./gradlew -p tools/mapgen render       # step 1 (Java): renders build/raw/2/*.png + labels/icons
     python tools/mapgen/mapgen.py build    # filters, builds z=-1, quantises, writes resources + index.json
 
-`build` writes into src/main/resources/com/fairyringatlas/map/ (wiping the old
+`build` writes into src/main/resources/com/spirittreeatlas/map/ (wiping the old
 tiles first) and prints the budget. Requires Pillow and numpy.
 See README.md next to this file.
 """

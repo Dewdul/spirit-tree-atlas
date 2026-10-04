@@ -1,6 +1,6 @@
 # Ring data
 
-This folder holds the inputs for `src/main/resources/com/fairyringatlas/rings.json`, the
+This folder holds the inputs for `src/main/resources/com/spirittreeatlas/rings.json`, the
 ring list the plugin bundles (DESIGN.md section 3.1). None of it ships in the jar.
 
 ## Files
@@ -73,7 +73,7 @@ The build fails with a message for each of these:
   `net.runelite.api.Quest` and every `name` against its gameval id.
 - **Portals.** Each portal is on an underground layer that has rings, inside the surface
   crop (x 1152-3776, y 2368-4032), with at most one per layer and a source.
-- **Map index.** When `src/main/resources/com/fairyringatlas/map/index.json` exists (written
+- **Map index.** When `src/main/resources/com/spirittreeatlas/map/index.json` exists (written
   by `tools/mapgen`), every ring and portal must also lie inside that file's layer bounds,
   which may be tighter than DESIGN 3.3's.
 

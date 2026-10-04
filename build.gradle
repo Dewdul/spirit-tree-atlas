@@ -14,7 +14,7 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
-def pluginMainClass = 'com.fairyringatlas.FairyRingAtlasPluginTest'
+def pluginMainClass = 'com.spirittreeatlas.SpiritTreeAtlasPluginTest'
 
 dependencies {
 	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
@@ -27,7 +27,7 @@ dependencies {
 	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 }
 
-group = 'com.fairyringatlas'
+group = 'com.spirittreeatlas'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
@@ -45,7 +45,7 @@ tasks.register('run', JavaExec) {
 // Offline render of the map into build/preview/*.png (no game client needed)
 tasks.register('preview', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'com.fairyringatlas.MapPreview'
+	mainClass = 'com.spirittreeatlas.MapPreview'
 	systemProperty 'java.awt.headless', 'true'
 	args layout.buildDirectory.dir('preview').get().asFile.path
 }

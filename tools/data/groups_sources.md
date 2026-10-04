@@ -1,6 +1,6 @@
 # Quick-click group sources
 
-Sources for `src/main/resources/com/fairyringatlas/groups.json`, the built-in
+Sources for `src/main/resources/com/spirittreeatlas/groups.json`, the built-in
 *Slayer* and *Farming* groups. Every code is a dialable code in `rings.json`.
 Each group is in suggested order: most useful first for Slayer, run order for
 Farming. Labels are the rows' names in the panel: purpose first, at most 24

@@ -1,6 +1,6 @@
 # mapgen: map tiles for Fairy Ring Atlas
 
-Generates everything under `src/main/resources/com/fairyringatlas/map/`:
+Generates everything under `src/main/resources/com/spirittreeatlas/map/`:
 the z=2 tiles (4 px per game tile, one 256x256 PNG per 64x64 region), the
 z=-1 overview tiles (0.5 px per game tile, 8x8 regions per tile) and
 `map/index.json` (DESIGN.md section 3.2).
