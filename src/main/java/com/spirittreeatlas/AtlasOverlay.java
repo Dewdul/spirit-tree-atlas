@@ -107,7 +107,7 @@ public class AtlasOverlay extends Overlay
 			{
 				chrome.paintNotice(g, slot, MapLayout.canvas(client), plugin.getNotice());
 			}
-			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null, 0);
 			return null;
 		}
 		if (plugin.getMode() == SpiritTreeAtlasPlugin.Mode.LIST)
@@ -119,7 +119,7 @@ public class AtlasOverlay extends Overlay
 		Rectangle rect = MapLayout.fromClient(client, menu.slotBounds(), config.mapMaxWidth(), config.mapMaxHeight());
 		if (rect == null)
 		{
-			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null, 0);
 			return null;
 		}
 		TreeRepository repo = plugin.getRepo();
@@ -171,7 +171,7 @@ public class AtlasOverlay extends Overlay
 		chrome.paint(g, scene);
 		g.setClip(oldClip);
 		chrome.paintHoles(g, scene);
-		plugin.publish(new ArrayList<>(scene.hits), holes, null, shown ? cell : null);
+		plugin.publish(new ArrayList<>(scene.hits), holes, null, shown ? cell : null, chrome.panelScrollMax);
 		return null;
 	}
 
@@ -202,17 +202,28 @@ public class AtlasOverlay extends Overlay
 		s.dimLocked = config.dimLocked();
 		s.availableColor = config.availableColor();
 		s.selectedColor = config.selectedColor();
+		s.quickSelect = config.quickSelect();
+		s.panelOpen = plugin.isPanelOpen(v.getW());
+		s.panelScroll = plugin.getPanelScroll();
 		net.runelite.api.Point mp = client.getMouseCanvasPosition();
 		boolean mapInput = plugin.isMapInput(mp.getX(), mp.getY());
 		// while a right-click menu is open the card keeps describing the tree it was opened on
 		if (!client.isMenuOpen())
 		{
 			Hit hover = mapInput ? plugin.hitAt(mp.getX(), mp.getY()) : null;
-			s.hovered = hover != null && hover.getKind() == Hit.Kind.MARKER ? hover.getTree() : null;
+			// a marker, or a quick-select row: the card and the marker's hover ring follow both
+			s.hovered = hover != null && (hover.getKind() == Hit.Kind.MARKER || hover.getKind() == Hit.Kind.ROW) ? hover.getTree() : null;
 		}
 		s.mouse = mapInput ? new Point(mp.getX(), mp.getY()) : null;
 		s.hits.clear();
 		s.card = null;
+	}
+
+	/** Client thread: the open quick-select panel's width on a map this wide (its labels set it), for fits. */
+	int panelWidth(int mapWidth)
+	{
+		TreeRepository repo = plugin.getRepo();
+		return chrome.panelWidth(repo.menuOrder(), repo.getHere(), repo.getLast(), mapWidth);
 	}
 
 	/** List mode: the plain menu works as the game made it; only the Map button is ours. */
@@ -221,13 +232,13 @@ public class AtlasOverlay extends Overlay
 		Point a = menu.anchor();
 		if (a == null)
 		{
-			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null);
+			plugin.publish(Collections.emptyList(), Collections.emptyList(), null, null, 0);
 			return;
 		}
 		Rectangle b = chrome.mapButton(a);
 		net.runelite.api.Point mp = client.getMouseCanvasPosition();
 		chrome.paintMapButton(g, b, !client.isMenuOpen() && b.contains(mp.getX(), mp.getY()));
-		plugin.publish(Collections.emptyList(), Collections.emptyList(), b, null);
+		plugin.publish(Collections.emptyList(), Collections.emptyList(), b, null, 0);
 	}
 
 	private Shape clip(Rectangle rect, List<Rectangle> holes)

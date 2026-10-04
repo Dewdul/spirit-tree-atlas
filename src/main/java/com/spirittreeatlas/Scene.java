@@ -39,6 +39,8 @@ public final class Scene
 	public Map<String, String> keys = new HashMap<>();
 	/** Surface stand-ins for the trees on other layers (draw them on the surface view only). */
 	public List<TreeRepository.StandIn> standIns = new ArrayList<>();
+	/** Every tree in the open menu's order: the quick-select panel's rows ({@link TreeRepository#menuOrder()}). */
+	public List<Tree> menuOrder = new ArrayList<>();
 
 	// ------------------------------------------------------------------ state
 
@@ -71,6 +73,10 @@ public final class Scene
 	public Point mouse;
 	/** Frame time in ms, for pulses and halos. */
 	public long now;
+	/** Whether the quick-select panel is open (else only its tab shows). */
+	public boolean panelOpen = true;
+	/** How far (px) the quick-select panel's rows are scrolled. */
+	public int panelScroll;
 
 	// ------------------------------------------------------------------ settings
 
@@ -86,6 +92,8 @@ public final class Scene
 	public boolean keyHints = true;
 	/** Locked trees at half opacity. */
 	public boolean dimLocked;
+	/** The quick-select panel down the map's left edge (open or as its tab); off: neither. */
+	public boolean quickSelect = true;
 	/** The canopy of an available tree. */
 	public Color availableColor = new Color(0x5BD45B);
 	/** The selected tree's ring, halo and label. */
@@ -110,6 +118,11 @@ public final class Scene
 	 * left when its one line needs it; null while the row shows. Labels and the card keep clear of it.
 	 */
 	public Rectangle standInRect;
+	/**
+	 * The quick-select panel, or its closed tab, inside the map's left edge under the top bar; null
+	 * when it is off. Fits, labels and the card keep clear of it.
+	 */
+	public Rectangle panel;
 
 	// ------------------------------------------------------------------ helpers
 
@@ -179,6 +192,7 @@ public final class Scene
 			}
 		}
 		standIns = r.standIns();
+		menuOrder = r.menuOrder();
 		here = r.getHere();
 		last = r.getLast();
 	}

@@ -52,12 +52,24 @@ public class MapPreview
 		String here;
 		TreeMenu.Style style = TreeMenu.Style.MODERN;
 		boolean fullDetails;
+		/** The quick-select panel open (as on a first open: on maps 700 px and wider), else its tab. */
+		boolean panelOpen;
+		/** A tree whose quick-select row the pointer is over, or null. */
+		String hoverRow;
 
 		Shot(String name, MapView view)
 		{
 			this.name = name;
 			this.view = view;
+			panelOpen = view.getW() >= SpiritTreeAtlasPlugin.NARROW_MAP;
 		}
+	}
+
+	/** The plugin's chrome insets for a map: the quick-select panel open on wide maps, its tab on narrow ones. */
+	private static java.awt.Insets insets(TreeRepository repo, AtlasPainter painter, Rectangle map, boolean open)
+	{
+		int panel = open ? new ChromePainter(painter.ink()).panelWidth(repo.menuOrder(), repo.getHere(), repo.getLast(), map.width) : ChromePainter.TAB_W;
+		return SpiritTreeAtlasPlugin.chromeInsets(panel);
 	}
 
 	public static void main(String[] args) throws IOException
@@ -73,7 +85,8 @@ public class MapPreview
 		Layer surface = repo.surface();
 		Rectangle big = new Rectangle(30, 30, 1100, 720);
 		Rectangle fixed = new Rectangle(30, 30, 512, 334);
-		java.awt.Insets in = SpiritTreeAtlasPlugin.chromeInsets();
+		java.awt.Insets in = insets(repo, painter, big, true);
+		java.awt.Insets fixedIn = insets(repo, painter, fixed, false);
 
 		Shot fit = new Shot("1-fit", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, big), repo.surfaceMarkers(), in));
 		fit.selected = "GRAND_EXCHANGE";
@@ -96,11 +109,11 @@ public class MapPreview
 		Shot city = new Shot("4-prifddinas", SpiritTreeAtlasPlugin.fitLayer(repo.layer(Layer.PRIFDDINAS), big, in));
 		render(repo, painter, out, city);
 
-		Shot modern = new Shot("5-fixed-modern", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+		Shot modern = new Shot("5-fixed-modern", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		modern.selected = "GRAND_EXCHANGE";
 		render(repo, painter, out, modern);
 
-		Shot classic = new Shot("6-fixed-classic", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+		Shot classic = new Shot("6-fixed-classic", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		classic.selected = "POISON_WASTE";
 		classic.style = TreeMenu.Style.CLASSIC;
 		render(repo, painter, out, classic);
@@ -116,7 +129,8 @@ public class MapPreview
 		// "Use free space" on a 2000x1082 resizable canvas: all of the HUD area but its 6 px inset;
 		// the Farming Guild is not in this menu's list
 		Rectangle free = new Rectangle(30, 30, 1738, 905);
-		Shot space = new Shot("9-free-space", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, free), repo.surfaceMarkers(), in));
+		Shot space = new Shot("9-free-space", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, free), repo.surfaceMarkers(),
+			insets(repo, painter, free, true)));
 		space.selected = ABSENT;
 		space.hovered = "LAGUNA_AURORAE";
 		render(repo, painter, out, space);
@@ -124,19 +138,29 @@ public class MapPreview
 		listAndNotice(painter, out);
 
 		Shot classicTravel = new Shot("11-fixed-classic-travel",
-			SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+			SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		classicTravel.selected = "HOSIDIUS";
 		classicTravel.style = TreeMenu.Style.CLASSIC;
 		render(repo, painter, out, classicTravel);
 
 		Tree khazard = repo.tree("BATTLEFIELD_OF_KHAZARD");
-		Shot full = new Shot("12-full-card", MapView.of(surface, fixed).focusOn(khazard.getX() + 0.5, khazard.getY() + 0.5, 2, in));
+		Shot full = new Shot("12-full-card", MapView.of(surface, fixed).focusOn(khazard.getX() + 0.5, khazard.getY() + 0.5, 2, fixedIn));
 		full.selected = "BATTLEFIELD_OF_KHAZARD";
 		full.fullDetails = true;
 		render(repo, painter, out, full);
 
 		markerStates(repo, painter, out);
 		icon(repo, out);
+
+		// fixed mode with the quick-select panel opened, the pointer over Hosidius's row: its card
+		// and its marker's hover ring; Grand Exchange selected (the last trip), standing at the Gnome Stronghold
+		Shot quick = new Shot("14-fixed-quick-select", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(),
+			insets(repo, painter, fixed, true)));
+		quick.panelOpen = true;
+		quick.selected = "GRAND_EXCHANGE";
+		quick.here = "GNOME_STRONGHOLD";
+		quick.hoverRow = "HOSIDIUS";
+		render(repo, painter, out, quick);
 	}
 
 	/**
@@ -187,6 +211,7 @@ public class MapPreview
 
 		Scene s = scene(repo, v, shot.selected, shot.hovered);
 		s.fullDetails = shot.fullDetails;
+		s.panelOpen = shot.panelOpen;
 		if (shot.here != null)
 		{
 			s.here = shot.here;
@@ -222,6 +247,15 @@ public class MapPreview
 		painter.paintMap(scratch, s);
 		chrome.paint(scratch, s);
 		scratch.dispose();
+		for (Hit h : s.hits)
+		{
+			// the pointer over a quick-select row, as the overlay sees it: the row lit, the tree's card and hover ring
+			if (h.getKind() == Hit.Kind.ROW && h.getTree().getId().equals(shot.hoverRow))
+			{
+				s.mouse = new Point((int) h.getArea().getCenterX(), (int) h.getArea().getCenterY());
+				s.hovered = h.getTree();
+			}
+		}
 		s.hits.clear();
 		chrome.layout(s);
 		chrome.paintShadow(g2, s);

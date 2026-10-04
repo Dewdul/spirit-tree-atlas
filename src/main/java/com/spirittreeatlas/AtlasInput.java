@@ -15,11 +15,13 @@ import net.runelite.client.input.MouseWheelListener;
 
 /**
  * Mouse input over the map, on the AWT thread (DESIGN 4.8). It touches only the plugin's volatile
- * and synchronised view state. Wheel zooms; a left press on empty map pans; a left press on a
+ * and synchronised view state. Wheel zooms, or scrolls the quick-select panel while the pointer is
+ * over it and its rows overflow; a left press on empty map pans; a left press on a
  * marker or portal is held until release, so a click selects it but a drag starting on it pans
- * (both use {@link #CLICK_SLOP}); a left press on a button is let through so the game runs our
- * RUNELITE menu entry (swallowed instead when the game's menu was still built for something
- * else, so no stale game entry runs); right presses always go through to open the menu we built.
+ * (both use {@link #CLICK_SLOP}); a left press on a button or a quick-select row is let through so
+ * the game runs our RUNELITE menu entry (swallowed instead when the game's menu was still built
+ * for something else, so no stale game entry runs); a press on the panel's body is absorbed;
+ * right presses always go through to open the menu we built.
  * No press is consumed inside the holes, while a menu is open or outside the map; the mouse
  * wheel is kept from the game anywhere on the map (the classic list would scroll). In List mode
  * only a left press on the Map button is checked, the same way as a button press on the map.
@@ -53,7 +55,15 @@ public class AtlasInput extends MouseAdapter implements MouseWheelListener
 	{
 		if (plugin.isMapInput(e.getX(), e.getY()))
 		{
-			plugin.zoomAt(e.getX(), e.getY(), Math.pow(WHEEL_STEP, -e.getPreciseWheelRotation()));
+			Hit hit = plugin.hitAt(e.getX(), e.getY());
+			if (hit != null && (hit.getKind() == Hit.Kind.PANEL || hit.getKind() == Hit.Kind.ROW) && plugin.canScrollPanel())
+			{
+				plugin.scrollPanel((int) Math.round(e.getPreciseWheelRotation() * SpiritTreeAtlasPlugin.PANEL_WHEEL_STEP));
+			}
+			else
+			{
+				plugin.zoomAt(e.getX(), e.getY(), Math.pow(WHEEL_STEP, -e.getPreciseWheelRotation()));
+			}
 			e.consume();
 		}
 		else if (plugin.isOverMap(e.getX(), e.getY()))
@@ -105,7 +115,8 @@ public class AtlasInput extends MouseAdapter implements MouseWheelListener
 		}
 		if (hit != null && hit.isActionable() && plugin.isMenuFor(hit))
 		{
-			// the game runs the top menu entry, which is ours for this very hit
+			// the game runs the top menu entry, which is ours for this very hit (a button's, or a
+			// quick-select row's Select)
 			return e;
 		}
 		if (hit == null)

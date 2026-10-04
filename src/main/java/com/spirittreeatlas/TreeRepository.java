@@ -15,6 +15,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -318,6 +319,18 @@ public class TreeRepository
 	public TreeMenu.Row row(String treeId)
 	{
 		return treeId == null ? null : rows.get(treeId);
+	}
+
+	/**
+	 * Every tree in the open menu's order (the quick-select panel's rows): the listed trees by
+	 * their row, then the trees the menu does not list, in data order (the menu's order today).
+	 */
+	public List<Tree> menuOrder()
+	{
+		List<Tree> out = new ArrayList<>(trees);
+		// a stable sort: unlisted trees keep their data order after the listed ones
+		out.sort(Comparator.comparingInt(t -> rows.containsKey(t.getId()) ? rows.get(t.getId()).getIndex() : Integer.MAX_VALUE));
+		return out;
 	}
 
 	public Tree.Status status(String treeId)

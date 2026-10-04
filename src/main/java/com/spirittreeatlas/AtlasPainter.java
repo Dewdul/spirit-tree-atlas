@@ -264,7 +264,7 @@ public class AtlasPainter
 	{
 		MapView v = s.view;
 		long key = Objects.hash(v, s.selected, s.hovered, s.treeLabels, s.placeLabels, s.keyHints, s.topBar, s.card, s.backButton,
-			s.holes, s.rowCell, s.captionRect, s.standInRect, s.states, s.keys, s.here, s.last, s.standIns.size());
+			s.holes, s.rowCell, s.captionRect, s.standInRect, s.states, s.keys, s.here, s.last, s.standIns.size(), s.panel);
 		if (key == layoutKey)
 		{
 			return;
@@ -278,6 +278,10 @@ public class AtlasPainter
 		placer.addObstacle(s.topBar);
 		placer.addObstacle(s.card);
 		placer.addObstacle(s.backButton);
+		if (s.panel != null)
+		{
+			placer.addObstacle(grow(s.panel, 2));
+		}
 		for (Rectangle h : s.blockers())
 		{
 			placer.addObstacle(grow(h, 4));
@@ -321,7 +325,8 @@ public class AtlasPainter
 			{
 				int px = (int) m.x;
 				int py = (int) m.y;
-				if (covered(s.topBar, px, py) || covered(s.card, px, py) || covered(s.backButton, px, py) || inHole(s, px, py))
+				if (covered(s.topBar, px, py) || covered(s.card, px, py) || covered(s.backButton, px, py) || covered(s.panel, px, py)
+					|| inHole(s, px, py))
 				{
 					// the marker is under the chrome; a label beside it would point at nothing
 					continue;
