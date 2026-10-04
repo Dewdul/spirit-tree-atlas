@@ -313,6 +313,48 @@ public class PainterTest
 		return s;
 	}
 
+	/**
+	 * DESIGN 4.9: releasing the caches drops every label and marker sprite the painter holds, and
+	 * the next frame draws exactly what it drew before.
+	 */
+	@Test
+	public void releaseDropsThePaintersSprites() throws Exception
+	{
+		TreeRepository r = repo();
+		AtlasPainter painter = new AtlasPainter();
+		Scene s = new Scene();
+		s.fromRepository(r);
+		s.view = surface(r);
+		s.selected = "GRAND_EXCHANGE";
+		s.now = 1000;
+		BufferedImage before = new BufferedImage(960, 660, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = before.createGraphics();
+		painter.paintMap(g, s);
+		g.dispose();
+		assertFalse(retained(painter, "treeLabels").isEmpty());
+		assertFalse(retained(painter, "markerSprites").isEmpty());
+
+		painter.release();
+		for (String field : new String[]{"treeLabels", "placeLabels", "markerSprites"})
+		{
+			assertTrue(field, retained(painter, field).isEmpty());
+		}
+		BufferedImage after = new BufferedImage(960, 660, BufferedImage.TYPE_INT_ARGB);
+		g = after.createGraphics();
+		painter.paintMap(g, s);
+		g.dispose();
+		assertTrue(Arrays.equals(before.getRGB(0, 0, 960, 660, null, 0, 960), after.getRGB(0, 0, 960, 660, null, 0, 960)));
+	}
+
+	/** A private list or map of the painter's, as a collection of what it holds. */
+	private static java.util.Collection<?> retained(AtlasPainter painter, String field) throws Exception
+	{
+		java.lang.reflect.Field f = AtlasPainter.class.getDeclaredField(field);
+		f.setAccessible(true);
+		Object v = f.get(painter);
+		return v instanceof java.util.Map ? ((java.util.Map<?, ?>) v).values() : (java.util.Collection<?>) v;
+	}
+
 	/** DESIGN 4.7: every marker state draws differently, at the base size and past 4 ppt. */
 	@Test
 	public void markerStatesAreDistinct()

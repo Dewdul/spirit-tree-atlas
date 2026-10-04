@@ -88,6 +88,7 @@ public class AtlasOverlay extends Overlay
 		cacheGeneration = -1;
 		sceneState = Integer.MIN_VALUE;
 		chrome.release();
+		painter.release();
 		painter.ink().clear();
 	}
 
