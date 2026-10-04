@@ -9,6 +9,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Draws the tiles of a view into an opaque image the size of the view's rectangle. Picks the level
@@ -40,14 +42,13 @@ public final class MapRenderer
 			double span = TileStore.span(z);
 			double left = v.left();
 			double top = v.top();
-			double right = left + v.getW() / ppt;
-			double bottom = top - v.getH() / ppt;
 			// draw only inside the layer's bounds: other layers share the world coordinates (and the
 			// tiles) beyond them, and outside is the layer's background
-			int tx0 = (int) Math.floor(Math.max(left, v.getBx0()) / span);
-			int tx1 = (int) Math.floor((Math.min(right, v.getBx1()) - 1e-9) / span);
-			int ty0 = (int) Math.floor(Math.max(bottom, v.getBy0()) / span);
-			int ty1 = (int) Math.floor((Math.min(top, v.getBy1()) - 1e-9) / span);
+			int[] r = range(v, span);
+			int tx0 = r[0];
+			int tx1 = r[1];
+			int ty0 = r[2];
+			int ty1 = r[3];
 			int cx0 = (int) Math.round((v.getBx0() - left) * ppt);
 			int cx1 = (int) Math.round((v.getBx1() - left) * ppt);
 			int cy0 = (int) Math.round((top - v.getBy1()) * ppt);
@@ -56,6 +57,7 @@ public final class MapRenderer
 			boolean up = ppt / Math.pow(2, z) > 1.0001;
 			Object fine = up ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR : RenderingHints.VALUE_INTERPOLATION_BILINEAR;
 			boolean complete = true;
+			List<int[]> missing = new ArrayList<>();
 
 			for (int ty = ty1; ty >= ty0; ty--)
 			{
@@ -73,13 +75,8 @@ public final class MapRenderer
 						continue;
 					}
 					complete = false;
-					// queue a quick coarse tile, then cover with the best cached ancestor
-					int cz = store.coarsestBundled();
-					if (cz < z)
-					{
-						int f = 1 << (z - cz);
-						store.request(cz, Math.floorDiv(tx, f), Math.floorDiv(ty, f));
-					}
+					missing.add(new int[]{tx, ty});
+					// cover with the best cached ancestor (a quick coarse one is queued below)
 					g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 					for (int pz = z - 1; pz >= TileStore.MIN_LEVEL; pz--)
 					{
@@ -120,12 +117,70 @@ public final class MapRenderer
 					}
 				}
 			}
+			requestCoarse(store, z, missing);
 			return complete;
 		}
 		finally
 		{
 			g.dispose();
 		}
+	}
+
+	/**
+	 * Queues the tiles of a view that are not cached yet, without drawing: the view a menu about to
+	 * open will show, so its tiles load while the player walks to the tree.
+	 */
+	public static void prefetch(MapView v, TileStore store)
+	{
+		store.beginFrame();
+		int z = store.levelFor(v.getPpt());
+		int[] r = range(v, TileStore.span(z));
+		List<int[]> missing = new ArrayList<>();
+		for (int ty = r[3]; ty >= r[2]; ty--)
+		{
+			for (int tx = r[0]; tx <= r[1]; tx++)
+			{
+				if (store.request(z, tx, ty) == null)
+				{
+					missing.add(new int[]{tx, ty});
+				}
+			}
+		}
+		requestCoarse(store, z, missing);
+	}
+
+	/**
+	 * Queues a quick coarse tile (the coarsest bundled level: one decode) over each tile of level
+	 * z still missing. Queued after the view's own tiles, they are the newest and so come first:
+	 * the whole view is covered before the slow tiles come in.
+	 */
+	private static void requestCoarse(TileStore store, int z, List<int[]> missing)
+	{
+		int cz = store.coarsestBundled();
+		if (cz >= z)
+		{
+			return;
+		}
+		int f = 1 << (z - cz);
+		for (int[] t : missing)
+		{
+			store.request(cz, Math.floorDiv(t[0], f), Math.floorDiv(t[1], f));
+		}
+	}
+
+	/** The view's tiles at a level of this span, clipped to the layer: {tx0, tx1, ty0, ty1}. */
+	static int[] range(MapView v, double span)
+	{
+		double left = v.left();
+		double top = v.top();
+		double right = left + v.getW() / v.getPpt();
+		double bottom = top - v.getH() / v.getPpt();
+		return new int[]{
+			(int) Math.floor(Math.max(left, v.getBx0()) / span),
+			(int) Math.floor((Math.min(right, v.getBx1()) - 1e-9) / span),
+			(int) Math.floor(Math.max(bottom, v.getBy0()) / span),
+			(int) Math.floor((Math.min(top, v.getBy1()) - 1e-9) / span),
+		};
 	}
 
 	private static void draw(Graphics2D g, BufferedImage img, int x0, int y0, int x1, int y1, int sx, int sy, int size)

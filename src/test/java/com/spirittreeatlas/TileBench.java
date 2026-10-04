@@ -72,6 +72,12 @@ public class TileBench
 				{
 					TileStore store = new TileStore(repo.getIndex(), repo.getLayers(), BASE, ex);
 					MapView v = view(repo, r);
+					if (prewarmMs >= 0)
+					{
+						// the player clicked Travel this long before the menu opened
+						MapRenderer.prefetch(v, store);
+						sleepMs(prewarmMs);
+					}
 					print(round, r, "cold", open(repo, store, v));
 					print(round, r, "warm", open(repo, store, v));
 				}
@@ -167,21 +173,12 @@ public class TileBench
 	 */
 	static int tilesInView(MapView v, TileStore store, Boolean covered)
 	{
-		double ppt = v.getPpt();
-		int z = store.levelFor(ppt);
-		double span = TileStore.span(z);
-		double left = v.left();
-		double top = v.top();
-		double right = left + v.getW() / ppt;
-		double bottom = top - v.getH() / ppt;
-		int tx0 = (int) Math.floor(Math.max(left, v.getBx0()) / span);
-		int tx1 = (int) Math.floor((Math.min(right, v.getBx1()) - 1e-9) / span);
-		int ty0 = (int) Math.floor(Math.max(bottom, v.getBy0()) / span);
-		int ty1 = (int) Math.floor((Math.min(top, v.getBy1()) - 1e-9) / span);
+		int z = store.levelFor(v.getPpt());
+		int[] r = MapRenderer.range(v, TileStore.span(z));
 		int n = 0;
-		for (int ty = ty0; ty <= ty1; ty++)
+		for (int ty = r[2]; ty <= r[3]; ty++)
 		{
-			for (int tx = tx0; tx <= tx1; tx++)
+			for (int tx = r[0]; tx <= r[1]; tx++)
 			{
 				if (covered == null)
 				{

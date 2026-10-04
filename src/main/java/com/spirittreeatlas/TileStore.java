@@ -8,10 +8,13 @@ package com.spirittreeatlas;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -19,16 +22,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,6 +64,7 @@ public class TileStore
 	 * player has left.
 	 */
 	private static final int STALE_FRAMES = 1;
+	static final int MAX_WORKERS = 3;
 
 	private final String base;
 	private final Executor executor;
@@ -69,7 +77,12 @@ public class TileStore
 	/** The rebuild (frame) that last drew each cached tile; guarded by lru. */
 	private final Map<Long, Long> used = new HashMap<>();
 	private long bytes;
+	/** Each queued tile and the rebuild (frame) that last asked for it. */
 	private final Map<Long, Long> pending = new ConcurrentHashMap<>();
+	/** The queued tiles, newest first; each was handed one run, which takes the newest. */
+	private final Deque<Long> queue = new ConcurrentLinkedDeque<>();
+	/** Tiles being loaded or derived right now: anyone else who needs one waits for it. */
+	private final Map<Long, CompletableFuture<BufferedImage>> loading = new ConcurrentHashMap<>();
 	private final AtomicInteger generation = new AtomicInteger();
 	private final AtomicLong frame = new AtomicLong();
 	private volatile boolean closed;
@@ -79,25 +92,22 @@ public class TileStore
 	final AtomicInteger derived = new AtomicInteger();
 
 	/**
-	 * One worker, newest request first: the tiles of the current view are decoded before the
-	 * leftovers of views the player has already zoomed or panned past.
+	 * The decoding workers: a few daemon threads just below normal priority (one fewer than the
+	 * cores, at most {@link #MAX_WORKERS}), which end after a while idle. Which tile each one takes
+	 * is the store's choice (the newest request), not the executor's.
 	 */
 	public static ExecutorService newExecutor()
 	{
-		return new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<Runnable>()
-		{
-			@Override
-			public boolean offer(Runnable r)
-			{
-				return offerFirst(r);
-			}
-		}, r ->
+		int n = Math.min(MAX_WORKERS, Math.max(1, Runtime.getRuntime().availableProcessors() - 1));
+		ThreadPoolExecutor ex = new ThreadPoolExecutor(n, n, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r ->
 		{
 			Thread t = new Thread(r, "spirit-tree-atlas-tiles");
 			t.setDaemon(true);
-			t.setPriority(Thread.MIN_PRIORITY);
+			t.setPriority(Thread.NORM_PRIORITY - 1);
 			return t;
 		});
+		ex.allowCoreThreadTimeOut(true);
+		return ex;
 	}
 
 	/**
@@ -201,12 +211,14 @@ public class TileStore
 		}
 		if (pending.put(k, frame.get()) == null)
 		{
+			queue.offerFirst(k);
 			try
 			{
-				executor.execute(() -> run(k, z, tx, ty));
+				executor.execute(this::runNewest);
 			}
 			catch (RejectedExecutionException e)
 			{
+				queue.removeFirstOccurrence(k);
 				pending.remove(k);
 			}
 		}
@@ -227,6 +239,35 @@ public class TileStore
 			lru.clear();
 			used.clear();
 			bytes = 0;
+		}
+	}
+
+	/** Drops the decoded tiles of the levels finer than z, keeping the overview at and below it. */
+	public void trimFinerThan(int z)
+	{
+		synchronized (lru)
+		{
+			Iterator<Map.Entry<Long, BufferedImage>> it = lru.entrySet().iterator();
+			while (it.hasNext())
+			{
+				Map.Entry<Long, BufferedImage> e = it.next();
+				if (level(e.getKey()) > z)
+				{
+					bytes -= weight(e.getValue());
+					used.remove(e.getKey());
+					it.remove();
+				}
+			}
+		}
+	}
+
+	/** One worker run: the newest queued tile, so the current view comes before older views. */
+	private void runNewest()
+	{
+		Long k = queue.pollFirst();
+		if (k != null)
+		{
+			run(k, level(k), (int) (k >> 24) << 8 >> 8, (int) (long) k << 8 >> 8);
 		}
 	}
 
@@ -267,7 +308,9 @@ public class TileStore
 
 	/**
 	 * Loads or derives a tile on the calling (worker) thread. Decoded source tiles read only to
-	 * derive a coarser level are not kept, so deriving cannot evict the tiles being derived.
+	 * derive a coarser level are not kept, so deriving cannot evict the tiles being derived. A tile
+	 * another worker is already loading is waited for, never loaded twice at once; the wait always
+	 * points to a finer level or another tile, so it cannot come back round.
 	 */
 	BufferedImage load(int z, int tx, int ty, boolean keep)
 	{
@@ -276,6 +319,42 @@ public class TileStore
 		{
 			return img;
 		}
+		long k = key(z, tx, ty);
+		CompletableFuture<BufferedImage> mine = new CompletableFuture<>();
+		CompletableFuture<BufferedImage> other = loading.putIfAbsent(k, mine);
+		if (other != null)
+		{
+			img = other.join();
+			if (keep)
+			{
+				put(k, img);
+			}
+			return img;
+		}
+		try
+		{
+			img = get(z, tx, ty);
+			if (img == null)
+			{
+				img = loadNow(z, tx, ty, keep);
+			}
+			mine.complete(img);
+			return img;
+		}
+		catch (RuntimeException | Error e)
+		{
+			mine.completeExceptionally(e);
+			throw e;
+		}
+		finally
+		{
+			loading.remove(k, mine);
+		}
+	}
+
+	private BufferedImage loadNow(int z, int tx, int ty, boolean keep)
+	{
+		BufferedImage img;
 		Set<String> keys = shipped.get(z);
 		if (keys != null)
 		{
@@ -286,10 +365,6 @@ public class TileStore
 				Integer c = solid.get(z).get(name);
 				img = c != null ? solidTile(c) : background(z, tx, ty);
 			}
-			if (!keep && img.getWidth() > 1)
-			{
-				return img;
-			}
 		}
 		else if (z < maxLevel)
 		{
@@ -299,7 +374,13 @@ public class TileStore
 		{
 			img = background(z, tx, ty);
 		}
-		put(key(z, tx, ty), img);
+		// a source read only to derive a coarser tile is not kept (a solid one costs nothing): a
+		// z=0 overview would otherwise fill the cache with four times its size of z=1 tiles that
+		// are never drawn
+		if (keep || img.getWidth() == 1)
+		{
+			put(key(z, tx, ty), img);
+		}
 		return img;
 	}
 
@@ -321,8 +402,8 @@ public class TileStore
 		BufferedImage bg = background(z, tx, ty);
 		int fallback = bg == NONE ? 0 : bg.getRGB(0, 0);
 		int half = TILE / 2;
-		int[] out = new int[TILE * TILE];
-		int[] src = new int[TILE * TILE];
+		BufferedImage img = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_RGB);
+		int[] out = pixels(img);
 		for (int i = 0; i < 4; i++)
 		{
 			// child (2tx+dx, 2ty+dy): dx=1 is the east half; dy=1 is north, which is the top half
@@ -331,14 +412,14 @@ public class TileStore
 			BufferedImage kid = kids[i];
 			if (kid.getWidth() == 1)
 			{
-				int c = kid == NONE ? fallback : kid.getRGB(0, 0);
+				int c = (kid == NONE ? fallback : kid.getRGB(0, 0)) & 0xFFFFFF;
 				for (int y = 0; y < half; y++)
 				{
-					java.util.Arrays.fill(out, (oy + y) * TILE + ox, (oy + y) * TILE + ox + half, c);
+					Arrays.fill(out, (oy + y) * TILE + ox, (oy + y) * TILE + ox + half, c);
 				}
 				continue;
 			}
-			kid.getRGB(0, 0, TILE, TILE, src, 0, TILE);
+			int[] src = pixels(kid);
 			for (int y = 0; y < half; y++)
 			{
 				int r0 = y * 2 * TILE;
@@ -356,12 +437,29 @@ public class TileStore
 				}
 			}
 		}
-		BufferedImage img = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_RGB);
-		img.setRGB(0, 0, TILE, TILE, out, 0, TILE);
 		return img;
 	}
 
-	private BufferedImage decode(int z, String name)
+	/**
+	 * The RGB pixels of a 256x256 tile, row by row: the image's own array when it is a plain
+	 * INT_RGB one (as every decoded and derived tile is), else a copy.
+	 */
+	private static int[] pixels(BufferedImage img)
+	{
+		if (img.getType() == BufferedImage.TYPE_INT_RGB && img.getRaster().getDataBuffer() instanceof DataBufferInt
+			&& img.getRaster().getSampleModelTranslateX() == 0 && img.getRaster().getSampleModelTranslateY() == 0)
+		{
+			int[] data = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
+			if (data.length == TILE * TILE)
+			{
+				return data;
+			}
+		}
+		return img.getRGB(0, 0, TILE, TILE, null, 0, TILE);
+	}
+
+	/** Decodes one bundled tile (overridden by tests to watch the decoding). */
+	BufferedImage decode(int z, String name)
 	{
 		decodes.incrementAndGet();
 		String path = base + "map/" + z + "/" + name + ".png";
@@ -371,11 +469,28 @@ public class TileStore
 			{
 				return null;
 			}
-			// decode in memory: ImageIO's default stream cache writes a temp file per image
-			BufferedImage raw;
+			// only the reader lookup shares ImageIO's registry (under the lock the client uses for
+			// it); each worker decodes with its own reader, in memory: ImageIO's default stream
+			// cache writes a temp file per image
+			ImageReader reader;
 			synchronized (ImageIO.class)
 			{
-				raw = ImageIO.read(new MemoryCacheImageInputStream(in));
+				Iterator<ImageReader> it = ImageIO.getImageReadersByFormatName("png");
+				reader = it.hasNext() ? it.next() : null;
+			}
+			if (reader == null)
+			{
+				return null;
+			}
+			BufferedImage raw;
+			try (ImageInputStream iis = new MemoryCacheImageInputStream(in))
+			{
+				reader.setInput(iis, true, true);
+				raw = reader.read(0);
+			}
+			finally
+			{
+				reader.dispose();
 			}
 			if (raw == null)
 			{
@@ -459,13 +574,52 @@ public class TileStore
 		return ((long) (z + 16) << 48) | ((long) (tx & 0xFFFFFF) << 24) | (ty & 0xFFFFFF);
 	}
 
-	/** Test hook: the bytes the decoded tiles take. */
+	static int level(long key)
+	{
+		return (int) (key >>> 48) - 16;
+	}
+
+	/** Test hook: the bytes the decoded tiles take, as kept up to date. */
 	long cachedBytes()
 	{
 		synchronized (lru)
 		{
 			return bytes;
 		}
+	}
+
+	/** Test hook: whether the byte count matches the tiles, and every drawn mark has its tile. */
+	boolean consistent()
+	{
+		synchronized (lru)
+		{
+			long n = 0;
+			for (BufferedImage img : lru.values())
+			{
+				n += weight(img);
+			}
+			return n == bytes && lru.keySet().containsAll(used.keySet());
+		}
+	}
+
+	/** Test hook: cached tiles that are whole images (not 1x1 solid ones). */
+	int fullTiles()
+	{
+		synchronized (lru)
+		{
+			int n = 0;
+			for (BufferedImage img : lru.values())
+			{
+				n += img.getWidth() > 1 ? 1 : 0;
+			}
+			return n;
+		}
+	}
+
+	/** Test hook: nothing queued, asked for or being loaded. */
+	boolean idle()
+	{
+		return pending.isEmpty() && queue.isEmpty() && loading.isEmpty();
 	}
 
 	/** The bundled level used for a quick coarse fallback. */
