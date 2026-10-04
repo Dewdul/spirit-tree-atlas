@@ -63,7 +63,7 @@ public final class Scene
 	public boolean rowShown;
 	/** Why the covered cell cannot travel ({@link #standInText}), under the tree's name; null while the row shows. */
 	public String standIn;
-	/** The caption over the cell's left end. */
+	/** The caption above the cell (its left end, unless that hides a marker). */
 	public String caption = "Travel";
 	/** A one-line notice (stepping aside for another plugin, DESIGN 4.10), or null. */
 	public String notice;

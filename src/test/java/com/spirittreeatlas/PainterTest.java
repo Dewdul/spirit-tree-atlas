@@ -235,7 +235,8 @@ public class PainterTest
 	 * DESIGN 4.6, deviation 19: in fixed mode (a 512x334 map) the fitted overview has a marker near
 	 * every corner, so the card slides along an edge rather than cover one. For the real data, both
 	 * menu styles, each house town and each tree selected in turn (and none), the card covers no
-	 * marker centre, Laguna Aurorae's in the bottom-left corner included.
+	 * marker centre, Laguna Aurorae's in the bottom-left corner included, and neither does the
+	 * "Travel" caption.
 	 */
 	@Test
 	public void theFixedModeCardCoversNoMarker()
@@ -272,9 +273,15 @@ public class PainterTest
 						assertNotNull(at, s.card);
 						assertFalse(at, s.card.intersects(s.closeRect));
 						assertFalse(at, s.card.intersects(s.rowCell));
+						// the "Travel" caption stays above the cell, left of the close button, and hides no
+						// marker either (Feldip Hills sits over the 200 px cell's left end)
+						Rectangle cap = s.captionRect;
+						assertEquals(at, s.rowCell.y - 6, cap.y + cap.height);
+						assertTrue(at, cap.x >= s.rowCell.x - 1 && cap.x + cap.width < s.closeRect.x);
 						for (AtlasPainter.Mark m : AtlasPainter.marks(s))
 						{
 							assertFalse(at + " covers " + m.tree.getId() + " with " + s.card, s.card.contains(m.x, m.y));
+							assertFalse(at + " caption covers " + m.tree.getId(), AtlasPainter.grow(cap, 8).contains(m.x, m.y));
 						}
 					}
 				}

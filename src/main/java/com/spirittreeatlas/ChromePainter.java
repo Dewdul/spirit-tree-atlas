@@ -88,8 +88,7 @@ public class ChromePainter
 		s.captionRect = null;
 		if (s.rowCell != null && s.caption != null)
 		{
-			int h = ink.height(ink.small);
-			s.captionRect = new Rectangle(s.rowCell.x - 1, s.rowCell.y - h - 6, ink.width(ink.small, s.caption) + 2, h);
+			s.captionRect = captionRect(s);
 		}
 		s.standInRect = null;
 		if (s.rowCell != null && !s.rowShown)
@@ -101,6 +100,38 @@ public class ChromePainter
 			int grow = Math.max(0, Math.min(STAND_IN_GROW, wide + 6 - c.width));
 			s.standInRect = new Rectangle(c.x - grow, c.y, c.width + grow, c.height);
 		}
+	}
+
+	/**
+	 * The "Travel" caption's box, just above the cell: at its left end, or slid right along the
+	 * cell's top (short of the close button) to the first place clear of every marker, so it never
+	 * hides one (the fixed-mode overview has Feldip Hills over the 200 px cell's left end); at the
+	 * left end when no place is clear.
+	 */
+	private Rectangle captionRect(Scene s)
+	{
+		Rectangle c = s.rowCell;
+		int w = ink.width(ink.small, s.caption) + 2;
+		int h = ink.height(ink.small);
+		int y = c.y - h - 6;
+		int right = c.x + c.width;
+		for (Rectangle hole : s.holes)
+		{
+			if (!hole.intersects(c) && hole.x < right && hole.x + hole.width > c.x && hole.y < c.y && hole.y + hole.height > y)
+			{
+				right = Math.min(right, hole.x - 6);
+			}
+		}
+		List<AtlasPainter.Mark> marks = AtlasPainter.marks(s);
+		for (int x = c.x - 1; x + w <= right; x += SLIDE)
+		{
+			Rectangle r = new Rectangle(x, y, w, h);
+			if (clearOf(marks, r))
+			{
+				return r;
+			}
+		}
+		return new Rectangle(c.x - 1, y, w, h);
 	}
 
 	private static String backLabel(Scene s)
@@ -163,7 +194,7 @@ public class ChromePainter
 			}
 		}
 		return Objects.hash(v.getX(), v.getY(), v.getW(), v.getH(), v.getLayer(), s.selected, s.hovered, s.states, s.keys,
-			s.here, s.last, s.rowShown, s.standIn, s.rowCell, s.caption, s.notice, hover, s.holes, s.repo.getStateHash(),
+			s.here, s.last, s.rowShown, s.standIn, s.rowCell, s.caption, s.captionRect, s.notice, hover, s.holes, s.repo.getStateHash(),
 			s.availableColor, s.selectedColor, s.fullDetails, focusCovered(s));
 	}
 
@@ -717,7 +748,7 @@ public class ChromePainter
 	// ------------------------------------------------------------------ Travel cell, frame and holes
 
 	/**
-	 * The "Travel" caption over the cell's left end and, while the real row is covered, a disabled
+	 * The "Travel" caption above the cell and, while the real row is covered, a disabled
 	 * stand-in in its place that owns its clicks (DESIGN 4.4): for a selected tree, its name over
 	 * why it cannot travel (the padlock and its hint, "You are here", "Not in this tree's list");
 	 * with nothing selected, one line. A cell too short for two lines shows only the reason.

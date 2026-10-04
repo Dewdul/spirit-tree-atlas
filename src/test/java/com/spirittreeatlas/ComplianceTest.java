@@ -58,6 +58,15 @@ public class ComplianceTest
 		"hopToWorld", "invokeMenuAction",
 		// a game script's event re-run, or a game menu entry retargeted: nothing here needs either
 		"getScriptEvent", "setParam0", "setParam1", "setIdentifier",
+		// the other ways to resize or lay out a widget (only the Travel row is resized, through RESIZE in
+		// TreeMenu.writeSize), and the rest of the widget setters: none is needed to hide and move (rule 4)
+		"setWidth", "setHeight", "setSize", "setPos", "setRelativeX", "setRelativeY", "setForcedPosition",
+		"setScrollX", "setScrollY", "setScrollWidth", "setScrollHeight", "revalidateScroll", "setChildren",
+		"setOnScrollWheelListener", "setOnDragListener", "setOnDragCompleteListener", "setOnHoldListener",
+		"setOnReleaseListener", "setOnVarTransmitListener", "setVarTransmitTrigger", "setClickMask", "setTargetVerb",
+		"setTargetPriority", "setNoClickThrough", "setNoScrollThrough", "setDragParent", "setDragDeadTime",
+		"setDragDeadZone", "setContentType", "setAnimationId", "setRotationX", "setRotationY", "setRotationZ",
+		"setModelZoom", "setModelType", "setFlippedHorizontally", "setFlippedVertically", "setItemQuantityMode",
 	};
 	/** The widget size setters: allowed only for the Travel row, in TreeMenu.writeSize ({@link #onlyTheTravelRowIsResized}). */
 	private static final String[] RESIZE = {"setWidthMode", "setHeightMode", "setOriginalWidth", "setOriginalHeight"};
@@ -291,6 +300,14 @@ public class ComplianceTest
 		}
 		assertEquals(Arrays.asList("place: writeSize(w,size)", "unmove: writeSize(c.widget,c.originalSize)"),
 			calls(menu, "writeSize", "place", "unmove"));
+		// and never reached any other way (a method reference): its declaration and those two calls only
+		int uses = 0;
+		Matcher ws = word("writeSize").matcher(menu);
+		while (ws.find())
+		{
+			uses++;
+		}
+		assertEquals("writeSize: declared, called twice", 3, uses);
 		// place with a size (not null) only from placeRows
 		for (String call : calls(menu, "place", "move", "placeRows"))
 		{

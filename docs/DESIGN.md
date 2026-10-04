@@ -575,7 +575,10 @@ draws nothing else and takes no input.
   the stand-in may still grow up to 24 px left of the cell over the map for a longer line
   (`Scene.standInRect`, which labels and the card keep clear of); "..." only beyond that.
 - **Caption.** A small "Travel" caption sits on the map just above the cell's left end, left of the
-  close button, so the corner reads as a button pair even while the stand-in shows.
+  close button, so the corner reads as a button pair even while the stand-in shows. Where that
+  would hide a marker (the fixed-mode overview has Feldip Hills over the 200 px cell's left end), it
+  slides right along the cell's top, 8 px at a time, to the first place clear of every marker,
+  never under the close button (`ChromePainter.captionRect`; `PainterTest.theFixedModeCardCoversNoMarker`).
 - **Backdrop.** `RowBackdrop` fills the Travel hole as drawn, so it covers the bigger button
   without change.
 - When the Travel row shows, its frame pulses gently (as Fairy Ring Atlas's Teleport when ready).
@@ -951,7 +954,9 @@ from the text above.
 24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes (but the Travel
     row's, allowed only in `TreeMenu.writeSize` and checked structurally, item 26), child creation,
     other listeners, widget restyles (`setTextShadowed`, `setFontId` and the like), key managers,
-    network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
+    every other widget setter (the other resizes and layout writes, scroll writes, drag, hold,
+    release and scroll-wheel listeners, click masks and target verbs, model and animation
+    settings), network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
     event) and `setParam0` / `setParam1` / `setIdentifier` (retargeting a game menu entry), and fails
     if any code refers to the key-listener layers. It scans each file with comments stripped and
     whitespace collapsed, matching names as whole words, so method references
@@ -962,13 +967,18 @@ from the text above.
 
 **Review fixes (2026-10-04)**
 
+25. **Classic Map mode hides only the parchment model (spec updated, 2.3, 4.3).** The first port
+    hid `LJ_LAYER2` itself, which also hid `Menu.KEYLISTENERS` (its static child) and so the
+    game's hotkeys, and tripped Better Teleport Menu's title check.
+
 26. **The Travel row is a 200x32 button (spec updated, 1, 2.2, 2.3, 4.3, 4.4).** The user, testing in
     game: "the button should be bigger". The shown row's real widgets are resized as well as
     moved, as Fairy Ring Atlas does for CONFIRM; hard rule 4 now allows exactly that one resize.
     The modern button's right end sits under the close button's (10 px inside the scroll area's
     right end, which the first port used), so both menus give the same corner; the classic close
     button keeps the modern 12 px gap (it was 4). The stand-in uses the taller cell for two lines.
-
-25. **Classic Map mode hides only the parchment model (spec updated, 2.3, 4.3).** The first port
-    hid `LJ_LAYER2` itself, which also hid `Menu.KEYLISTENERS` (its static child) and so the
-    game's hotkeys, and tripped Better Teleport Menu's title check.
+    The "Travel" caption slides right along the cell's top off a marker (4.4), since the wider cell
+    put its left end under Feldip Hills in the fixed-mode overview. `ComplianceTest` now also
+    forbids every other widget setter that resizes or lays out (`setWidth`, `setHeight`,
+    `setSize`, `setPos`, `setForcedPosition`, the relative position, scroll size and position)
+    and the remaining listener, click-mask and appearance setters (item 24).
