@@ -267,19 +267,30 @@ public class TreeDataTest
 	@Test
 	public void resourcesFitTheBudget()
 	{
-		long total = size(RESOURCE_DIR, false);
+		long total = size(RESOURCE_DIR);
 		assertTrue("src/main/resources is " + total + " bytes, budget " + MAX_RESOURCES, total <= MAX_RESOURCES);
 	}
 
 	/**
 	 * The hub's review bot tokenizes src/main/java with comments stripped and needs it under
-	 * 200k tokens; this byte budget (comments included) warns long before that.
+	 * 200k tokens; this byte budget (comments included) warns long before that. Line ends count
+	 * as one byte, as committed, so a CRLF checkout (core.autocrlf) measures the same.
 	 */
 	@Test
-	public void javaSourceFitsTheReviewBudget()
+	public void javaSourceFitsTheReviewBudget() throws IOException
 	{
-		long total = size(new File("src/main/java"), true);
-		assertTrue("src/main/java is " + total + " bytes, budget " + MAX_SOURCE, total <= MAX_SOURCE);
+		long total = 0;
+		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(new File("src/main/java").toPath()))
+		{
+			for (java.nio.file.Path p : (Iterable<java.nio.file.Path>) walk.filter(f -> f.toString().endsWith(".java"))::iterator)
+			{
+				for (byte b : java.nio.file.Files.readAllBytes(p))
+				{
+					total += b == '' ? 0 : 1;
+				}
+			}
+		}
+		assertTrue("src/main/java is " + total + " bytes, budget " + MAX_SOURCE, total > 0 && total <= MAX_SOURCE);
 	}
 
 	@Test
@@ -322,11 +333,11 @@ public class TreeDataTest
 		}
 	}
 
-	private static long size(File f, boolean javaOnly)
+	private static long size(File f)
 	{
 		if (f.isFile())
 		{
-			return !javaOnly || f.getName().endsWith(".java") ? f.length() : 0;
+			return f.length();
 		}
 		long n = 0;
 		File[] kids = f.listFiles();
@@ -334,7 +345,7 @@ public class TreeDataTest
 		{
 			for (File k : kids)
 			{
-				n += size(k, javaOnly);
+				n += size(k);
 			}
 		}
 		return n;

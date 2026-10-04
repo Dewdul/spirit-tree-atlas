@@ -609,11 +609,6 @@ public class SpiritTreeAtlasPlugin extends Plugin
 
 	// ------------------------------------------------------------------ view (input thread safe)
 
-	MapView getView()
-	{
-		return view;
-	}
-
 	/** Called by the overlay each frame: lays the view onto the live map rectangle and steps the animation. */
 	MapView frameView(Rectangle rect)
 	{

@@ -52,21 +52,6 @@ public class Tree
 	/** The house's town, once placed; part of its name and label. */
 	private transient String town;
 
-	public Tree()
-	{
-	}
-
-	Tree(String id, String menuLabel, String layer, double x, double y)
-	{
-		this.id = id;
-		this.menuLabel = menuLabel;
-		this.name = menuLabel;
-		this.label = menuLabel;
-		this.layer = layer;
-		this.x = x;
-		this.y = y;
-	}
-
 	public boolean isHouse()
 	{
 		return KIND_HOUSE.equals(kind);

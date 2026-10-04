@@ -399,14 +399,6 @@ public class TreeRepository
 		rehash();
 	}
 
-	/** Forgets the rows and where the player was (the menu closed for good). */
-	public void clearState()
-	{
-		rows = Collections.emptyMap();
-		here = null;
-		rehash();
-	}
-
 	private void rehash()
 	{
 		stateHash = Objects.hash(rows, here, last, houseValue);

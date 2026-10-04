@@ -22,16 +22,4 @@ public class Portal
 	private int value;
 	private String town;
 	private int plane;
-
-	public Portal()
-	{
-	}
-
-	Portal(String layer, double x, double y, String label)
-	{
-		this.layer = layer;
-		this.x = x;
-		this.y = y;
-		this.label = label;
-	}
 }
