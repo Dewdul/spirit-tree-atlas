@@ -79,15 +79,16 @@ for x, y, sprite in idx["icons"]:  # compact [x, y, sprite] triples
     check(any(inside(L["bounds"], x, y) for L in idx["layers"]), "icon outside every layer: %s" % [x, y, sprite])
 check(any(l["t"] == "Prifddinas" and l["layer"] == "surface" for l in idx["labels"]), "no surface Prifddinas label")
 
-# the icon rule (DESIGN 3.2): no transportation icon within 3 tiles of a tree, no farming patch icon
+# the icon rule (DESIGN 3.2): no transportation icon within 6 tiles of a tree, no farming patch icon
 # within 3 tiles of a patch tree, and every other icon of the raw export (fairy rings included) kept
 plants = [t for t in trees if t["kind"] != "portal"]
 patches = [t for t in plants if t["kind"] == "patch"]
 
 
 def under(x, y, sprite):
-    ts = plants if sprite == mapgen.TRANSPORT_SPRITE else patches if sprite == mapgen.FARMING_SPRITE else []
-    return any(abs(x - t["x"]) <= mapgen.ICON_RADIUS and abs(y - t["y"]) <= mapgen.ICON_RADIUS for t in ts)
+    ts, r = ((plants, mapgen.TRANSPORT_RADIUS) if sprite == mapgen.TRANSPORT_SPRITE
+             else (patches, mapgen.FARMING_RADIUS) if sprite == mapgen.FARMING_SPRITE else ([], 0))
+    return any(abs(x - t["x"]) <= r and abs(y - t["y"]) <= r for t in ts)
 
 
 shipped = {tuple(i) for i in idx["icons"]}

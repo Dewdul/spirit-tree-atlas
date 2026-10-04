@@ -64,7 +64,10 @@ PRIF_MAP = "prifddinas"
 MARGIN = 8
 TRANSPORT_SPRITE = 1504  # SpriteID.Mapfunction.TRANSPORTATION: beside every fixed spirit tree
 FARMING_SPRITE = 1501    # SpriteID.Mapfunction.FARMING_PATCH: the only icon on a patch tree
-ICON_RADIUS = 3          # tiles, per axis, from a tree centre within which those icons are dropped
+# tiles, per axis, from a tree centre within which those icons are dropped: 6 for the
+# transportation icon (Tree Gnome Village's sits 5.5 tiles from its tree), 3 for the patch icon
+TRANSPORT_RADIUS = 6
+FARMING_RADIUS = 3
 
 #   "bounds": region-aligned area rendered.
 #   "keep":   optional subset of regions [rx, ry] that belong to the layer. None is needed:
@@ -524,8 +527,8 @@ def export_labels_icons(layers, trees):
     plants = [t for t in trees if t["kind"] != "portal"]
     patches = [t for t in plants if t["kind"] == "patch"]
 
-    def near(x, y, ts):
-        return [t for t in ts if abs(x - t["x"]) <= ICON_RADIUS and abs(y - t["y"]) <= ICON_RADIUS]
+    def near(x, y, ts, radius):
+        return [t for t in ts if abs(x - t["x"]) <= radius and abs(y - t["y"]) <= radius]
 
     icons = []
     seen = set()
@@ -537,8 +540,8 @@ def export_labels_icons(layers, trees):
         lid = layer_of(i["x"], i["y"])
         if lid is None:
             continue
-        under = (near(i["x"], i["y"], plants) if i["sprite"] == TRANSPORT_SPRITE
-                 else near(i["x"], i["y"], patches) if i["sprite"] == FARMING_SPRITE else [])
+        under = (near(i["x"], i["y"], plants, TRANSPORT_RADIUS) if i["sprite"] == TRANSPORT_SPRITE
+                 else near(i["x"], i["y"], patches, FARMING_RADIUS) if i["sprite"] == FARMING_SPRITE else [])
         if under:
             dropped[i["sprite"]] += 1
             covered.update(t["id"] for t in under)
@@ -554,7 +557,7 @@ def export_labels_icons(layers, trees):
           % (dropped[TRANSPORT_SPRITE], dropped[FARMING_SPRITE]))
     for t in plants:
         if t["id"] not in covered:
-            print("  note: no icon dropped for %s (none within %d tiles of %s,%s)" % (t["id"], ICON_RADIUS, t["x"], t["y"]))
+            print("  note: no icon dropped for %s (none near %s,%s)" % (t["id"], t["x"], t["y"]))
     return labels, icons
 
 
