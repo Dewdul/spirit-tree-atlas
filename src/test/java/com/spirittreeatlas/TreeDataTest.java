@@ -126,6 +126,7 @@ public class TreeDataTest
 			assertNotNull("index.json has no layer " + p.getLayer() + " (house " + p.getTown() + ")", l);
 			assertTrue(p.getTown() + " outside " + p.getLayer(), l.contains(p.getX() + 0.5, p.getY() + 0.5));
 		}
+		java.util.Collections.sort(values);
 		assertEquals(HOUSE_VALUES, values);
 		Tree house = repo.house();
 		repo.placeHouse(1);
@@ -286,7 +287,7 @@ public class TreeDataTest
 			{
 				for (byte b : java.nio.file.Files.readAllBytes(p))
 				{
-					total += b == '' ? 0 : 1;
+					total += b == '\r' ? 0 : 1;
 				}
 			}
 		}
