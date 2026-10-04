@@ -16,9 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import lombok.Getter;
@@ -184,22 +181,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	protected void startUp()
 	{
 		repo = TreeRepository.load(gson, RESOURCES);
-		// one worker, newest request first: the tiles of the current view are decoded before the
-		// leftovers of views the player has already zoomed or panned past
-		executor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<Runnable>()
-		{
-			@Override
-			public boolean offer(Runnable r)
-			{
-				return offerFirst(r);
-			}
-		}, r ->
-		{
-			Thread t = new Thread(r, "spirit-tree-atlas-tiles");
-			t.setDaemon(true);
-			t.setPriority(Thread.MIN_PRIORITY);
-			return t;
-		});
+		executor = TileStore.newExecutor();
 		tiles = new TileStore(repo.getIndex(), repo.getLayers(), RESOURCES, executor);
 		menu = new TreeMenu(client);
 		overlayManager.add(backdrop);

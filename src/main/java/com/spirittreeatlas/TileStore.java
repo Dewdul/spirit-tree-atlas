@@ -21,7 +21,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.imageio.ImageIO;
@@ -69,6 +73,32 @@ public class TileStore
 	private final AtomicInteger generation = new AtomicInteger();
 	private final AtomicLong frame = new AtomicLong();
 	private volatile boolean closed;
+
+	/** Test hooks: PNGs decoded and tiles derived since the store was made. */
+	final AtomicInteger decodes = new AtomicInteger();
+	final AtomicInteger derived = new AtomicInteger();
+
+	/**
+	 * One worker, newest request first: the tiles of the current view are decoded before the
+	 * leftovers of views the player has already zoomed or panned past.
+	 */
+	public static ExecutorService newExecutor()
+	{
+		return new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<Runnable>()
+		{
+			@Override
+			public boolean offer(Runnable r)
+			{
+				return offerFirst(r);
+			}
+		}, r ->
+		{
+			Thread t = new Thread(r, "spirit-tree-atlas-tiles");
+			t.setDaemon(true);
+			t.setPriority(Thread.MIN_PRIORITY);
+			return t;
+		});
+	}
 
 	/**
 	 * @param base     resource path prefix ending in "/", e.g. "/com/spirittreeatlas/"
@@ -275,6 +305,7 @@ public class TileStore
 
 	private BufferedImage derive(int z, int tx, int ty)
 	{
+		derived.incrementAndGet();
 		BufferedImage[] kids = new BufferedImage[4];
 		boolean allSolid = true;
 		for (int i = 0; i < 4; i++)
@@ -332,6 +363,7 @@ public class TileStore
 
 	private BufferedImage decode(int z, String name)
 	{
+		decodes.incrementAndGet();
 		String path = base + "map/" + z + "/" + name + ".png";
 		try (InputStream in = TileStore.class.getResourceAsStream(path))
 		{
@@ -425,6 +457,15 @@ public class TileStore
 	static long key(int z, int tx, int ty)
 	{
 		return ((long) (z + 16) << 48) | ((long) (tx & 0xFFFFFF) << 24) | (ty & 0xFFFFFF);
+	}
+
+	/** Test hook: the bytes the decoded tiles take. */
+	long cachedBytes()
+	{
+		synchronized (lru)
+		{
+			return bytes;
+		}
 	}
 
 	/** The bundled level used for a quick coarse fallback. */
