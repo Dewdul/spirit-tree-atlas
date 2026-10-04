@@ -1,0 +1,132 @@
+{
+  "_comment": "What must be true before a first visit can unlock a ring (put it in the travel log). build_rings.py copies each ring's 'all' list into rings.json as 'unlock' (type, var id or quest, op, value, label). The plugin reads these vars locally while the dials are open (UnlockCheck): quest = net.runelite.api.Quest constant name and the QuestState it must reach; varbit = client.getVarbitValue(id); varp = client.getVarpValue(id); unknown = needed but not checkable from the client, shown as a hint and never treated as met or failed. A condition with confidence 'low' must be of type 'unknown'. Labels read after 'needs' (e.g. 'Locked - needs Regicide'). Agility and greegree gates only limit using a ring, not unlocking it, so they are not here (they stay in ring_display.json requirements). 'name' is the gameval constant for the id, checked by RingDataTest. Researched 2026-10-04 (sources per condition).",
+  "rings": {
+    "AIS": {
+      "all": [
+        {"type": "quest", "quest": "CHILDREN_OF_THE_SUN", "state": "FINISHED", "label": "Children of the Sun", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (AIS row); Skretzo/shortest-path fairy_rings.tsv"},
+        {"type": "varbit", "id": 9650, "name": "VarbitID.VARLAMORE_VISITED", "op": ">=", "value": 1, "label": "a Regulus Cento ride to Civitas", "confidence": "medium",
+         "why": "Quest Helper uses VARLAMORE_VISITED==1 for 'has been to Varlamore', and the game's charter script gates Fortis, Aldarin and Sunset Coast on it. That it is also the fairy ring's own gate is inferred.",
+         "source": "quest-helper TwilightsPromise.java; runelite/cs2-scripts [proc,script9104], [proc,script1598]; OSRS Wiki Fairy_ring"}
+      ]
+    },
+    "AJP": {
+      "all": [
+        {"type": "quest", "quest": "CHILDREN_OF_THE_SUN", "state": "FINISHED", "label": "Children of the Sun", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (AJP row); Skretzo/shortest-path fairy_rings.tsv"},
+        {"type": "varbit", "id": 9650, "name": "VarbitID.VARLAMORE_VISITED", "op": ">=", "value": 1, "label": "a Regulus Cento ride to Civitas", "confidence": "medium",
+         "why": "As AIS.", "source": "As AIS."}
+      ]
+    },
+    "AJQ": {
+      "all": [
+        {"type": "quest", "quest": "DEATH_TO_THE_DORGESHUUN", "state": "FINISHED", "label": "Death to the Dorgeshuun", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (AJQ row); Skretzo/shortest-path fairy_rings.tsv"}
+      ]
+    },
+    "AKP": {
+      "all": [
+        {"type": "varbit", "id": 13841, "name": "VarbitID.BCS", "op": ">=", "value": 14, "label": "Beneath Cursed Sands progress", "confidence": "medium",
+         "why": "The wiki says AKP unlocks when Maisa's cutscene takes you to the Necropolis. Quest Helper stages 6-12 are the talk with Maisa and the cutscene; 14 is inspecting the blocked entry at the Jaltevas Pyramid, inside the Necropolis. Whether arrival sets 12 or 14 is unconfirmed; 14 errs toward 'not yet'.",
+         "source": "quest-helper BeneathCursedSands.java loadSteps; QuestVarbits BCS; OSRS Wiki Beneath_Cursed_Sands (rewards, quick guide)"}
+      ]
+    },
+    "AKR": {
+      "all": [
+        {"type": "varbit", "id": 4897, "name": "VarbitID.ZEAH_PLAYERHASVISITED", "op": "==", "value": 1, "label": "a first visit to Great Kourend", "confidence": "medium",
+         "why": "The game prints 'Visited Kourend.' when this flag is 1 and gates charters on it. It is the only Kourend-visited flag; that the ring uses it is inferred.",
+         "source": "runelite/cs2-scripts [proc,script2664], [proc,script9104]; OSRS Wiki Fairy_ring"}
+      ]
+    },
+    "BJR": {
+      "all": [
+        {"type": "varp", "id": 5, "name": "VarPlayerID.GRAIL", "op": ">=", "value": 9, "label": "Holy Grail up to Sir Percival", "confidence": "medium",
+         "why": "Quest Helper stages: 8 find Percival, 9 bring him back, 10 done. The wiki first offers BJR in 'Retrieving the Holy Grail' (stage 9). It could be 8.",
+         "source": "quest-helper HolyGrail.java; QuestVarPlayer GRAIL; OSRS Wiki Holy_Grail walkthrough, Fairy_ring"}
+      ]
+    },
+    "BJS": {
+      "all": [
+        {"type": "quest", "quest": "REGICIDE", "state": "FINISHED", "label": "Regicide", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (BJS row); Skretzo/shortest-path fairy_rings.tsv"}
+      ]
+    },
+    "BLQ": {
+      "all": [
+        {"type": "varbit", "id": 13599, "name": "VarbitID.LOTG", "op": ">=", "value": 50, "label": "Land of the Goblins progress", "confidence": "medium",
+         "why": "shortest-path gates BLQ on 13599>49; in Quest Helper 50 is fixing the machine. The wiki's Fairy_ring page says partial, the quest page lists BLQ as a completion reward.",
+         "source": "Skretzo/shortest-path fairy_rings.tsv; quest-helper LandOfTheGoblins.java"}
+      ]
+    },
+    "CIP": {
+      "all": [
+        {"type": "quest", "quest": "THE_FREMENNIK_TRIALS", "state": "FINISHED", "label": "The Fremennik Trials", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (CIP row); Skretzo/shortest-path fairy_rings.tsv"}
+      ]
+    },
+    "CIR": {
+      "all": [
+        {"type": "varbit", "id": 4897, "name": "VarbitID.ZEAH_PLAYERHASVISITED", "op": "==", "value": 1, "label": "a first visit to Great Kourend", "confidence": "medium",
+         "why": "As AKR.", "source": "As AKR; OSRS Wiki Fairy_ring (CIR row)"}
+      ]
+    },
+    "CIS": {
+      "all": [
+        {"type": "varbit", "id": 4897, "name": "VarbitID.ZEAH_PLAYERHASVISITED", "op": "==", "value": 1, "label": "a first visit to Great Kourend", "confidence": "medium",
+         "why": "As AKR.", "source": "As AKR; OSRS Wiki Fairy_ring (CIS row)"}
+      ]
+    },
+    "CJQ": {
+      "all": [
+        {"type": "varbit", "id": 18321, "name": "VarbitID.TT", "op": ">=", "value": 12, "label": "Troubled Tortugans progress", "confidence": "medium",
+         "why": "Quest Helper: 8/10 sail to the Great Conch, 12 talk to Elder Korel at its docks. The game's charter script also needs tt>=12 for Summer Shore on the Great Conch.",
+         "source": "quest-helper TroubledTortugans.java; runelite/cs2-scripts [proc,script9104]; OSRS Wiki Fairy_ring"}
+      ]
+    },
+    "CKQ": {
+      "all": [
+        {"type": "quest", "quest": "CHILDREN_OF_THE_SUN", "state": "FINISHED", "label": "Children of the Sun", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (CKQ row); Skretzo/shortest-path fairy_rings.tsv"},
+        {"type": "varbit", "id": 9650, "name": "VarbitID.VARLAMORE_VISITED", "op": ">=", "value": 1, "label": "a Regulus Cento ride to Civitas", "confidence": "medium",
+         "why": "As AIS.", "source": "As AIS."}
+      ]
+    },
+    "CLR": {
+      "all": [
+        {"type": "quest", "quest": "MONKEY_MADNESS_I", "state": "FINISHED", "label": "Monkey Madness I", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (CLR row); Skretzo/shortest-path fairy_rings.tsv; cs2 script2664 (mm_main >= 9)"},
+        {"type": "unknown", "label": "Daero's training", "confidence": "low",
+         "why": "The wiki says the ring also needs Daero's training after the quest. No var for it was found (MM_DAERO only tracks in-quest stages 1-7), so it is shown as a hint, never checked.",
+         "source": "OSRS Wiki Ape_Atoll, Monkey_Madness_I"}
+      ]
+    },
+    "DIQ": {
+      "all": [
+        {"type": "quest", "quest": "FAIRYTALE_II__CURE_A_QUEEN", "state": "FINISHED", "label": "all of Fairytale II", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring_(Construction)"},
+        {"type": "unknown", "label": "a fairy ring in your house", "confidence": "low",
+         "why": "Whether the ring is built can only be seen inside the house; no account-wide var was found. 85 Construction (boostable) and a superior garden.",
+         "source": "OSRS Wiki Fairy_ring (DIQ row), Fairy_ring_(Construction)"}
+      ]
+    },
+    "DJR": {
+      "all": [
+        {"type": "varbit", "id": 4897, "name": "VarbitID.ZEAH_PLAYERHASVISITED", "op": "==", "value": 1, "label": "a first visit to Great Kourend", "confidence": "medium",
+         "why": "As AKR.", "source": "As AKR; OSRS Wiki Fairy_ring (DJR row)"}
+      ]
+    },
+    "DLP": {
+      "all": [
+        {"type": "varbit", "id": 19564, "name": "VarbitID.GRIMSTONE_VISITED", "op": ">=", "value": 1, "label": "a first mooring at Grimstone", "confidence": "medium",
+         "why": "The name matches the wiki rule (moored on the island at least once) and its sibling *_VISITED flags are tested as 0/non-zero in cs2. Not seen in a fairy ring script; check it in game.",
+         "source": "runelite-api 1.13.1 gameval; OSRS Wiki Grimstone; cs2 script9104 pattern"}
+      ]
+    },
+    "DLS": {
+      "all": [
+        {"type": "quest", "quest": "IN_SEARCH_OF_THE_MYREQUE", "state": "FINISHED", "label": "In Search of the Myreque", "confidence": "high",
+         "source": "OSRS Wiki Fairy_ring (DLS row); Skretzo/shortest-path fairy_rings.tsv"}
+      ]
+    }
+  }
+}

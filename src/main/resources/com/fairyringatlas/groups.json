@@ -1,0 +1,44 @@
+{
+  "groups": [
+    {
+      "id": "slayer",
+      "name": "Slayer",
+      "codes": [
+        {"code": "CKS", "label": "Slayer Tower", "note": "Slayer Tower; Mazchna in Canifis", "details": "Monsters: abyssal demons, nechryael, gargoyles, aberrant spectres, bloodvelds, banshees"},
+        {"code": "AJR", "label": "Fremennik Slayer Dungeon", "note": "Kurasks, turoths, basilisks and more", "details": "Monsters: kurasks, turoths, basilisks, jellies, pyrefiends, cockatrices, rockslugs"},
+        {"code": "CIR", "label": "Konar (Karuulm)", "note": "Konar; Karuulm Slayer Dungeon", "details": "Master: Konar (75 combat). Dungeon: hydras, drakes, wyrms, sulphur lizards, fire giants"},
+        {"code": "BKS", "label": "Chaeldar (Zanaris)", "note": "Chaeldar (Zanaris)", "details": "Master: Chaeldar (70 combat, Lost City)"},
+        {"code": "BIQ", "label": "Kalphites", "note": "Kalphite Lair and Kalphite Cave", "details": "Monsters: kalphite workers, soldiers and guardians; Kalphite Queen (Lair)"},
+        {"code": "BKP", "label": "Smoke devils", "note": "Smoke Devil Dungeon", "details": "Monsters: smoke devils (93 Slayer); Thermonuclear smoke devil (boss)"},
+        {"code": "DJR", "label": "Chasm of Fire", "note": "Chasm of Fire demons; lizardman shamans", "details": "Monsters: black, greater and lesser demons (Chasm); lizardmen and shamans (canyon)"},
+        {"code": "AKQ", "label": "Cave kraken", "note": "Kraken Cove: cave kraken, Kraken boss", "details": "Monsters: cave kraken (87 Slayer), waterfiends; Kraken (boss)"},
+        {"code": "DIP", "label": "Abyssal Sire", "note": "Abyssal Sire (Abyssal Nexus)", "details": "Monsters: Abyssal Sire (85 Slayer; on an abyssal demon or boss task)"},
+        {"code": "AIQ", "label": "Skeletal wyverns", "note": "Skeletal wyverns (Ice Dungeon); mogres", "details": "Monsters: skeletal wyverns, ice giants, ice warriors, hobgoblins; mogres (shore)"},
+        {"code": "ALP", "label": "Dagannoths (Lighthouse)", "note": "Dagannoths under the Lighthouse", "details": "Monsters: dagannoths (basement, after Horror from the Deep)"},
+        {"code": "BJS", "label": "Zulrah", "note": "Zulrah (76 Agility to cross)", "details": "Monsters: Zulrah (boss task); 76 Agility stepping stones"},
+        {"code": "ALQ", "label": "Araxytes (Spider Cave)", "note": "Morytania Spider Cave (araxytes)", "details": "Monsters: araxytes (92 Slayer); Araxxor (boss)"},
+        {"code": "DKR", "label": "Krystilia (Edgeville)", "note": "Krystilia; Edgeville Dungeon", "details": "Masters: Krystilia, Vannaka. Edgeville Dungeon: hill giants, chaos druids, earth warriors"}
+      ]
+    },
+    {
+      "id": "farming",
+      "name": "Farming",
+      "codes": [
+        {"code": "ALQ", "label": "Herbs: Port Phasmatys", "note": "Port Phasmatys herb patch (north)", "details": "Patches: herb, 2 allotments, flower"},
+        {"code": "BLR", "label": "Herbs: Ardougne", "note": "Ardougne herb patch (north-west)", "details": "Patches: herb, 2 allotments, flower"},
+        {"code": "AKR", "label": "Herbs: Hosidius", "note": "Hosidius herb patch (west); vinery", "details": "Patches: 12 grape vines (vinery); west: herb, 2 allotments, flower, spirit tree"},
+        {"code": "CIR", "label": "Farming Guild", "note": "Farming Guild: herbs, trees, Hespori", "details": "Patches: herb, 2 allotments, flower, bush, cactus, 5 trees (to redwood), anima, Hespori"},
+        {"code": "AJP", "label": "Herbs: Ortus Farm", "note": "Ortus Farm herbs (NW); hardwood (SE)", "details": "Patches: herb, 2 allotments, flower (Ortus Farm); hardwood tree (Locus Oasis)"},
+        {"code": "AIS", "label": "Tree: Nemus", "note": "Nemus tree patch; belladonna patch", "details": "Patches: tree (Nemus Retreat); belladonna (Auburnvale)"},
+        {"code": "CIQ", "label": "Fruit tree: Gnome Vill.", "note": "Gnome Village fruit tree; Yanille hops", "details": "Patches: fruit tree (Gnome Village); hops (Yanille)"},
+        {"code": "CKR", "label": "Calquat: Tai Bwo Wannai", "note": "Tai Bwo Wannai calquat (north)", "details": "Patches: calquat"},
+        {"code": "CJQ", "label": "Calquat: Summer Shore", "note": "Summer Shore calquat; coral nursery", "details": "Patches: calquat; 2 coral nurseries (after Troubled Tortugans)"},
+        {"code": "CKS", "label": "Mushrooms (Canifis)", "note": "Mushroom patch beside the ring", "details": "Patches: mushroom"},
+        {"code": "ALS", "label": "Hops: McGrubor's Wood", "note": "McGrubor's Wood hops patch (north)", "details": "Patches: hops"},
+        {"code": "CKQ", "label": "Hops: Aldarin", "note": "Aldarin hops patch", "details": "Patches: hops"},
+        {"code": "DJP", "label": "Bush: Ardougne", "note": "Bush patch south of Ardougne (west)", "details": "Patches: bush"},
+        {"code": "CIP", "label": "Bush: Etceteria", "note": "Etceteria bush and spirit tree (east)", "details": "Patches: bush, spirit tree"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "rings": [
+    {
+      "code": "AIQ", "kind": "destination", "name": "Mudskipper Point", "description": "Test ring.",
+      "x": 2600, "y": 3230, "plane": 0, "layer": "surface", "area": "Asgarnia",
+      "requirements": [], "danger": [], "poi": ["Mogres", "Port Sarim"], "tags": ["skippy"], "notes": [],
+      "logVarbit": 3990, "noStaffReturn": false, "unknownField": 1
+    },
+    {
+      "code": "DLS", "kind": "destination", "name": "Myreque hideout", "description": "Underground.",
+      "x": 2600, "y": 9630, "plane": 0, "layer": "hollows", "area": "Morytania",
+      "requirements": ["Quest: In Search of the Myreque"], "danger": ["Vampyres"], "poi": [], "tags": [], "notes": [],
+      "logVarbit": 4011, "noStaffReturn": false
+    },
+    {
+      "code": "DIQ", "kind": "destination", "name": "Player-owned house", "description": "Your house.",
+      "x": 0, "y": 0, "plane": 0, "layer": "poh", "area": "Anywhere",
+      "requirements": [], "danger": [], "poi": [], "tags": ["poh"], "notes": [], "logVarbit": -1, "noStaffReturn": true
+    },
+    {
+      "code": null, "kind": "exit", "name": "Exit ring", "description": "Not a dial target.",
+      "x": 2605, "y": 3235, "plane": 0, "layer": "surface", "area": "Test",
+      "requirements": [], "danger": [], "poi": [], "tags": [], "notes": [], "logVarbit": -1, "noStaffReturn": false
+    }
+  ],
+  "global": { "requirements": ["Members only"] },
+  "portals": [ { "layer": "hollows", "x": 2620, "y": 3250, "label": "Test Cave", "description": "ignored" } ]
+}

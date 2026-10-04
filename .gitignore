@@ -1,0 +1,13 @@
+.gradle
+build
+.idea/
+.project
+.settings/
+.classpath
+nbactions.xml
+nb-configuration.xml
+nbproject/
+# map generator working files
+tools/mapgen/.gradle
+tools/mapgen/build
+tools/mapgen/cache

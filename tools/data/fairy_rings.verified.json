@@ -1,0 +1,3609 @@
+[
+ {
+  "code": "AIQ",
+  "kind": "destination",
+  "name": "Mudskipper Point",
+  "description": "Asgarnia: Mudskipper Point, south of Port Sarim",
+  "x": 2996,
+  "y": 3114,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Asgarnia",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Mudskipper Point",
+   "Mogres",
+   "Rimmington",
+   "Port Sarim",
+   "Asgarnia Ice Dungeon",
+   "Altar (closest altar to any ring, ~84 tiles)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Asgarnia: Mudskipper Point",
+   "category": "Asgarnia",
+   "dbRow": 3789,
+   "dbRowName": "fairyrings_aiq",
+   "dialId": 3,
+   "multilocState": 3,
+   "mapElement": "mapelement_965",
+   "mapElementTooltip": "Fairy ring (AIQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3990
+  },
+  "runelite": {
+   "name": "Mudskipper Point",
+   "tags": null,
+   "worldMapPoint": [
+    2995,
+    3112,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2996,
+   "y": 3114,
+   "location": "Asgarnia: Mudskipper Point"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AIQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_aiq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Mudskipper_Point"
+  ]
+ },
+ {
+  "code": "AIR",
+  "kind": "destination",
+  "name": "Island SE of Ardougne",
+  "description": "Islands: small empty island south-east of Ardougne",
+  "x": 2700,
+  "y": 3247,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Clue scroll coordinate",
+   "Ardougne Diary (medium)",
+   "Fairy Queen hideout sequence (1st code)"
+  ],
+  "danger": [],
+  "notes": [
+   "Island with no other access (inferred from the game no_staff_return flag; no wiki statement found)",
+   "First code of the AIR-DLR-DJQ-AJS hideout sequence",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: South-east of Ardougne",
+   "category": "Islands",
+   "dbRow": 3788,
+   "dbRowName": "fairyrings_air",
+   "dialId": 2,
+   "multilocState": 2,
+   "mapElement": "mapelement_964",
+   "mapElementTooltip": "Fairy ring (AIR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 3989
+  },
+  "runelite": {
+   "name": "(Island) South-east of Ardougne",
+   "tags": null,
+   "worldMapPoint": [
+    2699,
+    3249,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2700,
+   "y": 3247,
+   "location": "Islands: South-east of Ardougne"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AIR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_air)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java"
+  ]
+ },
+ {
+  "code": "AIS",
+  "kind": "destination",
+  "name": "Auburn Valley",
+  "description": "Varlamore: Auburn Valley, south of Auburnvale",
+  "x": 1429,
+  "y": 3324,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Varlamore",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Children of the Sun",
+    "detail": "Completed"
+   },
+   {
+    "type": "other",
+    "name": "Travelled to Civitas illa Fortis via Regulus Cento",
+    "detail": "Wiki: required after Children of the Sun"
+   }
+  ],
+  "poi": [
+   "Auburnvale",
+   "Vale Totems",
+   "Quetzal (Auburnvale)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Varlamore: Auburn Valley",
+   "category": "Varlamore",
+   "dbRow": 3787,
+   "dbRowName": "fairyrings_ais",
+   "dialId": 1,
+   "multilocState": 1,
+   "mapElement": "mapelement_963",
+   "mapElementTooltip": "Fairy ring (AIS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 16660
+  },
+  "runelite": {
+   "name": "Auburn Valley",
+   "tags": null,
+   "worldMapPoint": [
+    1430,
+    3323,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1430,
+   "y": 3323,
+   "location": "Varlamore: Auburn Valley"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AIS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ais)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Auburn_Valley"
+  ]
+ },
+ {
+  "code": "AJP",
+  "kind": "destination",
+  "name": "Avium Savannah",
+  "description": "Varlamore: centre of the Avium Savannah, south of Civitas illa Fortis",
+  "x": 1651,
+  "y": 3010,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Varlamore",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Children of the Sun",
+    "detail": "Completed"
+   },
+   {
+    "type": "other",
+    "name": "Travelled to Civitas illa Fortis via Regulus Cento",
+    "detail": "Wiki: required after Children of the Sun"
+   }
+  ],
+  "poi": [
+   "Civitas illa Fortis",
+   "Avium Savannah Hunter",
+   "Hardwood tree patch (after The Ribbiting Tale of a Lily Pad Labour Dispute)",
+   "Altar (Outer Fortis, ~65 tiles)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Varlamore: Avium Savannah",
+   "category": "Varlamore",
+   "dbRow": 3798,
+   "dbRowName": "fairyrings_ajp",
+   "dialId": 30,
+   "multilocState": 12,
+   "mapElement": "mapelement_974",
+   "mapElementTooltip": "Fairy ring (AJP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 9818
+  },
+  "runelite": {
+   "name": "Avium Savannah",
+   "tags": null,
+   "worldMapPoint": [
+    1648,
+    3011,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1651,
+   "y": 3010,
+   "location": "Varlamore: Avium Savannah"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AJP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ajp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Avium_Savannah"
+  ]
+ },
+ {
+  "code": "AJQ",
+  "kind": "destination",
+  "name": "Dorgesh-Kaan cave",
+  "description": "Dungeons: Dorgesh-Kaan South Dungeon (cave south of Dorgesh-Kaan)",
+  "x": 2735,
+  "y": 5221,
+  "plane": 0,
+  "mapId": 10045,
+  "area": "Underground",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Death to the Dorgeshuun",
+    "detail": "Completed"
+   },
+   {
+    "type": "item",
+    "name": "Light source",
+    "detail": "Recommended, not required (wiki)"
+   }
+  ],
+  "poi": [
+   "Dorgesh-Kaan Agility Course",
+   "Cave crawlers",
+   "Cave bugs",
+   "Cave slimes",
+   "Molanisks",
+   "Dorgesh-Kaan"
+  ],
+  "danger": [
+   "Dark: without a light source you take repeated damage from insects",
+   "Poisonous creatures (not multicombat)"
+  ],
+  "notes": [
+   "Not drawn on the RuneLite world map (FairyRingLocation comment)",
+   "Shortest Path uses loc 43109 (lotg_wired_fairy_mushroom_ring_noop) as the departure object here",
+   "Loc 43109 has no menu options in the cache dump (only name/category); detect departure rings by name/category_522 rather than a fixed id"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Dungeons: Dorgesh-Kaan cave",
+   "category": "Dungeons",
+   "dbRow": 3801,
+   "dbRowName": "fairyrings_ajq",
+   "dialId": 33,
+   "multilocState": 15,
+   "mapElement": "mapelement_977",
+   "mapElementTooltip": "Fairy ring (AJQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3998
+  },
+  "runelite": {
+   "name": "Cave south of Dorgesh-Kaan",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2735,
+   "y": 5221,
+   "location": "Dungeons: Cave south of Dorgesh-Kaan"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AJQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ajq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Dorgesh-Kaan_South_Dungeon"
+  ]
+ },
+ {
+  "code": "AJR",
+  "kind": "destination",
+  "name": "Fremennik Slayer Cave",
+  "description": "Fremennik Province: outside the Fremennik Slayer Dungeon, south-east of Rellekka",
+  "x": 2780,
+  "y": 3613,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Fremennik",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Fremennik Slayer Dungeon",
+   "Rellekka",
+   "Slayer ring teleport (16 tiles)"
+  ],
+  "danger": [],
+  "notes": [
+   "Wiki table lists it under Kandarin; the game categorises it as Fremennik Province"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Fremennik Province: Fremennik Slayer Cave",
+   "category": "Fremennik Province",
+   "dbRow": 3800,
+   "dbRowName": "fairyrings_ajr",
+   "dialId": 32,
+   "multilocState": 14,
+   "mapElement": "mapelement_976",
+   "mapElementTooltip": "Fairy ring (AJR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3997
+  },
+  "runelite": {
+   "name": "Slayer cave",
+   "tags": null,
+   "worldMapPoint": [
+    2779,
+    3615,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2780,
+   "y": 3613,
+   "location": "Kandarin: Slayer cave south-east of Rellekka"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AJR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ajr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Fremennik_Slayer_Dungeon"
+  ]
+ },
+ {
+  "code": "AJS",
+  "kind": "destination",
+  "name": "Penguin island",
+  "description": "Islands: penguin island near Miscellania",
+  "x": 2500,
+  "y": 3896,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Fremennik",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Penguins",
+   "Fairy Queen hideout sequence (4th code)"
+  ],
+  "danger": [],
+  "notes": [
+   "Island with no other access",
+   "Fourth/final code of the hideout sequence",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Penguins",
+   "category": "Islands",
+   "dbRow": 3799,
+   "dbRowName": "fairyrings_ajs",
+   "dialId": 31,
+   "multilocState": 13,
+   "mapElement": "mapelement_975",
+   "mapElementTooltip": "Fairy ring (AJS)",
+   "apparitionNpc": "penguin",
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 3996
+  },
+  "runelite": {
+   "name": "Penguins near Miscellania",
+   "tags": null,
+   "worldMapPoint": [
+    2499,
+    3898,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2500,
+   "y": 3896,
+   "location": "Islands: Penguins near Miscellania."
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AJS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ajs)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java"
+  ]
+ },
+ {
+  "code": "AKP",
+  "kind": "destination",
+  "name": "Necropolis",
+  "description": "Kharidian Desert: small island just off the coast south-west of the Necropolis, by the mine; south of Sophanem",
+  "x": 3284,
+  "y": 2706,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kharidian Desert",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Beneath Cursed Sands",
+    "detail": "Partial: unlocked by entering the Necropolis at the start of the quest"
+   },
+   {
+    "type": "skill",
+    "name": "Agility",
+    "detail": "62 to cross from the island (Necropolis wiki page)"
+   }
+  ],
+  "poi": [
+   "Necropolis",
+   "Tombs of Amascut",
+   "Jaltevas Pyramid",
+   "Sophanem",
+   "Menaphos"
+  ],
+  "danger": [
+   "Desert heat (the Necropolis is a desert-heat area per the Desert heat page; the island itself is inferred)"
+  ],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kharidian Desert: Necropolis",
+   "category": "Kharidian Desert",
+   "dbRow": 3794,
+   "dbRowName": "fairyrings_akp",
+   "dialId": 20,
+   "multilocState": 8,
+   "mapElement": "mapelement_970",
+   "mapElementTooltip": "Fairy ring (AKP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 13840
+  },
+  "runelite": {
+   "name": "Necropolis",
+   "tags": null,
+   "worldMapPoint": [
+    3283,
+    2704,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3284,
+   "y": 2705,
+   "location": "Kharidian Desert: Necropolis"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AKP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_akp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Necropolis",
+   "https://oldschool.runescape.wiki/w/Beneath_Cursed_Sands",
+   "https://oldschool.runescape.wiki/w/Desert_heat"
+  ]
+ },
+ {
+  "code": "AKQ",
+  "kind": "destination",
+  "name": "Piscatoris Hunter area",
+  "description": "Kandarin: Piscatoris Hunter area",
+  "x": 2319,
+  "y": 3619,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Kraken Cove",
+   "Grey chinchompas",
+   "Piscatoris Fishing Colony",
+   "Mining"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Piscatoris Hunter area",
+   "category": "Kandarin",
+   "dbRow": 3797,
+   "dbRowName": "fairyrings_akq",
+   "dialId": 23,
+   "multilocState": 11,
+   "mapElement": "mapelement_973",
+   "mapElementTooltip": "Fairy ring (AKQ)",
+   "apparitionNpc": "hunting_chinchompa",
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3995
+  },
+  "runelite": {
+   "name": "Piscatoris Hunter area",
+   "tags": null,
+   "worldMapPoint": [
+    2318,
+    3617,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2319,
+   "y": 3619,
+   "location": "Kandarin: Piscatoris Hunter area"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AKQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_akq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Piscatoris_Hunter_area"
+  ]
+ },
+ {
+  "code": "AKR",
+  "kind": "destination",
+  "name": "Hosidius Vinery",
+  "description": "Great Kourend: south-east of the Hosidius Vinery",
+  "x": 1826,
+  "y": 3540,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kourend",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Visited Great Kourend at least once",
+    "detail": "Wiki states this in the tool-leprechaun note for AKR"
+   }
+  ],
+  "poi": [
+   "Vinery",
+   "Tithe Farm",
+   "Tool leprechaun (~34 tiles)",
+   "Hosidius"
+  ],
+  "danger": [],
+  "notes": [
+   "Added 10 January 2024 (Children of the Sun update)"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Great Kourend: Hosidius Vinery",
+   "category": "Great Kourend",
+   "dbRow": 3796,
+   "dbRowName": "fairyrings_akr",
+   "dialId": 22,
+   "multilocState": 10,
+   "mapElement": "mapelement_972",
+   "mapElementTooltip": "Fairy ring (AKR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 9570
+  },
+  "runelite": {
+   "name": "Hosidius Vinery",
+   "tags": null,
+   "worldMapPoint": [
+    1823,
+    3539,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1827,
+   "y": 3538,
+   "location": "Great Kourend: Hosidius Vinery"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AKR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_akr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Vinery"
+  ]
+ },
+ {
+  "code": "AKS",
+  "kind": "destination",
+  "name": "Feldip Hunter area",
+  "description": "Feldip Hills: Jungle Hunter area",
+  "x": 2571,
+  "y": 2956,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Feldip Hills",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Feldip Hunter area",
+   "Chompy bird hunting",
+   "Gnome glider (Lemantolly Undri)",
+   "Royal seed pod route"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Feldip Hills: Jungle Hunter area",
+   "category": "Feldip Hills",
+   "dbRow": 3795,
+   "dbRowName": "fairyrings_aks",
+   "dialId": 21,
+   "multilocState": 9,
+   "mapElement": "mapelement_971",
+   "mapElementTooltip": "Fairy ring (AKS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3994
+  },
+  "runelite": {
+   "name": "Feldip Hunter area",
+   "tags": null,
+   "worldMapPoint": [
+    2570,
+    2958,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2571,
+   "y": 2956,
+   "location": "Feldip Hills: Feldip Hunter area"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#AKS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_aks)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Feldip_Hunter_area"
+  ]
+ },
+ {
+  "code": "ALP",
+  "kind": "destination",
+  "name": "Lighthouse",
+  "description": "Fremennik Province: the Lighthouse, near the Barbarian Outpost",
+  "x": 2503,
+  "y": 3636,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Fremennik",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Lighthouse",
+   "Jossik",
+   "Barbarian Outpost",
+   "Dagannoth (Lighthouse dungeon)"
+  ],
+  "danger": [],
+  "notes": [
+   "Wiki lists it under Islands; game category is Fremennik Province"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Fremennik Province: Lighthouse",
+   "category": "Fremennik Province",
+   "dbRow": 3790,
+   "dbRowName": "fairyrings_alp",
+   "dialId": 10,
+   "multilocState": 4,
+   "mapElement": "mapelement_966",
+   "mapElementTooltip": "Fairy ring (ALP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4968
+  },
+  "runelite": {
+   "name": "(Island) Lighthouse",
+   "tags": null,
+   "worldMapPoint": [
+    2502,
+    3638,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2503,
+   "y": 3636,
+   "location": "Islands: Lighthouse"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#ALP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_alp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Lighthouse"
+  ]
+ },
+ {
+  "code": "ALQ",
+  "kind": "destination",
+  "name": "Haunted Woods",
+  "description": "Morytania: Haunted Woods east of Canifis, just south of the Morytania farming patch and west of Port Phasmatys",
+  "x": 3597,
+  "y": 3495,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Morytania",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Port Phasmatys",
+   "Ectophial / Ectofuntus (~92 tiles)",
+   "Morytania farming patch",
+   "Haunted Woods"
+  ],
+  "danger": [
+   "Aggressive leeches, swamp crabs and feral vampyres (Haunted Woods page)"
+  ],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Morytania: Haunted Woods",
+   "category": "Morytania",
+   "dbRow": 3793,
+   "dbRowName": "fairyrings_alq",
+   "dialId": 13,
+   "multilocState": 7,
+   "mapElement": "mapelement_969",
+   "mapElementTooltip": "Fairy ring (ALQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3993
+  },
+  "runelite": {
+   "name": "Haunted Woods east of Canifis",
+   "tags": null,
+   "worldMapPoint": [
+    3598,
+    3496,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3597,
+   "y": 3495,
+   "location": "Morytania: Haunted Woods east of Canifis"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#ALQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_alq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Haunted_Woods"
+  ]
+ },
+ {
+  "code": "ALR",
+  "kind": "destination",
+  "name": "Abyssal Area",
+  "description": "Other Realms: the Abyssal Area (separate cavern of the Abyss)",
+  "x": 3059,
+  "y": 4875,
+  "plane": 0,
+  "mapId": 10007,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Abyssal demons",
+   "Abyssal leeches",
+   "Abyssal guardians",
+   "Abyssal walkers",
+   "Essence pouches"
+  ],
+  "danger": [
+   "Aggressive abyssal creatures (not multicombat)"
+  ],
+  "notes": [
+   "Only exits are the fairy ring or a teleport",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Abyss",
+   "category": "Other Realms",
+   "dbRow": 3792,
+   "dbRowName": "fairyrings_alr",
+   "dialId": 12,
+   "multilocState": 6,
+   "mapElement": "mapelement_968",
+   "mapElementTooltip": "Fairy ring (ALR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 3992
+  },
+  "runelite": {
+   "name": "Abyssal Area",
+   "tags": null,
+   "worldMapPoint": [
+    3059,
+    4877,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3059,
+   "y": 4875,
+   "location": "Other Realms: Abyssal Area"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#ALR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_alr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Abyssal_Area"
+  ]
+ },
+ {
+  "code": "ALS",
+  "kind": "destination",
+  "name": "McGrubor's Wood",
+  "description": "Kandarin: McGrubor's Wood, west of Seers' Village and north of Hemenster",
+  "x": 2644,
+  "y": 3495,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Seers' Village",
+   "Coal trucks",
+   "Fishing Guild",
+   "Ranging Guild",
+   "Hemenster",
+   "Kandarin Diary (medium)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: McGrubor's Wood",
+   "category": "Kandarin",
+   "dbRow": 3791,
+   "dbRowName": "fairyrings_als",
+   "dialId": 11,
+   "multilocState": 5,
+   "mapElement": "mapelement_967",
+   "mapElementTooltip": "Fairy ring (ALS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3991
+  },
+  "runelite": {
+   "name": "McGrubor's Wood",
+   "tags": null,
+   "worldMapPoint": [
+    2643,
+    3497,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2644,
+   "y": 3495,
+   "location": "Kandarin: McGrubor's Wood"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#ALS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_als)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/McGrubor's_Wood"
+  ]
+ },
+ {
+  "code": "BIP",
+  "kind": "destination",
+  "name": "River Salve island",
+  "description": "Islands: island on the River Salve, south-west of Mort Myre",
+  "x": 3410,
+  "y": 3324,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Morytania",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "skill",
+    "name": "Agility",
+    "detail": "50 for the shortcut into Mort Myre (optional)"
+   }
+  ],
+  "poi": [
+   "Mort Myre shortcut",
+   "Nature Grotto altar (~54 tiles via shortcut)",
+   "Hard cryptic clue \"BIP 7013\""
+  ],
+  "danger": [],
+  "notes": [
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: River Salve",
+   "category": "Islands",
+   "dbRow": 4127,
+   "dbRowName": "fairyrings_bip",
+   "dialId": 300,
+   "multilocState": 48,
+   "mapElement": "mapelement_1010",
+   "mapElementTooltip": "Fairy ring (BIP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4017
+  },
+  "runelite": {
+   "name": "(Island) South-west of Mort Myre",
+   "tags": null,
+   "worldMapPoint": [
+    3409,
+    3326,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3410,
+   "y": 3324,
+   "location": "Islands: South-west of Mort Myre, on the river Salve"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BIP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bip)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java"
+  ]
+ },
+ {
+  "code": "BIQ",
+  "kind": "destination",
+  "name": "Kalphite Hive",
+  "description": "Kharidian Desert: south-west of the Shantay Pass; the Kalphite Lair entrance is a short run north-west",
+  "x": 3251,
+  "y": 3095,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kharidian Desert",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Kalphite Lair",
+   "Kalphite Queen",
+   "Shantay Pass"
+  ],
+  "danger": [
+   "Desert heat"
+  ],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kharidian Desert: Near the Kalphite Hive",
+   "category": "Kharidian Desert",
+   "dbRow": 4130,
+   "dbRowName": "fairyrings_biq",
+   "dialId": 303,
+   "multilocState": 51,
+   "mapElement": "mapelement_1013",
+   "mapElementTooltip": "Fairy ring (BIQ)",
+   "apparitionNpc": "ics_little_jackal",
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4019
+  },
+  "runelite": {
+   "name": "Kalphite Hive",
+   "tags": null,
+   "worldMapPoint": [
+    3248,
+    3095,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3251,
+   "y": 3095,
+   "location": "Kharidian Desert near the Kalphite Hive."
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BIQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_biq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Kalphite_Lair",
+   "https://oldschool.runescape.wiki/w/Shantay_Pass"
+  ]
+ },
+ {
+  "code": "BIS",
+  "kind": "destination",
+  "name": "Ardougne Zoo unicorns",
+  "description": "Kandarin: unicorn pen in the Ardougne Zoo",
+  "x": 2635,
+  "y": 3266,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Unicorns",
+   "Ardougne Diary (medium)"
+  ],
+  "danger": [],
+  "notes": [
+   "Enclosed pen with no other access",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Ardougne Zoo unicorns",
+   "category": "Kandarin",
+   "dbRow": 4128,
+   "dbRowName": "fairyrings_bis",
+   "dialId": 301,
+   "multilocState": 49,
+   "mapElement": "mapelement_1011",
+   "mapElementTooltip": "Fairy ring (BIS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4018
+  },
+  "runelite": {
+   "name": "Ardougne Zoo - Unicorns",
+   "tags": null,
+   "worldMapPoint": [
+    2635,
+    3268,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2635,
+   "y": 3266,
+   "location": "Kandarin: Ardougne Zoo - Unicorns"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BIS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bis)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Ardougne_Zoo"
+  ]
+ },
+ {
+  "code": "BJP",
+  "kind": "destination",
+  "name": "Isle of Souls",
+  "description": "Islands: northern coast of the Isle of Souls",
+  "x": 2267,
+  "y": 2976,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Islands",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Crumbling Tower",
+   "Isle of Souls Dungeon"
+  ],
+  "danger": [],
+  "notes": [
+   "Added 18 May 2022"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Isle of Souls",
+   "category": "Islands",
+   "dbRow": 4139,
+   "dbRowName": "fairyrings_bjp",
+   "dialId": 330,
+   "multilocState": 60,
+   "mapElement": "mapelement_1022",
+   "mapElementTooltip": "Fairy ring (BJP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 9551
+  },
+  "runelite": {
+   "name": "(Island) Isle of Souls",
+   "tags": null,
+   "worldMapPoint": [
+    2264,
+    2976,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2267,
+   "y": 2976,
+   "location": "Islands: Isle of Souls"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BJP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bjp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Isle_of_Souls"
+  ]
+ },
+ {
+  "code": "BJR",
+  "kind": "destination",
+  "name": "Fisher King's realm",
+  "description": "Other Realms: northern side of the Realm of the Fisher King",
+  "x": 2650,
+  "y": 4730,
+  "plane": 0,
+  "mapId": 10063,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Holy Grail",
+    "detail": "Partial: BJR becomes usable part-way through the quest (Holy Grail guide); the Fisher Realm page says completion, but the quest guide uses BJR for the in-quest trip"
+   }
+  ],
+  "poi": [
+   "Fisher Realm",
+   "Fisher King"
+  ],
+  "danger": [],
+  "notes": [
+   "Wiki has healthy (10063) and diseased (10062) map variants of this realm",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Fisher King",
+   "category": "Other Realms",
+   "dbRow": 4141,
+   "dbRowName": "fairyrings_bjr",
+   "dialId": 332,
+   "multilocState": 62,
+   "mapElement": "mapelement_1024",
+   "mapElementTooltip": "Fairy ring (BJR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4025
+  },
+  "runelite": {
+   "name": "Realm of the Fisher King",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2650,
+   "y": 4730,
+   "location": "Other Realms: Realm of the Fisher King"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BJR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bjr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Fisher_Realm",
+   "https://oldschool.runescape.wiki/w/Holy_Grail"
+  ]
+ },
+ {
+  "code": "BJS",
+  "kind": "destination",
+  "name": "Island near Zul-Andra",
+  "description": "Islands: island just west of Zul-Andra",
+  "x": 2150,
+  "y": 3070,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Tirannwn",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Regicide",
+    "detail": "Completed"
+   },
+   {
+    "type": "skill",
+    "name": "Agility",
+    "detail": "76 to jump off the island"
+   }
+  ],
+  "poi": [
+   "Zul-Andra",
+   "Zulrah"
+  ],
+  "danger": [],
+  "notes": [
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Near Zul-Andra",
+   "category": "Islands",
+   "dbRow": 4140,
+   "dbRowName": "fairyrings_bjs",
+   "dialId": 331,
+   "multilocState": 61,
+   "mapElement": "mapelement_1023",
+   "mapElementTooltip": "Fairy ring (BJS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4389
+  },
+  "runelite": {
+   "name": "(Island) Near Zul-Andra",
+   "tags": "zulrah",
+   "worldMapPoint": [
+    2147,
+    3069,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2150,
+   "y": 3070,
+   "location": "Islands: Near Zul-Andra"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BJS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bjs)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Zul-Andra"
+  ]
+ },
+ {
+  "code": "BKP",
+  "kind": "destination",
+  "name": "South of Castle Wars",
+  "description": "Feldip Hills: Chompy Marsh, south of Castle Wars",
+  "x": 2385,
+  "y": 3035,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Feldip Hills",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Smoke Devil Dungeon",
+   "Chompy birds",
+   "Teak tree",
+   "Castle Wars"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Feldip Hills: South of Castle Wars",
+   "category": "Feldip Hills",
+   "dbRow": 4135,
+   "dbRowName": "fairyrings_bkp",
+   "dialId": 320,
+   "multilocState": 56,
+   "mapElement": "mapelement_1018",
+   "mapElementTooltip": "Fairy ring (BKP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4022
+  },
+  "runelite": {
+   "name": "South of Castle Wars",
+   "tags": null,
+   "worldMapPoint": [
+    2384,
+    3037,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2385,
+   "y": 3035,
+   "location": "Feldip Hills: Chompy Marsh, south of Castle Wars"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BKP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bkp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Chompy_Marsh"
+  ]
+ },
+ {
+  "code": "BKQ",
+  "kind": "destination",
+  "name": "Enchanted Valley",
+  "description": "Other Realms: the Enchanted Valley",
+  "x": 3041,
+  "y": 4532,
+  "plane": 0,
+  "mapId": 10055,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Tree spirits",
+   "Enchanted Valley"
+  ],
+  "danger": [],
+  "notes": [
+   "Only reachable by fairy ring",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Enchanted Valley",
+   "category": "Other Realms",
+   "dbRow": 4138,
+   "dbRowName": "fairyrings_bkq",
+   "dialId": 323,
+   "multilocState": 59,
+   "mapElement": "mapelement_1021",
+   "mapElementTooltip": "Fairy ring (BKQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4024
+  },
+  "runelite": {
+   "name": "Enchanted Valley",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3041,
+   "y": 4532,
+   "location": "Other Realms: Enchanted Valley"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BKQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bkq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Enchanted_Valley"
+  ]
+ },
+ {
+  "code": "BKR",
+  "kind": "destination",
+  "name": "Mort Myre Swamp",
+  "description": "Morytania: northern Mort Myre Swamp, south of Canifis",
+  "x": 3469,
+  "y": 3431,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Morytania",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Mort Myre Swamp",
+   "Swamp boat (to Barrows / Burgh de Rott)",
+   "Canifis"
+  ],
+  "danger": [
+   "Ghasts (attack and rot food) and swamp decay, unless a Fire of Dehumidification has been built"
+  ],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Morytania: Mort Myre",
+   "category": "Morytania",
+   "dbRow": 4137,
+   "dbRowName": "fairyrings_bkr",
+   "dialId": 322,
+   "multilocState": 58,
+   "mapElement": "mapelement_1020",
+   "mapElementTooltip": "Fairy ring (BKR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4023
+  },
+  "runelite": {
+   "name": "Mort Myre Swamp, south of Canifis",
+   "tags": null,
+   "worldMapPoint": [
+    3468,
+    3433,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3469,
+   "y": 3431,
+   "location": "Morytania: Mort Myre Swamp, south of Canifis"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BKR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bkr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Mort_Myre_Swamp"
+  ]
+ },
+ {
+  "code": "BKS",
+  "kind": "destination",
+  "name": "Zanaris",
+  "description": "Other Realms: Zanaris main fairy ring (also the \"Zanaris\" left-click option)",
+  "x": 2412,
+  "y": 4434,
+  "plane": 0,
+  "mapId": 28,
+  "area": "Zanaris",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Zanaris bank",
+   "Puro-Puro (Impetuous Impulses)",
+   "Chaeldar (Slayer master)",
+   "Cosmic Altar",
+   "Sand pit (~30 tiles)",
+   "Evil Chicken's Lair"
+  ],
+  "danger": [],
+  "notes": [
+   "The \"Zanaris\" option on every ring lands on this same tile (Shortest Path: ZANARIS -> 2412,4434)",
+   "The Zanaris ring itself is loc 29560 (fairyring_homehub) which has no Zanaris option"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Zanaris",
+   "category": "Other Realms",
+   "dbRow": 4136,
+   "dbRowName": "fairyrings_bks",
+   "dialId": 321,
+   "multilocState": 57,
+   "mapElement": "mapelement_1019",
+   "mapElementTooltip": "Fairy ring (BKS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 5365
+  },
+  "runelite": {
+   "name": "Zanaris",
+   "tags": null,
+   "worldMapPoint": [
+    2411,
+    4436,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2412,
+   "y": 4434,
+   "location": "Other Realms: Zanaris"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BKS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bks)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Zanaris"
+  ]
+ },
+ {
+  "code": "BLP",
+  "kind": "destination",
+  "name": "TzHaar (Mor Ul Rek)",
+  "description": "Dungeons: TzHaar area (Mor Ul Rek) under the Karamja volcano",
+  "x": 2437,
+  "y": 5126,
+  "plane": 0,
+  "mapId": 23,
+  "area": "Underground",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "TzHaar Fight Cave",
+   "TzHaar Fight Pit",
+   "Inferno",
+   "TzHaar shops"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Dungeons: Mor Ul Rek",
+   "category": "Dungeons",
+   "dbRow": 4131,
+   "dbRowName": "fairyrings_blp",
+   "dialId": 310,
+   "multilocState": 52,
+   "mapElement": "mapelement_1014",
+   "mapElementTooltip": "Fairy ring (BLP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4020
+  },
+  "runelite": {
+   "name": "TzHaar area",
+   "tags": null,
+   "worldMapPoint": [
+    2432,
+    5127,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2437,
+   "y": 5126,
+   "location": "Dungeons: TzHaar area"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BLP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_blp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Mor_Ul_Rek"
+  ]
+ },
+ {
+  "code": "BLQ",
+  "kind": "destination",
+  "name": "Yu'biusk",
+  "description": "Other Realms: Yu'biusk, the goblin homeworld",
+  "x": 3572,
+  "y": 4372,
+  "plane": 0,
+  "mapId": -1,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Land of the Goblins",
+    "detail": "Completed (quest rewards list 'Access to Yu'biusk, using fairy ring code BLQ'; Yu'biusk page agrees). Fairy ring page says partial; Shortest Path gates on LOTG varbit 13599 > 49 (quest-helper: step 50 of 52, the quest ends right after the Yu'biusk visit)"
+   }
+  ],
+  "poi": [
+   "Yu'biusk",
+   "Hopespear's Will (miniquest)",
+   "Strange box"
+  ],
+  "danger": [],
+  "notes": [
+   "The Yu'biusk 'ring' is a portal (loc 43119 lotg_portal_flux_there, option Enter)",
+   "No wiki basemap covers this area",
+   "Departure via the portal (Shortest Path: \"Enter Portal 43119\")"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Yu'biusk",
+   "category": "Other Realms",
+   "dbRow": 4134,
+   "dbRowName": "fairyrings_blq",
+   "dialId": 313,
+   "multilocState": 55,
+   "mapElement": "mapelement_1017",
+   "mapElementTooltip": "Fairy ring (BLQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 13598
+  },
+  "runelite": {
+   "name": "Yu'biusk",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3573,
+   "y": 4371,
+   "location": "Other Realms: Yu'biusk"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BLQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_blq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Yu'biusk",
+   "https://oldschool.runescape.wiki/w/Land_of_the_Goblins"
+  ]
+ },
+ {
+  "code": "BLR",
+  "kind": "destination",
+  "name": "Legends' Guild",
+  "description": "Kandarin: just east of the Legends' Guild",
+  "x": 2740,
+  "y": 3351,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Legends' Guild",
+   "Quest point cape teleport (12 tiles)",
+   "Mining",
+   "Magic & maple trees",
+   "Witchaven",
+   "East Ardougne"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Legends' Guild",
+   "category": "Kandarin",
+   "dbRow": 4133,
+   "dbRowName": "fairyrings_blr",
+   "dialId": 312,
+   "multilocState": 54,
+   "mapElement": "mapelement_1016",
+   "mapElementTooltip": "Fairy ring (BLR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4021
+  },
+  "runelite": {
+   "name": "Legends' Guild",
+   "tags": null,
+   "worldMapPoint": [
+    2739,
+    3353,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2740,
+   "y": 3351,
+   "location": "Kandarin: Legends' Guild"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BLR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_blr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Legends'_Guild"
+  ]
+ },
+ {
+  "code": "BLS",
+  "kind": "destination",
+  "name": "South of Mount Quidamortem",
+  "description": "Kebos Lowlands: south of Mount Quidamortem",
+  "x": 1295,
+  "y": 3493,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kourend",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Visited Great Kourend at least once",
+    "detail": "Inferred, not verified: the wiki states it for AKR, CIR, CIS and DJR but not BLS; the game varbit ZEAH_PLAYERHASVISITED (4897) is the likely gate"
+   }
+  ],
+  "poi": [
+   "Chambers of Xeric (Mountain Guide)",
+   "The Stranglewood (rowboat)",
+   "Vardorvis",
+   "Mountain Guide"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kebos Lowlands: South of Mount Quidamortem",
+   "category": "Kebos Lowlands",
+   "dbRow": 4132,
+   "dbRowName": "fairyrings_bls",
+   "dialId": 311,
+   "multilocState": 53,
+   "mapElement": "mapelement_1015",
+   "mapElementTooltip": "Fairy ring (BLS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 15255
+  },
+  "runelite": {
+   "name": "South of Mount Quidamortem",
+   "tags": "vardorvis the stranglewood chambers of xeric",
+   "worldMapPoint": [
+    1293,
+    3495,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1295,
+   "y": 3493,
+   "location": "Kebos Lowlands: South of Mount Quidamortem"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#BLS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_bls)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Mount_Quidamortem"
+  ]
+ },
+ {
+  "code": "CIP",
+  "kind": "destination",
+  "name": "Miscellania",
+  "description": "Islands: Miscellania, north-west of the castle",
+  "x": 2513,
+  "y": 3884,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Fremennik",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "The Fremennik Trials",
+    "detail": "Completed"
+   }
+  ],
+  "poi": [
+   "Miscellania",
+   "Etceteria",
+   "Managing Miscellania",
+   "Ring of wealth teleport (48 tiles)",
+   "Fremennik Diary (medium)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Miscellania",
+   "category": "Islands",
+   "dbRow": 4111,
+   "dbRowName": "fairyrings_cip",
+   "dialId": 200,
+   "multilocState": 32,
+   "mapElement": "mapelement_994",
+   "mapElementTooltip": "Fairy ring (CIP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4009
+  },
+  "runelite": {
+   "name": "(Island) Miscellania",
+   "tags": null,
+   "worldMapPoint": [
+    2512,
+    3886,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2513,
+   "y": 3884,
+   "location": "Islands: Miscellania"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CIP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cip)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Miscellania"
+  ]
+ },
+ {
+  "code": "CIQ",
+  "kind": "destination",
+  "name": "North-west of Yanille",
+  "description": "Kandarin: north-west of Yanille",
+  "x": 2528,
+  "y": 3127,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Tree Gnome Village",
+   "Yanille",
+   "Gu'Tanoth",
+   "Castle Wars",
+   "Watchtower teleport (60 tiles)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: North-west of Yanille",
+   "category": "Kandarin",
+   "dbRow": 4114,
+   "dbRowName": "fairyrings_ciq",
+   "dialId": 203,
+   "multilocState": 35,
+   "mapElement": "mapelement_997",
+   "mapElementTooltip": "Fairy ring (CIQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4010
+  },
+  "runelite": {
+   "name": "North-west of Yanille",
+   "tags": null,
+   "worldMapPoint": [
+    2527,
+    3129,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2528,
+   "y": 3127,
+   "location": "Kandarin: North-west of Yanille"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CIQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ciq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java"
+  ]
+ },
+ {
+  "code": "CIR",
+  "kind": "destination",
+  "name": "Mount Karuulm",
+  "description": "Kebos Lowlands: south of Mount Karuulm, north-east of the Farming Guild",
+  "x": 1302,
+  "y": 3762,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kourend",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Visited Great Kourend at least once",
+    "detail": ""
+   }
+  ],
+  "poi": [
+   "Mount Karuulm",
+   "Karuulm Slayer Dungeon",
+   "Konar",
+   "Farming Guild",
+   "Battlefront teleport (42 tiles)",
+   "Kourend & Kebos Diary (medium)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kebos Lowlands: South of Mount Karuulm",
+   "category": "Kebos Lowlands",
+   "dbRow": 4113,
+   "dbRowName": "fairyrings_cir",
+   "dialId": 202,
+   "multilocState": 34,
+   "mapElement": "mapelement_996",
+   "mapElementTooltip": "Fairy ring (CIR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 7855
+  },
+  "runelite": {
+   "name": "North-east of the Farming Guild",
+   "tags": "mount karuulm konar",
+   "worldMapPoint": [
+    1303,
+    3762,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1302,
+   "y": 3762,
+   "location": "Kebos Lowlands: South of Mount Karuulm"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CIR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cir)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Mount_Karuulm"
+  ]
+ },
+ {
+  "code": "CIS",
+  "kind": "destination",
+  "name": "Arceuus Library",
+  "description": "Great Kourend: north of the Arceuus Library",
+  "x": 1639,
+  "y": 3868,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kourend",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Visited Great Kourend at least once",
+    "detail": ""
+   }
+  ],
+  "poi": [
+   "Arceuus Library",
+   "Arceuus",
+   "Trossa",
+   "Arceuus Library teleport (34 tiles)"
+  ],
+  "danger": [],
+  "notes": [
+   "Before 10 January 2024 required reviving a dead mushroom ring (80k to Trossa); legacy varbit ZEAH_FAIRYRING_CIS_UNLOCKED=4885"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Great Kourend: Arceuus Library",
+   "category": "Great Kourend",
+   "dbRow": 4112,
+   "dbRowName": "fairyrings_cis",
+   "dialId": 201,
+   "multilocState": 33,
+   "mapElement": "mapelement_995",
+   "mapElementTooltip": "Fairy ring (CIS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4892
+  },
+  "runelite": {
+   "name": "North of the Arceuus Library",
+   "tags": null,
+   "worldMapPoint": [
+    1636,
+    3869,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1639,
+   "y": 3868,
+   "location": "Great Kourend: Arceuus Library"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CIS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cis)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Arceuus_Library"
+  ]
+ },
+ {
+  "code": "CJQ",
+  "kind": "destination",
+  "name": "The Great Conch",
+  "description": "Islands: The Great Conch, Tortugan island south of Menaphos",
+  "x": 3178,
+  "y": 2447,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Islands",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Troubled Tortugans",
+    "detail": "Partial: CJQ unlocks when you first reach the Great Conch with Floopa during the quest"
+   },
+   {
+    "type": "other",
+    "name": "Visited The Great Conch at least once",
+    "detail": "Fairy ring page; the quest arrival satisfies it"
+   },
+   {
+    "type": "skill",
+    "name": "Sailing",
+    "detail": "45 (not boostable): a start requirement of Troubled Tortugans, together with 51 Slayer, 48 Construction, 45 Hunter, 40 Woodcutting, 34 Crafting and Pandemonium"
+   }
+  ],
+  "poi": [
+   "The Summer Shore",
+   "Great Conch bank",
+   "Tortugans",
+   "Calquat patch",
+   "Coral patch",
+   "Gryphons / Shellbane Gryphon",
+   "Crab trapping",
+   "Hermit crabs"
+  ],
+  "danger": [],
+  "notes": [
+   "Added 5 Nov 2025 (Sailing pre-release); usable from 19 Nov 2025"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: The Great Conch",
+   "category": "Islands",
+   "dbRow": 4126,
+   "dbRowName": "fairyrings_cjq",
+   "dialId": 233,
+   "multilocState": 47,
+   "mapElement": "mapelement_1009",
+   "mapElementTooltip": "Fairy ring (CJQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 18312
+  },
+  "runelite": {
+   "name": "The Great Conch",
+   "tags": null,
+   "worldMapPoint": [
+    3178,
+    2445,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3178,
+   "y": 2447,
+   "location": "The Great Conch"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CJQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cjq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/The_Great_Conch",
+   "https://oldschool.runescape.wiki/w/Troubled_Tortugans"
+  ]
+ },
+ {
+  "code": "CJR",
+  "kind": "destination",
+  "name": "Sinclair Mansion",
+  "description": "Kandarin: east of the Sinclair Mansion, north of Seers' Village",
+  "x": 2705,
+  "y": 3576,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Sinclair Mansion",
+   "Seers' Village",
+   "Falo the Bard"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Sinclair Mansion",
+   "category": "Kandarin",
+   "dbRow": 4125,
+   "dbRowName": "fairyrings_cjr",
+   "dialId": 232,
+   "multilocState": 46,
+   "mapElement": "mapelement_1008",
+   "mapElementTooltip": "Fairy ring (CJR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4016
+  },
+  "runelite": {
+   "name": "Sinclair Mansion",
+   "tags": "falo bard",
+   "worldMapPoint": [
+    2704,
+    3578,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2705,
+   "y": 3576,
+   "location": "Kandarin: Sinclair Mansion (east)"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CJR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cjr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Sinclair_Mansion"
+  ]
+ },
+ {
+  "code": "CKP",
+  "kind": "destination",
+  "name": "Cosmic entity's plane",
+  "description": "Other Realms: the Cosmic entity's plane",
+  "x": 2075,
+  "y": 4848,
+  "plane": 0,
+  "mapId": 10033,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Starflowers",
+   "Fairytale II - Cure a Queen"
+  ],
+  "danger": [],
+  "notes": [
+   "Only reachable by fairy ring",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Cosmic Entity's plane",
+   "category": "Other Realms",
+   "dbRow": 4119,
+   "dbRowName": "fairyrings_ckp",
+   "dialId": 220,
+   "multilocState": 40,
+   "mapElement": "mapelement_1002",
+   "mapElementTooltip": "Fairy ring (CKP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4013
+  },
+  "runelite": {
+   "name": "Cosmic entity's plane",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2075,
+   "y": 4848,
+   "location": "Other Realms: Cosmic entity's plane"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CKP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ckp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Cosmic_entity's_plane"
+  ]
+ },
+ {
+  "code": "CKQ",
+  "kind": "destination",
+  "name": "Aldarin",
+  "description": "Varlamore: Aldarin, island south-west of mainland Varlamore",
+  "x": 1359,
+  "y": 2941,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Varlamore",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Children of the Sun",
+    "detail": "Completed"
+   },
+   {
+    "type": "other",
+    "name": "Travelled to Civitas illa Fortis via Regulus Cento",
+    "detail": "Wiki: required after Children of the Sun"
+   }
+  ],
+  "poi": [
+   "Aldarin",
+   "Mastering Mixology",
+   "Hops patch",
+   "Loom",
+   "Tool leprechaun (~6 tiles)"
+  ],
+  "danger": [],
+  "notes": [
+   "Added 25 September 2024"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Varlamore: Aldarin",
+   "category": "Varlamore",
+   "dbRow": 4122,
+   "dbRowName": "fairyrings_ckq",
+   "dialId": 223,
+   "multilocState": 43,
+   "mapElement": "mapelement_1005",
+   "mapElementTooltip": "Fairy ring (CKQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 11192
+  },
+  "runelite": {
+   "name": "Aldarin",
+   "tags": null,
+   "worldMapPoint": [
+    1358,
+    2943,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1359,
+   "y": 2941,
+   "location": "Varlamore: Aldarin"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CKQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ckq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Aldarin"
+  ]
+ },
+ {
+  "code": "CKR",
+  "kind": "destination",
+  "name": "South of Tai Bwo Wannai",
+  "description": "Karamja: south of Tai Bwo Wannai Village",
+  "x": 2801,
+  "y": 3003,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Karamja",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Horned graahks",
+   "Shilo Village",
+   "Tai Bwo Wannai",
+   "Nature Altar"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Karamja: Tai Bwo Wannai Village",
+   "category": "Karamja",
+   "dbRow": 4121,
+   "dbRowName": "fairyrings_ckr",
+   "dialId": 222,
+   "multilocState": 42,
+   "mapElement": "mapelement_1004",
+   "mapElementTooltip": "Fairy ring (CKR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4015
+  },
+  "runelite": {
+   "name": "South of Tai Bwo Wannai Village",
+   "tags": null,
+   "worldMapPoint": [
+    2800,
+    3005,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2801,
+   "y": 3003,
+   "location": "Karamja: South of Tai Bwo Wannai Village"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CKR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_ckr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Tai_Bwo_Wannai"
+  ]
+ },
+ {
+  "code": "CKS",
+  "kind": "destination",
+  "name": "Canifis",
+  "description": "Morytania: Canifis, west of the town",
+  "x": 3447,
+  "y": 3470,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Morytania",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Morytania Slayer Tower",
+   "Canifis",
+   "Paterdomus",
+   "Mort Myre Swamp",
+   "Mushroom patch",
+   "Tool leprechaun (~10 tiles)",
+   "Salve Graveyard Teleport",
+   "Kharyrll Teleport"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Morytania: Canifis",
+   "category": "Morytania",
+   "dbRow": 4120,
+   "dbRowName": "fairyrings_cks",
+   "dialId": 221,
+   "multilocState": 41,
+   "mapElement": "mapelement_1003",
+   "mapElementTooltip": "Fairy ring (CKS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4014
+  },
+  "runelite": {
+   "name": "Canifis",
+   "tags": null,
+   "worldMapPoint": [
+    3446,
+    3472,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3447,
+   "y": 3470,
+   "location": "Morytania: Canifis"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CKS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cks)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Canifis"
+  ]
+ },
+ {
+  "code": "CLP",
+  "kind": "destination",
+  "name": "Island south of Draynor",
+  "description": "Islands: small island south of Draynor Village",
+  "x": 3082,
+  "y": 3206,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Misthalin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Hard coordinate clue"
+  ],
+  "danger": [],
+  "notes": [
+   "Island with no other access (inferred from the game no_staff_return flag; no wiki statement found)",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: South of Draynor Village",
+   "category": "Islands",
+   "dbRow": 4115,
+   "dbRowName": "fairyrings_clp",
+   "dialId": 210,
+   "multilocState": 36,
+   "mapElement": "mapelement_998",
+   "mapElementTooltip": "Fairy ring (CLP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4011
+  },
+  "runelite": {
+   "name": "(Island) South of Draynor Village",
+   "tags": null,
+   "worldMapPoint": [
+    3081,
+    3208,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3082,
+   "y": 3206,
+   "location": "Islands: Draynor island"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CLP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_clp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Draynor_island"
+  ]
+ },
+ {
+  "code": "CLR",
+  "kind": "destination",
+  "name": "Ape Atoll",
+  "description": "Islands: Ape Atoll, midway along the Ape Atoll Agility Course",
+  "x": 2740,
+  "y": 2738,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Islands",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Monkey Madness I",
+    "detail": "Completed"
+   },
+   {
+    "type": "other",
+    "name": "Daero's training",
+    "detail": "Per wiki changelog (2 July 2015)"
+   },
+   {
+    "type": "item",
+    "name": "Ninja or Kruk monkey greegree",
+    "detail": "Optional: needed (with 48 Agility) only to continue through the agility course into Marim; a slower exit climbs the tower and crosses the rope bridge"
+   }
+  ],
+  "poi": [
+   "Ape Atoll Agility Course",
+   "Marim",
+   "Ape Atoll"
+  ],
+  "danger": [],
+  "notes": [
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Ape Atoll",
+   "category": "Islands",
+   "dbRow": 4117,
+   "dbRowName": "fairyrings_clr",
+   "dialId": 212,
+   "multilocState": 38,
+   "mapElement": "mapelement_1000",
+   "mapElementTooltip": "Fairy ring (CLR)",
+   "apparitionNpc": "mm_transmogrification_small_ninja_monkey",
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4620
+  },
+  "runelite": {
+   "name": "(Island) Ape Atoll",
+   "tags": null,
+   "worldMapPoint": [
+    2737,
+    2739,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2740,
+   "y": 2738,
+   "location": "Islands: Ape Atoll"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CLR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_clr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Ape_Atoll_Agility_Course",
+   "https://oldschool.runescape.wiki/w/Monkey_Madness_I"
+  ]
+ },
+ {
+  "code": "CLS",
+  "kind": "destination",
+  "name": "Hazelmere's home",
+  "description": "Kandarin: Hazelmere's island in the Yanille chain",
+  "x": 2682,
+  "y": 3081,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Hazelmere",
+   "Yanille chain islands"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Hazelmere's home",
+   "category": "Kandarin",
+   "dbRow": 4116,
+   "dbRowName": "fairyrings_cls",
+   "dialId": 211,
+   "multilocState": 37,
+   "mapElement": "mapelement_999",
+   "mapElementTooltip": "Fairy ring (CLS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4012
+  },
+  "runelite": {
+   "name": "(Island) Hazelmere's home",
+   "tags": null,
+   "worldMapPoint": [
+    2681,
+    3083,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2682,
+   "y": 3081,
+   "location": "Islands: Yanille Chain"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#CLS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_cls)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Hazelmere"
+  ]
+ },
+ {
+  "code": "DIP",
+  "kind": "destination",
+  "name": "Abyssal Nexus",
+  "description": "Other Realms: the Abyssal Nexus (Abyssal Sire)",
+  "x": 3037,
+  "y": 4763,
+  "plane": 0,
+  "mapId": 40,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Abyssal Sire (four chambers)",
+   "The Overseer / Font of Consumption (unsired)",
+   "Appendage: one-click teleport to Lumbridge"
+  ],
+  "danger": [],
+  "notes": [
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff",
+   "The appendage north of the Overseer teleports to Lumbridge, so you are never stranded here"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Abyssal Nexus",
+   "category": "Other Realms",
+   "dbRow": 3802,
+   "dbRowName": "fairyrings_dip",
+   "dialId": 100,
+   "multilocState": 16,
+   "mapElement": "mapelement_978",
+   "mapElementTooltip": "Fairy ring (DIP)",
+   "apparitionNpc": "abyssalsire_spawn_dying",
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 3256
+  },
+  "runelite": {
+   "name": "(Sire Boss) Abyssal Nexus",
+   "tags": null,
+   "worldMapPoint": [
+    3036,
+    4761,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3037,
+   "y": 4763,
+   "location": "Other Realms: Abyssal Nexus"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DIP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dip)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Abyssal_Nexus"
+  ]
+ },
+ {
+  "code": "DIQ",
+  "kind": "destination",
+  "name": "Player-owned house",
+  "description": "Your own house: fairy ring in the superior garden (only if built)",
+  "x": null,
+  "y": null,
+  "plane": null,
+  "mapId": -1,
+  "area": "POH",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "skill",
+    "name": "Construction",
+    "detail": "85 (boostable) to build the Fairy ring; 95 + 83 Farming for the Spiritual Fairy Tree"
+   },
+   {
+    "type": "quest",
+    "name": "Fairytale II - Cure a Queen",
+    "detail": "Completed (needed to buy the fairy enchantment)"
+   }
+  ],
+  "poi": [
+   "POH",
+   "Ornate rejuvenation pool",
+   "Jewellery box",
+   "Portal nexus",
+   "Spirit tree (Spiritual Fairy Tree)"
+  ],
+  "danger": [],
+  "notes": [
+   "Destination is your own instanced house; no fixed world coordinate (game dest_coord 0,0,0)",
+   "POH ring locs: 29228 (Fairy ring), 29229 (Spiritual Fairy Tree), 40779 (Christmas variant), 27097 (Raging Echoes variant); the tree variants have Ring-Zanaris / Ring-configure / Ring-last-destination but no Favourites option",
+   "Departure only if the player has built a POH fairy ring",
+   "Wiki trivia says a servant can appear with you (1/6), but the game table has no apparition_npc for DIQ"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "",
+   "category": "",
+   "dbRow": 3805,
+   "dbRowName": "fairyrings_diq",
+   "dialId": 103,
+   "multilocState": 19,
+   "mapElement": "mapelement_981",
+   "mapElementTooltip": "Fairy ring (DIQ)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 5344
+  },
+  "runelite": {
+   "name": "Player-owned house",
+   "tags": "poh home",
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "location": "Player-owned house superior garden"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DIQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_diq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Fairy_ring_(Construction)",
+   "https://oldschool.runescape.wiki/w/Spirit_tree_%26_fairy_ring"
+  ]
+ },
+ {
+  "code": "DIR",
+  "kind": "destination",
+  "name": "Gorak Plane",
+  "description": "Other Realms: the Goraks' plane",
+  "x": 3038,
+  "y": 5348,
+  "plane": 0,
+  "mapId": 10073,
+  "area": "Other Realms",
+  "surface": false,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Goraks",
+   "Gorak claws"
+  ],
+  "danger": [
+   "Goraks become aggressive once you step out of the ring"
+  ],
+  "notes": [
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Other Realms: Goraks' plane",
+   "category": "Other Realms",
+   "dbRow": 3804,
+   "dbRowName": "fairyrings_dir",
+   "dialId": 102,
+   "multilocState": 18,
+   "mapElement": "mapelement_980",
+   "mapElementTooltip": "Fairy ring (DIR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4000
+  },
+  "runelite": {
+   "name": "Gorak's Plane",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3038,
+   "y": 5348,
+   "location": "Other Realms: Gorak's Plane"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DIR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dir)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Gorak_Plane"
+  ]
+ },
+ {
+  "code": "DIS",
+  "kind": "destination",
+  "name": "Wizards' Tower",
+  "description": "Misthalin: south of the Wizards' Tower",
+  "x": 3108,
+  "y": 3149,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Misthalin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Wizards' Tower",
+   "Guardians of the Rift",
+   "Rune essence mine",
+   "Necklace of passage teleport (39 tiles)",
+   "Lumbridge & Draynor Diary (medium)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Misthalin: Wizards' Tower",
+   "category": "Misthalin",
+   "dbRow": 3803,
+   "dbRowName": "fairyrings_dis",
+   "dialId": 101,
+   "multilocState": 17,
+   "mapElement": "mapelement_979",
+   "mapElementTooltip": "Fairy ring (DIS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 3999
+  },
+  "runelite": {
+   "name": "Wizards' Tower",
+   "tags": null,
+   "worldMapPoint": [
+    3109,
+    3149,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3108,
+   "y": 3149,
+   "location": "Misthalin: Wizards' Tower"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DIS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dis)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Wizards'_Tower"
+  ]
+ },
+ {
+  "code": "DJP",
+  "kind": "destination",
+  "name": "Tower of Life",
+  "description": "Kandarin: east of the Tower of Life, south of East Ardougne",
+  "x": 2658,
+  "y": 3230,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kandarin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Tower of Life",
+   "Ardougne Monastery",
+   "Ardougne cloak teleport (~51 tiles)",
+   "East Ardougne",
+   "Spirit tree (Ardougne)",
+   "Port Khazard",
+   "Tool leprechaun (~43 tiles)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kandarin: Tower of Life",
+   "category": "Kandarin",
+   "dbRow": 4107,
+   "dbRowName": "fairyrings_djp",
+   "dialId": 130,
+   "multilocState": 28,
+   "mapElement": "mapelement_990",
+   "mapElementTooltip": "Fairy ring (DJP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4007
+  },
+  "runelite": {
+   "name": "Tower of Life",
+   "tags": null,
+   "worldMapPoint": [
+    2657,
+    3232,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2658,
+   "y": 3230,
+   "location": "Kandarin: Tower of Life"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DJP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_djp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Tower_of_Life_(building)"
+  ]
+ },
+ {
+  "code": "DJR",
+  "kind": "destination",
+  "name": "Chasm of Fire",
+  "description": "Great Kourend: south-east of the Chasm of Fire, north-west Shayzien",
+  "x": 1455,
+  "y": 3658,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kourend",
+  "surface": true,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Visited Great Kourend at least once",
+    "detail": ""
+   }
+  ],
+  "poi": [
+   "Chasm of Fire",
+   "Shayzien",
+   "Bank (Shayzien chest, 29 tiles - closest bank to any ring)"
+  ],
+  "danger": [],
+  "notes": [
+   "Before the Diverse Dungeons update DJR went to Sinclair Mansion (west)"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Great Kourend: Chasm of Fire",
+   "category": "Great Kourend",
+   "dbRow": 4109,
+   "dbRowName": "fairyrings_djr",
+   "dialId": 132,
+   "multilocState": 30,
+   "mapElement": "mapelement_992",
+   "mapElementTooltip": "Fairy ring (DJR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4008
+  },
+  "runelite": {
+   "name": "Chasm of Fire",
+   "tags": null,
+   "worldMapPoint": [
+    1452,
+    3659,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 1455,
+   "y": 3658,
+   "location": "Great Kourend: Chasm of Fire"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DJR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_djr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Chasm_of_Fire"
+  ]
+ },
+ {
+  "code": "DKP",
+  "kind": "destination",
+  "name": "South of Musa Point",
+  "description": "Karamja: north-east coast south of Musa Point, by the karambwan fishing spots and the crashed (non-functional) gnome glider",
+  "x": 2900,
+  "y": 3111,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Karamja",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Karambwan fishing spots",
+   "Crashed gnome glider (non-functional; the game label \"Gnome Glider\")",
+   "Musa Point",
+   "Karamja Shipyard (walk south-east)"
+  ],
+  "danger": [],
+  "notes": [
+   "Not next to a working glider: the Karamja glider Gandius is at ~(2972,2965), about 150 tiles south-east"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Karamja: Gnome Glider",
+   "category": "Karamja",
+   "dbRow": 4103,
+   "dbRowName": "fairyrings_dkp",
+   "dialId": 120,
+   "multilocState": 24,
+   "mapElement": "mapelement_986",
+   "mapElementTooltip": "Fairy ring (DKP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4004
+  },
+  "runelite": {
+   "name": "South of Musa Point",
+   "tags": null,
+   "worldMapPoint": [
+    2899,
+    3113,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2900,
+   "y": 3111,
+   "location": "Karamja: Gnome glider"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DKP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dkp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Gnome_glider",
+   "https://oldschool.runescape.wiki/w/Shipyard_(Karamja)",
+   "https://oldschool.runescape.wiki/w/Fishing_spot_(karambwan)"
+  ]
+ },
+ {
+  "code": "DKR",
+  "kind": "destination",
+  "name": "Edgeville / Grand Exchange",
+  "description": "Misthalin: between Edgeville and the Grand Exchange",
+  "x": 3129,
+  "y": 3496,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Misthalin",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Grand Exchange",
+   "Edgeville bank",
+   "Barbarian Village",
+   "Wilderness (north)"
+  ],
+  "danger": [],
+  "notes": [
+   "Close to, but outside, the Wilderness (Wilderness page lists DKR under \"Teleports close to the ditch\")"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Misthalin: Edgeville",
+   "category": "Misthalin",
+   "dbRow": 4105,
+   "dbRowName": "fairyrings_dkr",
+   "dialId": 122,
+   "multilocState": 26,
+   "mapElement": "mapelement_988",
+   "mapElementTooltip": "Fairy ring (DKR)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4006
+  },
+  "runelite": {
+   "name": "Edgeville, Grand Exchange",
+   "tags": null,
+   "worldMapPoint": [
+    3126,
+    3496,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3129,
+   "y": 3496,
+   "location": "Misthalin: Edgeville"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DKR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dkr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Edgeville",
+   "https://oldschool.runescape.wiki/w/Wilderness"
+  ]
+ },
+ {
+  "code": "DKS",
+  "kind": "destination",
+  "name": "Polar Hunter area",
+  "description": "Fremennik Province: Polar Hunter area, east of Rellekka",
+  "x": 2744,
+  "y": 3719,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Fremennik",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Keldagrim entrance",
+   "Brine Rat Cavern",
+   "Rock crabs",
+   "Rellekka"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Fremennik Province: Polar Hunter area",
+   "category": "Fremennik Province",
+   "dbRow": 4104,
+   "dbRowName": "fairyrings_dks",
+   "dialId": 121,
+   "multilocState": 25,
+   "mapElement": "mapelement_987",
+   "mapElementTooltip": "Fairy ring (DKS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4005
+  },
+  "runelite": {
+   "name": "Polar Hunter area",
+   "tags": null,
+   "worldMapPoint": [
+    2743,
+    3721,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2744,
+   "y": 3719,
+   "location": "Fremennik: Polar Hunter area"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DKS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dks)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java"
+  ]
+ },
+ {
+  "code": "DLP",
+  "kind": "destination",
+  "name": "Grimstone",
+  "description": "Islands: Grimstone Dungeon beneath the island of Grimstone",
+  "x": 2926,
+  "y": 10455,
+  "plane": 0,
+  "mapId": 51,
+  "area": "Underground",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "other",
+    "name": "Moored at Grimstone at least once",
+    "detail": "Wiki Grimstone / Grimstone Dungeon pages"
+   },
+   {
+    "type": "skill",
+    "name": "Sailing",
+    "detail": "87 (not boostable) to moor; eternal brazier for icy seas"
+   }
+  ],
+  "poi": [
+   "Ancient Furnace (2x cannonballs)",
+   "Ancient mould",
+   "Frost dragons",
+   "Chilled jellies",
+   "Grimstone"
+  ],
+  "danger": [
+   "Frost dragons and chilled jellies nearby"
+  ],
+  "notes": [
+   "Added 5 Nov 2025 (Sailing pre-release); usable from 19 Nov 2025",
+   "No cannon allowed"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Grimstone",
+   "category": "Islands",
+   "dbRow": 3806,
+   "dbRowName": "fairyrings_dlp",
+   "dialId": 110,
+   "multilocState": 20,
+   "mapElement": "mapelement_982",
+   "mapElementTooltip": "Fairy ring (DLP)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 18313
+  },
+  "runelite": {
+   "name": "Grimstone Dungeon",
+   "tags": null,
+   "worldMapPoint": [
+    2923,
+    10455,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": 51,
+   "x": 2923,
+   "y": 10454,
+   "location": "Grimstone"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DLP",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dlp)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Grimstone_Dungeon",
+   "https://oldschool.runescape.wiki/w/Grimstone"
+  ]
+ },
+ {
+  "code": "DLQ",
+  "kind": "destination",
+  "name": "North of Nardah",
+  "description": "Kharidian Desert: north of Nardah",
+  "x": 3423,
+  "y": 3016,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Kharidian Desert",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Nardah",
+   "Desert lizards",
+   "Jackals"
+  ],
+  "danger": [
+   "Desert heat"
+  ],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Kharidian Desert: North of Nardah",
+   "category": "Kharidian Desert",
+   "dbRow": 3809,
+   "dbRowName": "fairyrings_dlq",
+   "dialId": 113,
+   "multilocState": 23,
+   "mapElement": "mapelement_985",
+   "mapElementTooltip": "Fairy ring (DLQ)",
+   "apparitionNpc": "ics_little_jackal",
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4003
+  },
+  "runelite": {
+   "name": "North of Nardah",
+   "tags": null,
+   "worldMapPoint": [
+    3422,
+    3018,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3423,
+   "y": 3016,
+   "location": "Kharidian Desert: North of Nardah"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DLQ",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dlq)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Nardah"
+  ]
+ },
+ {
+  "code": "DLR",
+  "kind": "destination",
+  "name": "Poison Waste island",
+  "description": "Islands: island in the Poison Waste, south of Isafdar",
+  "x": 2213,
+  "y": 3099,
+  "plane": 0,
+  "mapId": 0,
+  "area": "Tirannwn",
+  "surface": true,
+  "members": true,
+  "requirements": [],
+  "poi": [
+   "Telescope to watch Zulrah",
+   "Badgers (unattackable)",
+   "Fairy Queen hideout sequence (2nd code)"
+  ],
+  "danger": [],
+  "notes": [
+   "Second code of the hideout sequence",
+   "Game flags no_staff_return: you can get back to Zanaris from here without a staff"
+  ],
+  "departure": true,
+  "game": {
+   "desc": "Islands: Poison Waste",
+   "category": "Islands",
+   "dbRow": 3808,
+   "dbRowName": "fairyrings_dlr",
+   "dialId": 112,
+   "multilocState": 22,
+   "mapElement": "mapelement_984",
+   "mapElementTooltip": "Fairy ring (DLR)",
+   "apparitionNpc": "badger2",
+   "showApparition": true,
+   "noStaffReturn": true,
+   "logVarbit": 4002
+  },
+  "runelite": {
+   "name": "(Island) Poison Waste south of Isafdar",
+   "tags": null,
+   "worldMapPoint": [
+    2212,
+    3101,
+    0
+   ]
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2213,
+   "y": 3099,
+   "location": "Islands: Poison Waste south of Isafdar"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DLR",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dlr)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/worldmap/FairyRingLocation.java",
+   "https://oldschool.runescape.wiki/w/Poison_Waste"
+  ]
+ },
+ {
+  "code": "DLS",
+  "kind": "destination",
+  "name": "Myreque hideout",
+  "description": "Dungeons: Myreque hideout under The Hollows, via Canifis",
+  "x": 3447,
+  "y": 9824,
+  "plane": 0,
+  "mapId": 10117,
+  "area": "Underground",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "In Search of the Myreque",
+    "detail": "Completed"
+   }
+  ],
+  "poi": [
+   "Myreque Hideout (Canifis)",
+   "The Hollows",
+   "Hair of the Dog (Canifis pub)"
+  ],
+  "danger": [],
+  "notes": [],
+  "departure": true,
+  "game": {
+   "desc": "Dungeons: Myreque hideout under The Hollows",
+   "category": "Dungeons",
+   "dbRow": 3807,
+   "dbRowName": "fairyrings_dls",
+   "dialId": 111,
+   "multilocState": 21,
+   "mapElement": "mapelement_983",
+   "mapElementTooltip": "Fairy ring (DLS)",
+   "apparitionNpc": null,
+   "showApparition": true,
+   "noStaffReturn": false,
+   "logVarbit": 4001
+  },
+  "runelite": {
+   "name": "Myreque hideout under The Hollows",
+   "tags": null,
+   "worldMapPoint": null
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 3447,
+   "y": 9824,
+   "location": "Dungeons: Myreque hideout under The Hollows"
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#DLS",
+   "https://github.com/Joshua-F/osrs-dumps/blob/master/config/dump.dbrow (row fairyrings_dls)",
+   "https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/fairyring/FairyRing.java",
+   "https://oldschool.runescape.wiki/w/Myreque_Hideout"
+  ]
+ },
+ {
+  "code": "AIR-DLR-DJQ-AJS",
+  "kind": "sequence",
+  "name": "Fairy Resistance Hideout",
+  "description": "Fairy Queen's hideout: dial AIR, DLR, DJQ, AJS in order",
+  "x": 2328,
+  "y": 4426,
+  "plane": 0,
+  "mapId": 10061,
+  "area": "Zanaris",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Fairytale II - Cure a Queen",
+    "detail": "Started; Nuff's certificate in inventory until the quest is complete"
+   }
+  ],
+  "poi": [
+   "Fairy Queen",
+   "Fairy Nuff",
+   "Fairy Very Wise",
+   "Fairytale II - Cure a Queen"
+  ],
+  "danger": [],
+  "notes": [
+   "Not a dbtable row; DJQ alone goes nowhere",
+   "After first success the sequence appears at the bottom of the travel log",
+   "Log varbit FAIRYRINGS_LOG_HIDEOUT=4026",
+   "Has its own fairy ring (departure point)"
+  ],
+  "departure": true,
+  "game": {
+   "logVarbit": 4026
+  },
+  "wiki": {
+   "mapID": -1,
+   "x": 2328,
+   "y": 4426
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring#Hideout",
+   "https://oldschool.runescape.wiki/w/Fairy_Resistance_Hideout",
+   "https://github.com/Skretzo/shortest-path/blob/master/src/main/resources/transports/fairy_rings.tsv",
+   "https://oldschool.runescape.wiki/w/Fairytale_II_-_Cure_a_Queen"
+  ]
+ },
+ {
+  "code": null,
+  "id": "ZANARIS_EXIT_LUMBRIDGE",
+  "kind": "exit",
+  "name": "Zanaris exit: Lumbridge Swamp",
+  "description": "One-way exit ring near the Chicken Shrine in Zanaris, to the Lumbridge Swamp shed",
+  "x": 2452,
+  "y": 4473,
+  "plane": 0,
+  "mapId": 28,
+  "area": "Zanaris",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Lost City",
+    "detail": "To be in Zanaris"
+   }
+  ],
+  "poi": [],
+  "danger": [],
+  "notes": [
+   "Departure-only, single destination; no staff or Fairytale II needed",
+   "Arrives at 3201,3169,0",
+   "Loc 12094, option Use"
+  ],
+  "departure": true,
+  "arrival": {
+   "x": 3201,
+   "y": 3169,
+   "plane": 0
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring_(Zanaris)",
+   "https://oldschool.runescape.wiki/w/Zanaris"
+  ]
+ },
+ {
+  "code": null,
+  "id": "ZANARIS_EXIT_ALKHARID",
+  "kind": "exit",
+  "name": "Zanaris exit: Al Kharid",
+  "description": "One-way exit ring in the Zanaris market to behind Al Kharid bank",
+  "x": 2486,
+  "y": 4471,
+  "plane": 0,
+  "mapId": 28,
+  "area": "Zanaris",
+  "surface": false,
+  "members": true,
+  "requirements": [
+   {
+    "type": "quest",
+    "name": "Lost City",
+    "detail": "To be in Zanaris"
+   }
+  ],
+  "poi": [],
+  "danger": [],
+  "notes": [
+   "Departure-only, single destination; no staff or Fairytale II needed",
+   "Arrives at 3260,3171,0",
+   "Loc 12003, option Use"
+  ],
+  "departure": true,
+  "arrival": {
+   "x": 3260,
+   "y": 3171,
+   "plane": 0
+  },
+  "sources": [
+   "https://oldschool.runescape.wiki/w/Fairy_ring_(Zanaris)",
+   "https://oldschool.runescape.wiki/w/Zanaris"
+  ]
+ }
+]

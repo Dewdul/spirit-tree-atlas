@@ -1,0 +1,24 @@
+{
+  "groups": [
+    {
+      "id": "slayer",
+      "name": "Slayer",
+      "codes": [
+        {"code": "AJR", "label": "Slayer cave", "note": "Fremennik Slayer Dungeon", "details": " Monsters: kurasks "},
+        {"code": "CKS", "label": "  Kalphite   Lair<> ", "note": "Kalphites"},
+        {"code": "ZZZ", "note": "not a code"},
+        {"code": "DKS"},
+        {"code": "AJR", "note": "repeated"}
+      ]
+    },
+    {
+      "id": "farming",
+      "name": "Farming",
+      "codes": [
+        {"code": "CIR", "label": "Farming Guild", "note": "Hespori, herbs"},
+        {"code": "AIQ"}
+      ]
+    },
+    {"id": "slayer", "name": "Duplicate id", "codes": []}
+  ]
+}

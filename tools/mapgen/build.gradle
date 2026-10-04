@@ -1,0 +1,50 @@
+// Standalone map-tile generator for Fairy Ring Atlas.
+// NOT part of the plugin build: the root settings.gradle does not include it.
+// Run from the repo root:  ./gradlew -p tools/mapgen render
+plugins {
+	id 'java'
+	id 'application'
+}
+
+repositories {
+	maven {
+		url = 'https://repo.runelite.net'
+		content {
+			includeGroupByRegex("net\\.runelite.*")
+		}
+	}
+	mavenCentral()
+}
+
+// Pinned so the generator is reproducible; bump together with the cache id.
+def runeLiteCacheVersion = '1.13.1'
+
+dependencies {
+	implementation group: 'net.runelite', name: 'cache', version: runeLiteCacheVersion
+	implementation 'com.google.code.gson:gson:2.8.5'
+	implementation 'org.slf4j:slf4j-simple:1.7.25'
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+}
+
+application {
+	mainClass = 'com.fairyringatlas.mapgen.MapGen'
+	applicationDefaultJvmArgs = ['-Xmx6g']
+}
+
+// ./gradlew -p tools/mapgen render [-Pcache=...] [-Pout=...]
+tasks.register('render', JavaExec) {
+	group = 'application'
+	description = 'Renders z=2 region tiles and exports labels/icons from the OSRS cache'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.fairyringatlas.mapgen.MapGen'
+	maxHeapSize = '6g'
+	def cacheDir = project.findProperty('cache') ?: "${projectDir}/cache/cache"
+	def outDir = project.findProperty('out') ?: "${projectDir}/build/raw"
+	def regions = project.findProperty('regions') ?: "${projectDir}/regions.json"
+	args '--cache', cacheDir, '--keys', "${projectDir}/cache/keys.json", '--regions', regions, '--out', outDir
+}

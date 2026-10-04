@@ -1,0 +1,16 @@
+{
+  "cache": "fixture",
+  "tileSize": 256,
+  "levels": [2],
+  "tiles": { "2": ["40_50"] },
+  "solid": { "2": { "41_50": "#00ff00" } },
+  "layers": [
+    { "id": "surface", "name": "Test Land", "bounds": [2496, 3136, 2752, 3328], "background": "#102030" },
+    { "id": "hollows", "name": "Test Cave", "bounds": [2560, 9600, 2624, 9664], "background": "#000000" }
+  ],
+  "labels": [
+    { "t": "Big Town", "x": 2600, "y": 3240, "s": 2, "layer": "surface" },
+    { "t": "Small<br>Place", "x": 2610, "y": 3210, "s": 0, "layer": "surface" }
+  ],
+  "icons": [ [2601, 3231, 1448] ]
+}
