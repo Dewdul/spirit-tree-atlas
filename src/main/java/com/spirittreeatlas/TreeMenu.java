@@ -30,7 +30,7 @@ import net.runelite.client.util.Text;
  * components so that only the close button and the selected tree's real row show, in the map's
  * bottom-right corner. Every change is recorded and put back exactly, only while the widget is
  * still the one we changed; nothing we did not hide is ever shown, and the key-listener layers
- * (the game's own hotkeys) are never touched.
+ * (the game's own hotkeys) and every layer that holds them are never hidden.
  *
  * <p>Client thread only. Parsing ({@link #parseRow}, {@link #match}) and geometry
  * ({@link #modern}, {@link #classic}) are pure static methods.
@@ -399,7 +399,7 @@ public class TreeMenu
 	}
 
 	/**
-	 * CLASSIC (DESIGN 4.3): the parchment, title and scrollbar are hidden; LJ_LAYER1 hangs below
+	 * CLASSIC (DESIGN 4.3): the parchment model and scrollbar are hidden; LJ_LAYER1 hangs below
 	 * the slot with the shown row moved to its top, whose centred text fills the middle
 	 * {@link #CLASSIC_CELL_W} px (the cell); the close button goes just above the cell's right end.
 	 *
@@ -476,12 +476,33 @@ public class TreeMenu
 		Widget first = list.getChild(0);
 		Geometry g = classic(base.getWidth(), base.getHeight(), list.getWidth(), first == null ? 16 : first.getHeight(), list.getScrollY());
 		geometry = g;
-		hide(client.getWidget(InterfaceID.Menu.LJ_LAYER2), InterfaceID.Menu.LJ_LAYER2, -1);
+		// only the parchment model, never LJ_LAYER2 itself: it holds the key-listener layer (the
+		// game's hotkeys) and the title, which Better Teleport Menu checks; the map covers both
+		Widget layer2 = client.getWidget(InterfaceID.Menu.LJ_LAYER2);
+		int parchment = parchment(layer2);
+		if (parchment >= 0)
+		{
+			hide(layer2.getChild(parchment), InterfaceID.Menu.LJ_LAYER2, parchment);
+		}
 		hide(client.getWidget(InterfaceID.Menu.LJ_SCROLL_BAR), InterfaceID.Menu.LJ_SCROLL_BAR, -1);
 		move(list, InterfaceID.Menu.LJ_LAYER1, -1, WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, g.getRoot().x, g.getRoot().y);
 		placeRows(list, InterfaceID.Menu.LJ_LAYER1, shown, g.getRow(), false);
 		move(client.getWidget(InterfaceID.Menu.ROOT_GRAPHIC3), InterfaceID.Menu.ROOT_GRAPHIC3, -1,
 			WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, g.getClose().x, g.getClose().y);
+	}
+
+	/** The index of LJ_LAYER2's parchment scroll (proc 219's model child, 0 today), or -1. */
+	private static int parchment(Widget layer2)
+	{
+		List<Widget> kids = children(layer2);
+		for (int i = 0; i < kids.size(); i++)
+		{
+			if (kids.get(i) != null && kids.get(i).getType() == WidgetType.MODEL)
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	/**

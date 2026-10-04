@@ -240,9 +240,9 @@ final class FakeMenu
 		FakeMenu f = new FakeMenu();
 		int l = WidgetPositionMode.ABSOLUTE_LEFT;
 		W layer2 = f.add(InterfaceID.Menu.LJ_LAYER2, f.slot, l, l, 0, 0, 512, 334);
-		f.child(layer2, 0, WidgetType.MODEL, 0, 0, 512, 334, null);
-		f.child(layer2, 1, WidgetType.TEXT, 67, 37, 358, 33, TITLE);
-		W keys = f.add(InterfaceID.Menu.KEYLISTENERS, f.slot, l, l, 0, 0, 0, 0);
+		// the key-listener layer is a static child of LJ_LAYER2, not a root (cache: 187:1's parent is 187:0)
+		W keys = f.add(InterfaceID.Menu.KEYLISTENERS, layer2, l, l, 0, 0, 1, 1);
+		f.parchment(layer2, TITLE);
 		f.add(InterfaceID.Menu.LJ_SCROLL_BAR, f.slot, l, l, 441, 70, 16, 232);
 		W list = f.add(InterfaceID.Menu.LJ_LAYER1, f.slot, l, l, 55, 70, 386, 232);
 		W close = f.add(InterfaceID.Menu.ROOT_GRAPHIC3, f.slot, l, l, 449, 36, 26, 23);
@@ -255,6 +255,13 @@ final class FakeMenu
 			f.child(keys, i, WidgetType.RECTANGLE, 0, 0, 0, 0, null);
 		}
 		return f;
+	}
+
+	/** Proc 219's dynamic children of LJ_LAYER2: 0 the parchment scroll model, 1 the title text. */
+	private void parchment(W layer2, String title)
+	{
+		child(layer2, 0, WidgetType.MODEL, 0, 0, 512, 334, null);
+		child(layer2, 1, WidgetType.TEXT, 67, 37, 358, 33, title);
 	}
 
 	W get(int id)
@@ -284,6 +291,11 @@ final class FakeMenu
 		}
 		if (!modern)
 		{
+			// proc 219: cc_deleteall on LJ_LAYER2 (its static key-listener layer stays), a new parchment and title
+			W layer2 = get(InterfaceID.Menu.LJ_LAYER2);
+			String title = layer2.children[1].text;
+			layer2.children = new W[0];
+			parchment(layer2, title);
 			W list = get(InterfaceID.Menu.LJ_LAYER1);
 			list.xMode = WidgetPositionMode.ABSOLUTE_LEFT;
 			list.yMode = WidgetPositionMode.ABSOLUTE_TOP;
@@ -291,6 +303,48 @@ final class FakeMenu
 			list.y = 70;
 			list.layOut();
 		}
+	}
+
+	/** The classic parchment scroll model (LJ_LAYER2 child 0). */
+	W parchmentModel()
+	{
+		return get(InterfaceID.Menu.LJ_LAYER2).children[0];
+	}
+
+	/**
+	 * Hard rule 4: why the game's hotkeys would not work now, or null when they would. The client
+	 * skips a hidden component's whole subtree, so no ancestor of a key-listener layer may be
+	 * self-hidden, and every key-listener child must be effectively visible.
+	 */
+	String hotkeysBlocked()
+	{
+		for (int id : new int[]{InterfaceID.MenuNew.KEYLISTENERS, InterfaceID.Menu.KEYLISTENERS})
+		{
+			W keys = get(id);
+			if (keys == null)
+			{
+				continue;
+			}
+			for (W a = keys; a != null; a = a.parent)
+			{
+				if (a.hidden)
+				{
+					return "component " + a.id + " holding key listeners " + id + " is hidden";
+				}
+			}
+			if (keys.children.length == 0)
+			{
+				return "no key listeners under " + id;
+			}
+			for (W c : keys.children)
+			{
+				if (c == null || c.isHidden())
+				{
+					return "key listener " + id + "/" + (c == null ? "?" : c.index) + " is hidden";
+				}
+			}
+		}
+		return null;
 	}
 
 	/** The title text widget (modern: TITLE child 3; classic: LJ_LAYER2 child 1). */
