@@ -20,7 +20,9 @@ import net.runelite.client.input.MouseWheelListener;
  * (both use {@link #CLICK_SLOP}); a left press on a button is let through so the game runs our
  * RUNELITE menu entry (swallowed instead when the game's menu was still built for something
  * else, so no stale game entry runs); right presses always go through to open the menu we built.
- * Nothing is consumed inside the holes, while a menu is open, outside the map or in List mode.
+ * Nothing is consumed inside the holes, while a menu is open or outside the map, except the
+ * mouse wheel over the Travel row (the classic list would scroll). In List mode only a left press
+ * on the Map button is checked the same way as a button press on the map.
  */
 @Singleton
 public class AtlasInput extends MouseAdapter implements MouseWheelListener
@@ -49,12 +51,16 @@ public class AtlasInput extends MouseAdapter implements MouseWheelListener
 	@Override
 	public MouseWheelEvent mouseWheelMoved(MouseWheelEvent e)
 	{
-		if (!plugin.isMapInput(e.getX(), e.getY()))
+		if (plugin.isMapInput(e.getX(), e.getY()))
 		{
-			return e;
+			plugin.zoomAt(e.getX(), e.getY(), Math.pow(WHEEL_STEP, -e.getPreciseWheelRotation()));
+			e.consume();
 		}
-		plugin.zoomAt(e.getX(), e.getY(), Math.pow(WHEEL_STEP, -e.getPreciseWheelRotation()));
-		e.consume();
+		else if (plugin.isInTravelHole(e.getX(), e.getY()))
+		{
+			// kept from the game, which would scroll the classic list and the row out of the hole
+			e.consume();
+		}
 		return e;
 	}
 
@@ -63,7 +69,21 @@ public class AtlasInput extends MouseAdapter implements MouseWheelListener
 	{
 		swallow = false;
 		dragging = false;
-		if (!SwingUtilities.isLeftMouseButton(e) || !plugin.isMapInput(e.getX(), e.getY()))
+		if (!SwingUtilities.isLeftMouseButton(e))
+		{
+			return e;
+		}
+		if (plugin.isMapButton(e.getX(), e.getY()))
+		{
+			// List mode's Map button: the game runs its top menu entry, which must be our "Show Map"
+			if (!plugin.isMenuForMapButton())
+			{
+				swallow = true;
+				e.consume();
+			}
+			return e;
+		}
+		if (!plugin.isMapInput(e.getX(), e.getY()))
 		{
 			return e;
 		}

@@ -50,6 +50,8 @@ public class TreeMenu
 	static final Point CLASSIC_SCROLL = new Point(55, 37);
 	/** What the game writes into a row while its teleport is under way. */
 	static final String PLEASE_WAIT = "Please wait...";
+	/** menu_indexed: a numbered list built in the classic menu (187) by another setup script. */
+	static final int MENU_INDEXED = 378;
 	private static final Pattern SPACES = Pattern.compile("\\s+");
 
 	/** The two menu interfaces, chosen by the game's "Modern menu interface" setting. */
@@ -70,10 +72,13 @@ public class TreeMenu
 			this.script = script;
 		}
 
-		/** The style whose setup script this is, or null. */
+		/**
+		 * The style whose interface this setup script builds, or null. The classic menu's other
+		 * builder, menu_indexed, counts too: it may replace our menu without closing it.
+		 */
 		public static Style forScript(int id)
 		{
-			return id == MODERN.script ? MODERN : id == CLASSIC.script ? CLASSIC : null;
+			return id == MODERN.script ? MODERN : id == CLASSIC.script || id == MENU_INDEXED ? CLASSIC : null;
 		}
 
 		/** The style whose interface this is, or null. */
@@ -160,6 +165,8 @@ public class TreeMenu
 	@Getter
 	private Geometry geometry;
 	private final Map<String, Change> changes = new LinkedHashMap<>();
+	/** The row texts {@link #rows} were parsed from (null for a row not listed), or null to parse afresh. */
+	private List<String> texts;
 
 	TreeMenu(Client client)
 	{
@@ -210,6 +217,7 @@ public class TreeMenu
 	{
 		style = s;
 		rows = Collections.emptyList();
+		texts = null;
 		geometry = null;
 	}
 
@@ -220,17 +228,38 @@ public class TreeMenu
 	void rebuilt(List<Tree> trees, String grey)
 	{
 		changes.values().removeIf(c -> c.index >= 0);
+		texts = null;
+		read(trees, grey);
+	}
+
+	/**
+	 * Reads the rows from the live widgets: cheap when nothing changed (the texts are compared
+	 * first), so it runs every tick, because another plugin (Better Teleport Menu) may re-text a
+	 * row, and so rebind its key, while the menu is open. A row the game or another plugin hid is
+	 * not listed (Better Teleport Menu hides disabled ones); the rows we hid for the map are.
+	 *
+	 * @return whether the rows changed
+	 */
+	boolean read(List<Tree> trees, String grey)
+	{
 		Widget layer = style == null ? null : client.getWidget(style.rowLayer());
 		Widget[] kids = layer == null ? null : layer.getChildren();
-		List<String> texts = new ArrayList<>();
-		if (kids != null)
+		List<String> now = new ArrayList<>();
+		for (int i = 0; kids != null && i < kids.length; i++)
 		{
-			for (Widget w : kids)
-			{
-				texts.add(w != null && w.getType() == WidgetType.TEXT ? w.getText() : null);
-			}
+			Widget w = kids[i];
+			boolean listed = w != null && w.getType() == WidgetType.TEXT && (!w.isSelfHidden() || hiddenByUs(w, style.rowLayer(), i));
+			now.add(listed ? w.getText() : null);
 		}
-		rows = parseRows(texts, rows, trees, grey);
+		if (now.equals(texts))
+		{
+			return false;
+		}
+		texts = now;
+		List<Row> next = parseRows(now, rows, trees, grey);
+		boolean changed = !next.equals(rows);
+		rows = next;
+		return changed;
 	}
 
 	/**
@@ -510,21 +539,13 @@ public class TreeMenu
 		geometry = null;
 	}
 
-	/** Forgets the records without touching any widget (the interface tree is gone) and stops tracking. */
-	void forget()
-	{
-		changes.clear();
-		geometry = null;
-		style = null;
-		rows = Collections.emptyList();
-	}
-
 	/** Restores and stops tracking. */
 	void close()
 	{
 		restore();
 		style = null;
 		rows = Collections.emptyList();
+		texts = null;
 	}
 
 	/** Whether any change of ours is recorded. */
@@ -591,6 +612,13 @@ public class TreeMenu
 		}
 		c.original = null;
 		c.written = null;
+	}
+
+	/** Whether we hid this widget (and it is the one we hid); unlike {@link #find}, changes no record. */
+	private boolean hiddenByUs(Widget w, int id, int index)
+	{
+		Change c = changes.get(id + "/" + index);
+		return c != null && c.widget == w && c.hidden;
 	}
 
 	/** The record for this live widget, or null; a record left over from an older widget is dropped. */

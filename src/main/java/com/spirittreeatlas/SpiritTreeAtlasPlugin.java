@@ -38,6 +38,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.PostMenuSort;
 import net.runelite.api.events.ResizeableChanged;
 import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
@@ -46,6 +47,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.events.PluginChanged;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -73,9 +75,15 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private static final int TRIM_TICKS = 50;
 	private static final long ANIM_MS = 250;
 	private static final String TELEPORT_MAPS = "com.mjhylkema.TeleportMaps.TeleportMapsPlugin";
+	/** Teleport Maps' config group; its {@code showSpiritTreeMap} key turns its spirit tree map on and off. */
+	private static final String TELEPORT_MAPS_GROUP = "teleportmaps";
 	private static final String SPIRIT_TREE_MENU = "com.spirit.SpiritTreeMenuPlugin";
 	static final String TELEPORT_MAPS_NOTICE = "Teleport Maps is showing its spirit tree map - turn that off in Teleport Maps to use Spirit Tree Atlas";
 	static final String SPIRIT_TREE_MENU_NOTICE = "Spirit Tree Menu is rearranging this menu - turn it off to use Spirit Tree Atlas";
+	/** The other plugin was turned off, but the menu may still hold its changes until it is opened again. */
+	static final String REOPEN_NOTICE = "Close and reopen the spirit tree menu to use Spirit Tree Atlas";
+	/** {@link #menuFor} while the game's menu holds List mode's "Show Map" entry. */
+	private static final String MAP_BUTTON = "mapButton";
 
 	enum Mode
 	{
@@ -145,6 +153,11 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private volatile String menuFor;
 
 	// --- client thread state
+	/**
+	 * Whether another plugin owned this menu when it was built (opened or rebuilt), which is when
+	 * those plugins change it; it may still hold their changes after they are turned off.
+	 */
+	private boolean claimed;
 	private boolean needsInitialView;
 	private int playerX;
 	private int playerY;
@@ -227,21 +240,40 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		TileStore store = tiles;
 		clientThread.invoke(() ->
 		{
+			// again here: a tick already running on the client thread may have opened it meanwhile
+			open = false;
 			m.close();
 			modalSlot.restore(client);
 			restoreMouseoverText();
 			overlay.reset();
 			view = null;
 			selected = null;
+			notice = null;
+			menuFor = null;
 			hits = Collections.emptyList();
 			holes = Collections.emptyList();
 			travelHole = null;
+			mapButton = null;
 			ex.shutdownNow();
 			store.close();
 		});
 	}
 
 	// ------------------------------------------------------------------ open / close
+
+	/**
+	 * The setup script of the open menu is about to run again (a rebuild, or another menu built in
+	 * the same interface): put the menu back as the game made it first, so the script works on
+	 * the game's own state and whatever it hides or moves itself is never taken for ours.
+	 */
+	@Subscribe
+	public void onScriptPreFired(ScriptPreFired e)
+	{
+		if (open && TreeMenu.Style.forScript(e.getScriptId()) == menu.getStyle())
+		{
+			menu.restore();
+		}
+	}
 
 	/**
 	 * The setup script of either menu ran (the layout is final): open on the spirit tree's
@@ -269,6 +301,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		if (same)
 		{
 			readRows();
+			checkOwner(true);
 			applyMenu();
 			return;
 		}
@@ -282,10 +315,11 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded e)
 	{
-		if (modalSlot.holds() && TreeMenu.Style.forGroup(e.getGroupId()) == null)
+		if (modalSlot.holds())
 		{
 			// before the new interface's first frame: if it took the menu's slot (or the toplevel
-			// changed), put the slot back now rather than at the next tick
+			// changed and the menu moved to the new one), put the slot back now rather than at the
+			// next tick
 			updateSlot();
 		}
 	}
@@ -293,7 +327,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	@Subscribe
 	public void onWidgetClosed(WidgetClosed e)
 	{
-		if (open && TreeMenu.Style.forGroup(e.getGroupId()) == menu.getStyle())
+		// not unloaded: the interface is only being moved (to the other toplevel when switching
+		// between fixed and resizable) and stays open, with our changes
+		if (open && e.isUnload() && TreeMenu.Style.forGroup(e.getGroupId()) == menu.getStyle())
 		{
 			closeMenu();
 		}
@@ -316,7 +352,8 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		repo.setLast(client.getVarbitValue(VarbitID.SPIRIT_TREE_PREVIOUS));
 		readRows();
 		locatePlayer();
-		notice = stepAside(s);
+		claimed = false;
+		checkOwner(true);
 		applyMenu();
 	}
 
@@ -345,6 +382,8 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		modalSlot.restore(client);
 		restoreMouseoverText();
 		notice = null;
+		claimed = false;
+		menuFor = null;
 		hits = Collections.emptyList();
 		holes = Collections.emptyList();
 		travelHole = null;
@@ -375,11 +414,31 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	}
 
 	/**
+	 * DESIGN 4.10: whether to step aside, checked at open, at each rebuild and whenever a plugin
+	 * or Teleport Maps' settings change while the menu is open. Stepping aside takes effect at
+	 * once (everything is put back). It ends at once too, unless the other plugin had the menu
+	 * when it was built: those plugins change the menu then, so the map waits for a reopen.
+	 *
+	 * @param built the menu has just been opened or rebuilt
+	 */
+	private void checkOwner(boolean built)
+	{
+		String n = stepAside(menu.getStyle());
+		claimed |= built && n != null;
+		String was = notice;
+		notice = n != null ? n : claimed ? REOPEN_NOTICE : null;
+		if (was == null && notice != null)
+		{
+			input.reset();
+		}
+	}
+
+	/**
 	 * DESIGN 4.10: the notice when another plugin owns this menu (Teleport Maps showing its own
 	 * spirit tree map; Spirit Tree Menu rearranging the classic one), else null. We then change
 	 * nothing. Never declared as a conflict: that would turn off all of Teleport Maps' maps.
 	 */
-	private String stepAside(TreeMenu.Style s)
+	String stepAside(TreeMenu.Style s)
 	{
 		try
 		{
@@ -387,7 +446,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 			{
 				String name = p.getClass().getName();
 				if (TELEPORT_MAPS.equals(name) && pluginManager.isPluginEnabled(p)
-					&& !"false".equals(configManager.getConfiguration("teleportmaps", "showSpiritTreeMap")))
+					&& !"false".equals(configManager.getConfiguration(TELEPORT_MAPS_GROUP, "showSpiritTreeMap")))
 				{
 					return TELEPORT_MAPS_NOTICE;
 				}
@@ -418,21 +477,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		modalSlot.restore(client);
 		if (open)
 		{
-			// the interface tree is gone: drop our records rather than touch orphaned widgets
-			open = false;
-			closedTick = client.getTickCount();
-			closedMode = mode;
-			if (view != null)
-			{
-				sessionView = view;
-			}
-			menu.forget();
-			notice = null;
-			restoreMouseoverText();
-			hits = Collections.emptyList();
-			holes = Collections.emptyList();
-			travelHole = null;
-			mapButton = null;
+			// logout or hop: the interfaces go. Whatever is still the live widget for its id is put
+			// back; widgets the game has already let go of are left alone
+			closeMenu();
 		}
 		if (state == GameState.LOGIN_SCREEN)
 		{
@@ -449,12 +496,17 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick e)
 	{
-		if (open && !menu.isOpen(menu.getStyle()))
+		if (open && !isStillOurs())
 		{
 			closeMenu();
 		}
 		else if (open)
 		{
+			// another plugin may re-text the rows (and so rebind their keys) while the menu is open
+			if (menu.read(repo.getTrees(), repo.getUnavailableColour()))
+			{
+				repo.applyRows(menu.getRows());
+			}
 			applyMenu();
 		}
 		else
@@ -482,6 +534,17 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * Whether the tracked menu is still open and still the spirit tree's (hard rule 8): a menu
+	 * built in the same interface by a script we do not hook is caught here. The title is not
+	 * checked while stepping aside: Teleport Maps deletes the classic one.
+	 */
+	private boolean isStillOurs()
+	{
+		TreeMenu.Style s = menu.getStyle();
+		return menu.isOpen(s) && (notice != null || TreeMenu.isTitle(menu.title(s), repo.getTitle()));
+	}
+
 	@Subscribe
 	public void onResizeableChanged(ResizeableChanged e)
 	{
@@ -507,12 +570,13 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged e)
 	{
-		if (SpiritTreeAtlasConfig.GROUP.equals(e.getGroup()))
+		if (SpiritTreeAtlasConfig.GROUP.equals(e.getGroup()) || TELEPORT_MAPS_GROUP.equals(e.getGroup()))
 		{
 			clientThread.invoke(() ->
 			{
 				if (open)
 				{
+					checkOwner(false);
 					applyMenu();
 				}
 				else if (modalSlot.holds())
@@ -521,6 +585,20 @@ public class SpiritTreeAtlasPlugin extends Plugin
 				}
 			});
 		}
+	}
+
+	/** Teleport Maps or Spirit Tree Menu turned on or off while the menu is open: step aside or back (DESIGN 4.10). */
+	@Subscribe
+	public void onPluginChanged(PluginChanged e)
+	{
+		clientThread.invoke(() ->
+		{
+			if (open)
+			{
+				checkOwner(false);
+				applyMenu();
+			}
+		});
 	}
 
 	// ------------------------------------------------------------------ the menu's widgets
@@ -876,16 +954,44 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		return open && notice == null && mode == Mode.MAP && !menuOpen && v != null && v.contains(x, y) && !inHole(x, y);
 	}
 
+	/**
+	 * Whether the point is over the real Travel row in Map mode. The classic list scrolls (240 px
+	 * of rows in 232), so the mouse wheel there must not reach the game: it would scroll the row
+	 * out of its place until the next tick.
+	 */
+	boolean isInTravelHole(int x, int y)
+	{
+		Rectangle h = travelHole;
+		return open && notice == null && mode == Mode.MAP && h != null && h.contains(x, y);
+	}
+
+	/** Whether the point is on List mode's Map button (and no menu is open). */
+	boolean isMapButton(int x, int y)
+	{
+		Rectangle b = mapButton;
+		return open && notice == null && mode == Mode.LIST && !menuOpen && b != null && b.contains(x, y);
+	}
+
+	/** Whether the game's current menu is the Map button's (its "Show Map" entry on top). */
+	boolean isMenuForMapButton()
+	{
+		return MAP_BUTTON.equals(menuFor);
+	}
+
 	// ------------------------------------------------------------------ menu ownership
 
 	@Subscribe
 	public void onPostMenuSort(PostMenuSort e)
 	{
-		if (!open || notice != null || client.isMenuOpen())
+		if (client.isMenuOpen())
 		{
 			return;
 		}
 		menuFor = null;
+		if (!open || notice != null)
+		{
+			return;
+		}
 		Point mp = client.getMouseCanvasPosition();
 		int x = mp.getX();
 		int y = mp.getY();
@@ -895,6 +1001,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 			if (b != null && b.contains(x, y))
 			{
 				add(stripMenu(), "Show", "Map", m -> setMode(Mode.MAP));
+				menuFor = MAP_BUTTON;
 			}
 			return;
 		}

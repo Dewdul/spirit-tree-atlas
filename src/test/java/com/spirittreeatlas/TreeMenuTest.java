@@ -300,10 +300,10 @@ public class TreeMenuTest
 	public void modernMapModeAndRestore()
 	{
 		FakeMenu f = FakeMenu.modern(FakeMenu.OPTIONS);
-		// another plugin hid Port Sarim's row before we came
+		TreeMenu menu = open(f, TreeMenu.Style.MODERN);
+		// another plugin hides Port Sarim's row after the rows were read
 		f.get(InterfaceID.MenuNew.TEXT).children[6].hidden = true;
 		List<String> before = snapshot(f);
-		TreeMenu menu = open(f, TreeMenu.Style.MODERN);
 		assertEquals(FakeMenu.SLOT, menu.slotBounds());
 		// List mode's anchor: UNIVERSE's top-left, centred in the slot
 		assertEquals(new Point(100 + 87, 200 + 58), menu.anchor());
@@ -356,6 +356,10 @@ public class TreeMenuTest
 			assertTrue(t.hidden);
 		}
 		assertEquals(cell, menu.rowCell(null));
+		// read again, the row it hid is no longer listed; ours still are
+		assertTrue(menu.read(TREES, GREY));
+		assertNull(row(menu, "PORT_SARIM"));
+		assertEquals(14, menu.getRows().size());
 
 		menu.restore();
 		assertFalse(menu.isChanged());
@@ -504,5 +508,82 @@ public class TreeMenuTest
 		assertEquals(TreeMenu.Style.CLASSIC, TreeMenu.Style.forScript(217));
 		assertEquals(TreeMenu.Style.CLASSIC, TreeMenu.Style.forGroup(187));
 		assertNull(TreeMenu.Style.forScript(219));
+		// menu_indexed builds in the classic menu too: it may replace ours without a close
+		assertEquals(TreeMenu.Style.CLASSIC, TreeMenu.Style.forScript(TreeMenu.MENU_INDEXED));
+	}
+
+	@Test
+	public void rowsAreReadAgainCheaplyAndFollowARebind()
+	{
+		FakeMenu f = FakeMenu.modern(FakeMenu.OPTIONS);
+		TreeMenu menu = open(f, TreeMenu.Style.MODERN);
+		menu.apply(row(menu, "GRAND_EXCHANGE"));
+		// nothing changed, rows hidden by us for the map included: nothing to do
+		assertFalse(menu.read(TREES, GREY));
+		assertEquals(15, menu.getRows().size());
+		// Better Teleport Menu rebinds Grand Exchange to G while the menu is open
+		FakeMenu.W[] text = f.get(InterfaceID.MenuNew.TEXT).children;
+		text[3].text = "<col=ffffff>G</col>: Grand Exchange";
+		assertTrue(menu.read(TREES, GREY));
+		assertEquals("G", row(menu, "GRAND_EXCHANGE").getKey());
+		assertFalse(menu.read(TREES, GREY));
+		// mid-teleport the row keeps its tree and key
+		text[3].text = "Please wait...";
+		menu.read(TREES, GREY);
+		assertEquals("G", row(menu, "GRAND_EXCHANGE").getKey());
+		assertEquals(3, row(menu, "GRAND_EXCHANGE").getIndex());
+	}
+
+	@Test
+	public void aRowSomeoneElseHidIsNotListed()
+	{
+		FakeMenu f = FakeMenu.classic(FakeMenu.OPTIONS);
+		f.get(InterfaceID.Menu.LJ_LAYER1).children[6].hidden = true;
+		TreeMenu menu = new TreeMenu(f.client);
+		menu.open(TreeMenu.Style.CLASSIC);
+		menu.rebuilt(TREES, GREY);
+		assertEquals(14, menu.getRows().size());
+		assertNull(row(menu, "PORT_SARIM"));
+		// the rows we hide for the map stay listed
+		menu.apply(row(menu, "HOSIDIUS"));
+		assertFalse(menu.read(TREES, GREY));
+		assertNotNull(row(menu, "GRAND_EXCHANGE"));
+		assertTrue(f.get(InterfaceID.Menu.LJ_LAYER1).children[3].hidden);
+		// someone shows it again: listed again
+		f.get(InterfaceID.Menu.LJ_LAYER1).children[6].hidden = false;
+		assertTrue(menu.read(TREES, GREY));
+		assertNotNull(row(menu, "PORT_SARIM"));
+	}
+
+	@Test
+	public void aRebuildOnTheGamesOwnStateNeverShowsWhatTheGameHid()
+	{
+		FakeMenu f = FakeMenu.classic(FakeMenu.OPTIONS);
+		TreeMenu menu = open(f, TreeMenu.Style.CLASSIC);
+		menu.apply(row(menu, "GRAND_EXCHANGE"));
+		FakeMenu.W bar = f.get(InterfaceID.Menu.LJ_SCROLL_BAR);
+		assertTrue(bar.hidden);
+		// before the setup script runs again, everything is put back...
+		menu.restore();
+		assertFalse(bar.hidden);
+		// ...so what the script then hides itself (12 rows fit: no scrollbar) is the game's
+		f.rebuild(Arrays.copyOf(FakeMenu.OPTIONS, 12));
+		bar.hidden = true;
+		menu.rebuilt(TREES, GREY);
+		assertEquals(12, menu.getRows().size());
+		menu.apply(row(menu, "HOSIDIUS"));
+		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER1).children[9].hidden);
+		menu.close();
+		assertTrue(bar.hidden);
+		assertFalse(f.get(InterfaceID.Menu.LJ_LAYER2).hidden);
+		for (FakeMenu.W r : f.get(InterfaceID.Menu.LJ_LAYER1).children)
+		{
+			assertFalse(r.hidden);
+			assertEquals(WidgetPositionMode.ABSOLUTE_TOP, r.yMode);
+			assertEquals(16 * r.index, r.y);
+		}
+		assertArrayEquals(new int[]{WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, 55, 70},
+			f.get(InterfaceID.Menu.LJ_LAYER1).position());
+		assertNull(menu.getStyle());
 	}
 }

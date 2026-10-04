@@ -101,6 +101,9 @@ final class FakeMenu
 	final Map<Integer, W> live = new HashMap<>();
 	final Client client;
 	final W slot;
+	/** What the fake client reports for the plugin: the tick count and the game's mouse-over text. */
+	int tick = 100;
+	boolean mouseover = true;
 
 	FakeMenu()
 	{
@@ -116,6 +119,20 @@ final class FakeMenu
 				case "getWidget":
 					W f = args.length == 1 ? live.get((int) args[0]) : null;
 					return f == null ? null : f.proxy;
+				case "isClientThread":
+					return true;
+				case "getTickCount":
+					return tick;
+				case "getVarbitValue":
+					return 0;
+				case "isResized":
+				case "isMenuOpen":
+					return false;
+				case "isMouseoverTextEnabled":
+					return mouseover;
+				case "setMouseoverTextEnabled":
+					mouseover = (boolean) args[0];
+					return null;
 				case "equals":
 					return p == args[0];
 				case "hashCode":
@@ -243,6 +260,44 @@ final class FakeMenu
 	W get(int id)
 	{
 		return live.get(id);
+	}
+
+	/**
+	 * The setup script running again in the open menu: cc_deleteall, then new rows (new widget
+	 * objects) for these options; the classic proc 219 also puts the list back in its place.
+	 */
+	void rebuild(String[] options)
+	{
+		boolean modern = live.containsKey(InterfaceID.MenuNew.TEXT);
+		FakeMenu fresh = modern ? modern(options) : classic(options);
+		int[] layers = modern ? new int[]{InterfaceID.MenuNew.TEXT, InterfaceID.MenuNew.GRAPHICS} : new int[]{InterfaceID.Menu.LJ_LAYER1};
+		for (int id : layers)
+		{
+			W layer = get(id);
+			layer.children = new W[0];
+			for (W c : fresh.get(id).children)
+			{
+				W row = child(layer, c.index, c.type, c.x, c.y, c.w, c.h, c.text);
+				row.xMode = c.xMode;
+				row.layOut();
+			}
+		}
+		if (!modern)
+		{
+			W list = get(InterfaceID.Menu.LJ_LAYER1);
+			list.xMode = WidgetPositionMode.ABSOLUTE_LEFT;
+			list.yMode = WidgetPositionMode.ABSOLUTE_TOP;
+			list.x = 55;
+			list.y = 70;
+			list.layOut();
+		}
+	}
+
+	/** The title text widget (modern: TITLE child 3; classic: LJ_LAYER2 child 1). */
+	W title()
+	{
+		W modern = get(InterfaceID.MenuNew.TITLE);
+		return modern != null ? modern.children[3] : get(InterfaceID.Menu.LJ_LAYER2).children[1];
 	}
 
 	/** Every widget of the menu, static and dynamic. */

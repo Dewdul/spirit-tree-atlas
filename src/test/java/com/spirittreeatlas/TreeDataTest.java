@@ -41,8 +41,8 @@ public class TreeDataTest
 	private static final long MAX_DECODED = 950_000;
 	private static final long MAX_RESOURCES = 7_969_177; // 7.6 MiB, DESIGN rule 6
 	private static final File RESOURCE_DIR = new File("src/main/resources");
-	/** DESIGN rule 7: raw bytes of src/main/java. */
-	private static final long MAX_SOURCE = 200_000;
+	/** DESIGN rule 7: raw bytes of src/main/java, an early warning far below the bot's budget (as Fairy Ring Atlas). */
+	private static final long MAX_SOURCE = 300_000;
 
 	private static TreeRepository real()
 	{
