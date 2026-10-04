@@ -190,4 +190,68 @@ public class PainterTest
 		// the city's tree and the house
 		assertEquals(2, markers);
 	}
+
+	/**
+	 * DESIGN 4.4: the stand-in's line is never cut for the real data: every grey row's hint (with
+	 * its padlock) and every fixed line fit the modern 161 px and classic 170 px cells, widened to
+	 * the left by at most {@link ChromePainter#STAND_IN_GROW}.
+	 */
+	@Test
+	public void standInLinesFitTheCell()
+	{
+		TreeRepository real = TreeRepository.load(new Gson(), SpiritTreeAtlasPlugin.RESOURCES);
+		ChromePainter chrome = new ChromePainter(Ink.create());
+		List<String> lines = new ArrayList<>(Arrays.asList("Pick a tree on the map", "You are here", "Not in this tree's list"));
+		for (Tree t : real.getTrees())
+		{
+			assertTrue(t.getId(), chrome.standInWidth(t.getLockedHint(), true) + 6 <= 161 + ChromePainter.STAND_IN_GROW);
+		}
+		for (String l : lines)
+		{
+			assertTrue(l, chrome.standInWidth(l, false) + 6 <= 161);
+		}
+	}
+
+	/** The stand-in owns its whole (possibly widened) box, and labels and the card keep clear of it. */
+	@Test
+	public void theStandInBoxIsAnObstacle()
+	{
+		TreeRepository r = repo();
+		Scene s = paint(r, surface(r), "POISON_WASTE", false, new BufferedImage(960, 660, BufferedImage.TYPE_INT_ARGB));
+		assertNotNull(s.standInRect);
+		assertTrue(s.standInRect.contains(s.rowCell));
+		assertFalse(s.card.intersects(s.standInRect));
+		Hit h = Hit.at(s.hits, s.standInRect.x + 1, s.standInRect.y + 1);
+		assertEquals(Hit.Kind.BLOCK, h.getKind());
+		Scene shown = paint(r, surface(r), "GRAND_EXCHANGE", true, new BufferedImage(960, 660, BufferedImage.TYPE_INT_ARGB));
+		assertNull(shown.standInRect);
+	}
+
+	/** DESIGN 4.7: every marker state draws differently, at the base size and past 4 ppt. */
+	@Test
+	public void markerStatesAreDistinct()
+	{
+		Scene s = new Scene();
+		int[] states = {AtlasPainter.AVAILABLE, AtlasPainter.LOCKED, 0, AtlasPainter.AVAILABLE | AtlasPainter.HOVER,
+			AtlasPainter.AVAILABLE | AtlasPainter.SELECTED, AtlasPainter.AVAILABLE | AtlasPainter.LAST,
+			AtlasPainter.LOCKED | AtlasPainter.SELECTED, AtlasPainter.LOCKED | AtlasPainter.HOVER};
+		for (double ppt : new double[]{1, 16})
+		{
+			List<int[]> drawn = new ArrayList<>();
+			for (int f : states)
+			{
+				BufferedImage img = new BufferedImage(48, 48, BufferedImage.TYPE_INT_ARGB);
+				Graphics2D g = img.createGraphics();
+				AtlasPainter.drawMarker(g, 24, 24, AtlasPainter.radius(ppt, (f & AtlasPainter.SELECTED) != 0), f, s);
+				g.dispose();
+				int[] px = img.getRGB(0, 0, 48, 48, null, 0, 48);
+				for (int[] other : drawn)
+				{
+					assertFalse("state " + f + " at " + ppt + " ppt", Arrays.equals(px, other));
+				}
+				drawn.add(px);
+			}
+		}
+		assertEquals(16, (int) Math.round(AtlasPainter.radius(1, false) * 2));
+	}
 }

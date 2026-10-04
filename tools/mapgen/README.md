@@ -29,9 +29,9 @@ icons and labels switched off. No wiki or third-party imagery is bundled.
 | `prifddinas` "Prifddinas" | bounds x 3136-3392, y 5952-6208 (the content fills all 16 map squares, so content + 8 tiles is clamped to them), background `#000000` |
 | z=2 | 1592 tiles, 6,599,180 bytes (1589 PNG8, 3 PNG24): surface 1576 (6,454,046 bytes), Prifddinas 16 (145,134 bytes); 2 solid surface tiles recorded, 54 plain-sea regions not shipped |
 | z=-1 | 37 tiles, 846,139 bytes (33 PNG8, 4 PNG24): surface 35 (834,184 bytes), Prifddinas 2 (`6_11`, `6_12`, 11,955 bytes) |
-| index.json | 96,120 bytes: 2 layers, 561 labels (5 on Prifddinas), 2741 icons (95 on Prifddinas) |
-| `map/` total | **7,541,439 bytes** in 1630 files |
-| `src/main/resources` | **7,556,220 bytes (7.21 MiB)** in 1631 files, with `trees.json` (14,781 bytes) |
+| index.json | 96,103 bytes: 2 layers, 561 labels (5 on Prifddinas), 2740 icons (95 on Prifddinas) |
+| `map/` total | **7,541,422 bytes** in 1630 files |
+| `src/main/resources` | **7,556,203 bytes (7.21 MiB)** in 1631 files, with `trees.json` (14,781 bytes) |
 | Budget | all of `src/main/resources` <= 7.6 MiB (7,969,177 bytes), so the jar stays under the hub's 8 MiB warning; every PNG at most 256x256 and under 950,000 bytes decoded (all are 256x256: 262,144 bytes) |
 
 Lossy PNG8 tiles: 544, PSNR >= 40.0 dB (median 42.4 dB). The rest are
@@ -135,12 +135,29 @@ After a cache update both plugins' maps change, so regenerate Fairy Ring Atlas's
      with spaces; optional `c` = text colour when not white.
    - **Icons**: plane 0, inside a layer's bounds, de-duplicated. Every
      map-function icon is kept (fairy rings included), except the
-     transportation icon (sprite 1504) within 3 tiles (per axis) of a spirit
+     transportation icon (sprite 1504) within 6 tiles (per axis) of a spirit
      tree centre and the farming patch icon (sprite 1501) within 3 tiles of a
      patch tree, because the plugin draws its own markers there. Today that
-     drops 7 transportation and 5 farming patch icons. The Tree Gnome Village
-     tree's transportation icon, at (2539,3166), is 5.5 tiles from its centre
-     (2544.5,3169.5), so the 3-tile rule keeps it; `build` prints a note.
+     drops 8 transportation and 5 farming patch icons.
+     The transportation radius was 3 until 2026-10-04: the Tree Gnome Village
+     tree's icon, at (2539,3166), is 5.5 tiles from its centre (2544.5,3169.5),
+     so it showed beside the marker. At 6 tiles the only icon the rule adds is
+     that one; every icon within 6 tiles of a tree, before and after:
+
+     | Tree | Icons within 6 tiles (x,y sprite: distance) | Shipped |
+     |---|---|---|
+     | Tree Gnome Village | 2539,3166 1504: 5.5 | dropped now (was kept) |
+     | | 2543,3169 1454: 1.5; 2540,3171 1454: 4.5 | kept |
+     | Gnome Stronghold, Battlefield of Khazard, Grand Exchange, Feldip Hills, Poison Waste | their 1504 at 0-1.5 | dropped (both rules) |
+     | Prifddinas | 3275,6124 1504: 0.5 | dropped (both rules) |
+     | | 3271,6125 1488: 3.5; 3269,6127 1487: 5.5 | kept |
+     | Laguna Aurorae | 1203,2787 1504: 0.5 | dropped (both rules) |
+     | | 1201,2792 1474: 5.5 | kept |
+     | Port Sarim, Etceteria, Brimhaven, Hosidius | their 1501 at 2-3 | dropped (both rules) |
+     | Farming Guild | 1255,3753 1501: 3.0 | dropped (both rules) |
+     | | 1248,3754 1487: 5.0 | kept |
+
+     The z=2 and z=-1 tiles do not change with this rule (icons are never baked in).
    - **Surface identity**: compares every surface tile with Fairy Ring Atlas's
      (above) and prints the result; `verify.py` fails on any unexplained difference.
    - Writes previews to `build/previews/` (or `$MAPGEN_PREVIEWS`): the whole
