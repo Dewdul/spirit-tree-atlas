@@ -5,6 +5,7 @@
  */
 package com.spirittreeatlas;
 
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
+import net.runelite.api.widgets.WidgetSizeMode;
 import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.util.Text;
 
@@ -28,9 +30,10 @@ import net.runelite.client.util.Text;
  * The spirit tree's travel menu in either of the game's two menu interfaces (DESIGN 2.1-2.3, 3.3
  * and 4.3): recognising it by its title, reading its rows, and in Map mode hiding and moving its
  * components so that only the close button and the selected tree's real row show, in the map's
- * bottom-right corner. Every change is recorded and put back exactly, only while the widget is
- * still the one we changed; nothing we did not hide is ever shown, and the key-listener layers
- * (the game's own hotkeys) and every layer that holds them are never hidden.
+ * bottom-right corner, where that row is also made button-sized (the one resize, DESIGN 1 rule 4).
+ * Every change is recorded and put back exactly, only while the widget is still the one we
+ * changed; nothing we did not hide is ever shown, and the key-listener layers (the game's own
+ * hotkeys) and every layer that holds them are never hidden.
  *
  * <p>Client thread only. Parsing ({@link #parseRow}, {@link #match}) and geometry
  * ({@link #modern}, {@link #classic}) are pure static methods.
@@ -40,12 +43,22 @@ public class TreeMenu
 	/** Margins of the Travel cell from the slot's right and bottom edges (DESIGN 4.3). */
 	static final int RIGHT = 8;
 	static final int BOTTOM = 6;
-	/** Classic: the visible middle of the 386 px row line, which is the cell. */
-	static final int CLASSIC_CELL_W = 170;
-	/** The close buttons' size (sprites 535/537), and the classic gap between it and the row. */
+	/**
+	 * The Travel button's size (DESIGN 4.3): the moved row is resized to this, within its scroll
+	 * area (MODERN both ways; CLASSIC the height, and the cell is the middle of its centred line).
+	 */
+	static final int TRAVEL_W = 200;
+	static final int TRAVEL_H = 32;
+	/** The close buttons' size (sprites 535/537). */
 	static final int CLOSE_W = 26;
 	static final int CLOSE_H = 23;
-	static final int CLOSE_GAP = 4;
+	/**
+	 * The gap between the close button and the cell below it: MODERN's, fixed by the title bar
+	 * (the close button's bottom at UNIVERSE y 40, CONTENT_SCROLL's top at 52), which CLASSIC copies.
+	 */
+	static final int CLOSE_GAP = 12;
+	/** MODERN: the close button's right end, this far inside TITLE's right end (script 9144). */
+	static final int MODERN_CLOSE_INSET = 12;
 	/** Classic: the parchment scroll's top-left in the slot, where List mode's Map button goes. */
 	static final Point CLASSIC_SCROLL = new Point(55, 37);
 	/** What the game writes into a row while its teleport is under way. */
@@ -127,6 +140,8 @@ public class TreeMenu
 		Point root;
 		/** Where the shown row goes in its own layer (MODERN: x and y; CLASSIC: y only, x is kept). */
 		Point row;
+		/** The shown row's size (MODERN: both, absolute; CLASSIC: the height only, its width and width mode are kept). */
+		Dimension rowSize;
 		/** The Travel cell, slot-relative. */
 		Rectangle cell;
 		/** CLASSIC: where the close button goes, slot-relative; null for MODERN (it rides on UNIVERSE). */
@@ -145,6 +160,9 @@ public class TreeMenu
 		/** Position fields {x mode, y mode, x, y} as found and as last written; null when not moved. */
 		int[] original;
 		int[] written;
+		/** Size fields {width mode, height mode, width, height}, likewise; null when not resized (only the Travel row is). */
+		int[] originalSize;
+		int[] writtenSize;
 
 		Change(Widget widget, int id, int index)
 		{
@@ -382,37 +400,46 @@ public class TreeMenu
 	// ------------------------------------------------------------------ geometry (pure)
 
 	/**
-	 * MODERN (DESIGN 4.3): UNIVERSE hangs below the slot so that only its title strip and first row
-	 * line show, in the slot's bottom-right corner; the row cell is the top row of the last column,
-	 * and the close button (UNIVERSE (W-44, 17)) sits just above its right end.
+	 * MODERN (DESIGN 4.3): the shown row becomes a {@link #TRAVEL_W} x {@link #TRAVEL_H} button
+	 * (as much as fits in CONTENT_SCROLL) at the top of the scroll area, its right end under the
+	 * close button's; UNIVERSE hangs below the slot so that only its title strip and that button
+	 * show, in the slot's bottom-right corner, the close button (in the title strip) just above
+	 * the button's right end.
 	 *
 	 * @param csX CONTENT_SCROLL's position relative to UNIVERSE (the sum of the relative positions
-	 *     of CONTENT_SCROLL, CONTENT and CONTENT_FRAME); {@code csW} its width
-	 * @param rw the rows' width and {@code rh} their height (TEXT child 0)
+	 *     of CONTENT_SCROLL, CONTENT and CONTENT_FRAME); {@code csW} x {@code csH} its size
+	 * @param closeRight the close button's right end relative to UNIVERSE, or 0 when unknown (the
+	 *     button then ends at the scroll area's right end)
 	 */
-	static Geometry modern(int slotW, int slotH, int csX, int csY, int csW, int rw, int rh, int scrollX, int scrollY)
+	static Geometry modern(int slotW, int slotH, int csX, int csY, int csW, int csH, int closeRight, int scrollX, int scrollY)
 	{
-		int ux = slotW - RIGHT - (csX + csW);
-		int uy = slotH - BOTTOM - (csY + rh);
-		Rectangle cell = new Rectangle(ux + csX + csW - rw, uy + csY, rw, rh);
-		return new Geometry(new Point(ux, uy), new Point(scrollX + csW - rw, scrollY), cell, null);
+		int cw = Math.min(csW, TRAVEL_W);
+		int ch = Math.min(csH, TRAVEL_H);
+		// UNIVERSE-relative right end of the button: under the close button's, inside the scroll area
+		int right = closeRight > 0 ? Math.max(csX + cw, Math.min(csX + csW, closeRight)) : csX + csW;
+		int ux = slotW - RIGHT - right;
+		int uy = slotH - BOTTOM - (csY + ch);
+		Rectangle cell = new Rectangle(ux + right - cw, uy + csY, cw, ch);
+		return new Geometry(new Point(ux, uy), new Point(scrollX + right - csX - cw, scrollY), new Dimension(cw, ch), cell, null);
 	}
 
 	/**
 	 * CLASSIC (DESIGN 4.3): the parchment model and scrollbar are hidden; LJ_LAYER1 hangs below
-	 * the slot with the shown row moved to its top, whose centred text fills the middle
-	 * {@link #CLASSIC_CELL_W} px (the cell); the close button goes just above the cell's right end.
+	 * the slot with the shown row moved to its top and made {@link #TRAVEL_H} tall (its full
+	 * width kept); its text, centred both ways, shows in the middle {@link #TRAVEL_W} px (the
+	 * cell); the close button goes just above the cell's right end.
 	 *
-	 * @param rw LJ_LAYER1's width (386); {@code rh} the row height (16)
+	 * @param rw LJ_LAYER1's width (386), the rows' width; {@code listH} its height
 	 */
-	static Geometry classic(int slotW, int slotH, int rw, int rh, int scrollY)
+	static Geometry classic(int slotW, int slotH, int rw, int listH, int scrollY)
 	{
-		int cw = Math.min(rw, CLASSIC_CELL_W);
+		int cw = Math.min(rw, TRAVEL_W);
+		int ch = Math.min(listH, TRAVEL_H);
 		int lx = slotW - RIGHT - cw - (rw - cw) / 2;
-		int ly = slotH - BOTTOM - rh;
-		Rectangle cell = new Rectangle(lx + (rw - cw) / 2, ly, cw, rh);
-		return new Geometry(new Point(lx, ly), new Point(0, scrollY), cell,
-			new Point(slotW - RIGHT - CLOSE_W, slotH - BOTTOM - rh - CLOSE_GAP - CLOSE_H));
+		int ly = slotH - BOTTOM - ch;
+		Rectangle cell = new Rectangle(lx + (rw - cw) / 2, ly, cw, ch);
+		return new Geometry(new Point(lx, ly), new Point(0, scrollY), new Dimension(rw, ch), cell,
+			new Point(slotW - RIGHT - CLOSE_W, slotH - BOTTOM - ch - CLOSE_GAP - CLOSE_H));
 	}
 
 	// ------------------------------------------------------------------ Map mode changes
@@ -450,19 +477,23 @@ public class TreeMenu
 		Widget scroll = client.getWidget(InterfaceID.MenuNew.CONTENT_SCROLL);
 		Widget text = client.getWidget(InterfaceID.MenuNew.TEXT);
 		Widget graphics = client.getWidget(InterfaceID.MenuNew.GRAPHICS);
-		Widget first = text == null ? null : text.getChild(0);
-		if (base == null || universe == null || frame == null || content == null || scroll == null || graphics == null || first == null)
+		Widget title = client.getWidget(InterfaceID.MenuNew.TITLE);
+		if (base == null || universe == null || frame == null || content == null || scroll == null || text == null || graphics == null
+			|| text.getChild(0) == null)
 		{
 			return;
 		}
 		Geometry g = modern(base.getWidth(), base.getHeight(),
 			frame.getRelativeX() + content.getRelativeX() + scroll.getRelativeX(),
 			frame.getRelativeY() + content.getRelativeY() + scroll.getRelativeY(),
-			scroll.getWidth(), first.getWidth(), first.getHeight(), scroll.getScrollX(), scroll.getScrollY());
+			scroll.getWidth(), scroll.getHeight(), title == null ? 0 : title.getRelativeX() + title.getWidth() - MODERN_CLOSE_INSET,
+			scroll.getScrollX(), scroll.getScrollY());
 		geometry = g;
 		move(universe, InterfaceID.MenuNew.UNIVERSE, -1, WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, g.getRoot().x, g.getRoot().y);
-		placeRows(text, InterfaceID.MenuNew.TEXT, shown, g.getRow(), true);
-		placeRows(graphics, InterfaceID.MenuNew.GRAPHICS, shown, g.getRow(), true);
+		// both are absolute-sized rectangles (proc 9143): text over its black backing
+		int[] size = {WidgetSizeMode.ABSOLUTE, WidgetSizeMode.ABSOLUTE, g.getRowSize().width, g.getRowSize().height};
+		placeRows(text, InterfaceID.MenuNew.TEXT, shown, g.getRow(), true, size);
+		placeRows(graphics, InterfaceID.MenuNew.GRAPHICS, shown, g.getRow(), true, size);
 	}
 
 	private void applyClassic(Row shown)
@@ -473,8 +504,7 @@ public class TreeMenu
 		{
 			return;
 		}
-		Widget first = list.getChild(0);
-		Geometry g = classic(base.getWidth(), base.getHeight(), list.getWidth(), first == null ? 16 : first.getHeight(), list.getScrollY());
+		Geometry g = classic(base.getWidth(), base.getHeight(), list.getWidth(), list.getHeight(), list.getScrollY());
 		geometry = g;
 		// only the parchment model, never LJ_LAYER2 itself: it holds the key-listener layer (the
 		// game's hotkeys) and the title, which Better Teleport Menu checks; the map covers both
@@ -486,7 +516,8 @@ public class TreeMenu
 		}
 		hide(client.getWidget(InterfaceID.Menu.LJ_SCROLL_BAR), InterfaceID.Menu.LJ_SCROLL_BAR, -1);
 		move(list, InterfaceID.Menu.LJ_LAYER1, -1, WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, g.getRoot().x, g.getRoot().y);
-		placeRows(list, InterfaceID.Menu.LJ_LAYER1, shown, g.getRow(), false);
+		// the row's width stays "LJ_LAYER1's minus 0" (proc 218); only its height is set
+		placeRows(list, InterfaceID.Menu.LJ_LAYER1, shown, g.getRow(), false, new int[]{-1, WidgetSizeMode.ABSOLUTE, -1, g.getRowSize().height});
 		move(client.getWidget(InterfaceID.Menu.ROOT_GRAPHIC3), InterfaceID.Menu.ROOT_GRAPHIC3, -1,
 			WidgetPositionMode.ABSOLUTE_LEFT, WidgetPositionMode.ABSOLUTE_TOP, g.getClose().x, g.getClose().y);
 	}
@@ -506,10 +537,13 @@ public class TreeMenu
 	}
 
 	/**
-	 * Hides every row of a layer but the shown one, which goes to the cell (shown again only if we
-	 * hid it). A row that stops being the shown one goes back where it was before it is hidden.
+	 * Hides every row of a layer but the shown one, which goes to the cell at the Travel button's
+	 * size (shown again only if we hid it). A row that stops being the shown one goes back where
+	 * it was, at its own size, before it is hidden.
+	 *
+	 * @param size the shown row's {width mode, height mode, width, height}; -1 keeps that field
 	 */
-	private void placeRows(Widget layer, int id, Row shown, Point at, boolean moveX)
+	private void placeRows(Widget layer, int id, Row shown, Point at, boolean moveX, int[] size)
 	{
 		Widget[] kids = layer.getChildren();
 		for (int i = 0; kids != null && i < kids.length; i++)
@@ -522,8 +556,14 @@ public class TreeMenu
 			if (shown != null && i == shown.getIndex())
 			{
 				unhide(w, id, i);
-				move(w, id, i, moveX ? WidgetPositionMode.ABSOLUTE_LEFT : w.getXPositionMode(), WidgetPositionMode.ABSOLUTE_TOP,
-					moveX ? at.x : w.getOriginalX(), at.y);
+				int[] now = size(w);
+				int[] target = new int[4];
+				for (int k = 0; k < 4; k++)
+				{
+					target[k] = size[k] < 0 ? now[k] : size[k];
+				}
+				place(w, id, i, new int[]{moveX ? WidgetPositionMode.ABSOLUTE_LEFT : w.getXPositionMode(), WidgetPositionMode.ABSOLUTE_TOP,
+					moveX ? at.x : w.getOriginalX(), at.y}, target);
 			}
 			else
 			{
@@ -598,41 +638,81 @@ public class TreeMenu
 		}
 	}
 
-	/**
-	 * Moves a widget (position modes and x/y; never its size). What it held is recorded the first
-	 * time, and again whenever it no longer holds what we wrote (the game laid it out afresh).
-	 */
+	/** Moves a widget (position modes and x/y), keeping its size. */
 	private void move(Widget w, int id, int index, int xMode, int yMode, int x, int y)
 	{
-		if (w == null)
+		if (w != null)
 		{
-			return;
+			place(w, id, index, new int[]{xMode, yMode, x, y}, null);
 		}
-		int[] now = position(w);
-		int[] target = {xMode, yMode, x, y};
+	}
+
+	/**
+	 * Moves a widget and, for the Travel row only, resizes it (DESIGN 1 rule 4: the one resize).
+	 * What it held is recorded the first time, and again whenever it no longer holds what we wrote
+	 * (the game laid it out afresh); position and size are recorded apart.
+	 *
+	 * @param size {width mode, height mode, width, height}, or null to keep the size
+	 */
+	private void place(Widget w, int id, int index, int[] position, int[] size)
+	{
 		Change c = record(w, id, index);
+		int[] now = position(w);
 		if (c.written == null || !Arrays.equals(now, c.written))
 		{
 			c.original = now;
 		}
-		if (!Arrays.equals(now, target))
+		boolean changed = !Arrays.equals(now, position);
+		if (changed)
 		{
-			write(w, target);
+			write(w, position);
+		}
+		c.written = position;
+		if (size != null)
+		{
+			int[] was = size(w);
+			if (c.writtenSize == null || !Arrays.equals(was, c.writtenSize))
+			{
+				c.originalSize = was;
+			}
+			if (!Arrays.equals(was, size))
+			{
+				writeSize(w, size);
+				changed = true;
+			}
+			c.writtenSize = size;
+		}
+		if (changed)
+		{
 			w.revalidate();
 		}
-		c.written = target;
 	}
 
-	/** Puts a moved widget back, if it still holds what we wrote; the move is forgotten either way. */
+	/**
+	 * Puts a moved (and resized) widget back: its position if it still holds the position we
+	 * wrote, its size if it still holds the size we wrote. Both are forgotten either way.
+	 */
 	private static void unmove(Change c)
 	{
+		boolean changed = false;
 		if (c.written != null && Arrays.equals(position(c.widget), c.written) && !Arrays.equals(c.original, c.written))
 		{
 			write(c.widget, c.original);
+			changed = true;
+		}
+		if (c.writtenSize != null && Arrays.equals(size(c.widget), c.writtenSize) && !Arrays.equals(c.originalSize, c.writtenSize))
+		{
+			writeSize(c.widget, c.originalSize);
+			changed = true;
+		}
+		if (changed)
+		{
 			c.widget.revalidate();
 		}
 		c.original = null;
 		c.written = null;
+		c.originalSize = null;
+		c.writtenSize = null;
 	}
 
 	/** Whether we hid this widget (and it is the one we hid); unlike {@link #find}, changes no record. */
@@ -687,6 +767,20 @@ public class TreeMenu
 		w.setYPositionMode(p[1]);
 		w.setOriginalX(p[2]);
 		w.setOriginalY(p[3]);
+	}
+
+	private static int[] size(Widget w)
+	{
+		return new int[]{w.getWidthMode(), w.getHeightMode(), w.getOriginalWidth(), w.getOriginalHeight()};
+	}
+
+	/** The only widget resize in the plugin: the Travel row's, and its exact restore (DESIGN 1 rule 4). */
+	private static void writeSize(Widget w, int[] s)
+	{
+		w.setWidthMode(s[0]);
+		w.setHeightMode(s[1]);
+		w.setOriginalWidth(s[2]);
+		w.setOriginalHeight(s[3]);
 	}
 
 	// ------------------------------------------------------------------ places on screen

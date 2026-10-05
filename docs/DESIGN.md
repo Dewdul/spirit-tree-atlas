@@ -16,6 +16,10 @@ The user's scope (2026-10-04): "Similar to our Fairy Ring Atlas ... there are a 
 options so we really only need the map, groups aren't needed." So: no Groups panel, no Favourites
 list, no Elsewhere panel, no search, no clue helper, no dials, no travel log.
 
+After testing in game the same day the user asked: "a quick select menu on the left would be nice".
+So the map has one side panel after all, the **quick-select panel** (4.6): every destination as a
+row down the map's left edge, modelled on Fairy Ring Atlas's left panel.
+
 - Internal hub name: `spirit-tree-atlas`
 - Display name: "Spirit Tree Atlas"
 - Package: `com.spirittreeatlas`
@@ -48,11 +52,19 @@ sources and the Plugin Hub. Confidence is marked [H]igh, [M]edium or [L]ow where
    adds no key listener and never captures keys.
 3. **Menu entries the plugin adds are `MenuAction.RUNELITE`** with `onClick` callbacks that change only
    plugin state.
-4. **Game widgets: hide and move only, inside the menu's own interface.** No resize, no re-text, no
-   recolour, no new ops.
+4. **Game widgets: hide and move only, inside the menu's own interface,** plus one resize. No other
+   resize, no re-text, no recolour, no new ops.
+   - **The one resize:** the selected tree's real row, while it is the Travel button in the map's
+     corner, is made button-sized (`TRAVEL_W` x `TRAVEL_H`, 200x32, 4.3), exactly as Fairy Ring
+     Atlas sets its real Teleport (CONFIRM) widget's size as well as its position. Only that row
+     (MODERN: its TEXT and GRAPHICS children; CLASSIC: its LJ_LAYER1 child), only in `TreeMenu`;
+     its size modes and size are recorded and put back exactly, by the same rules as a move. Its
+     ops, text, colours and listeners are untouched. `ComplianceTest.onlyTheTravelRowIsResized`
+     enforces this structurally.
    - Never unhide a component that we did not hide ourselves (the game or another plugin may have
-     hidden it). Restore only what we changed, exactly (position modes, x, y), and only while the
-     widget is still the one we changed.
+     hidden it). Restore only what we changed, exactly (position modes, x, y; for the Travel row
+     also width and height modes, width, height), and only while the widget is still the one we
+     changed.
    - The movable components are listed in 4.3. Nothing else of 947 or 187 is touched. Never touch the
      key-listener layers (`MenuNew.KEYLISTENERS`, `Menu.KEYLISTENERS`) or their children: the game's
      own hotkeys must keep working in every mode.
@@ -137,14 +149,21 @@ modes 0 = absolute, 1 = minus):
   UNIVERSE `(8 + (i/8)*161, 52 + (i%8)*20)`; UNIVERSE's origin in the slot is (87,58). Verified
   against the Dec 2025 news image (340x220 including a 1 px margin) and user screenshots.
 - **Per entry i** (subid = 0-based index), created by 9143:
-  - `GRAPHICS` child i: black filled rectangle, `w` x 20, transparency alternating 200/220, 240 on hover.
-  - `TEXT` child i: p12_full, colour 0xff981f (white on hover), centred both ways; text
+  - `GRAPHICS` child i: black filled rectangle, `w` x 20 (absolute size modes), transparency
+    alternating 200/220, 240 on hover.
+  - `TEXT` child i: `w` x 20 (absolute size modes), p12_full, colour 0xff981f (white on hover),
+    centred both ways (`settextalign` centre/centre, line height 14); text
     `<col=ffffff>K</col>: ` + option, K the key.
+  - Nothing the game runs while the menu is open depends on or resets an entry's size: the
+    hover scripts only swap the colour (`cc_colour_swapper`) and the transparency
+    (`cc_settrans`), and a key press (`chatbox_keyinput_matched`) only re-texts the row
+    "Please wait...", recolours it and replaces its key listener [H, cs2]. Only 9142 itself
+    lays the entries out (and it runs again only as a rebuild, 3.3).
   - `KEYLISTENERS` child i: rectangle with the onKey listener. **Never touched.**
 - **Title bar** (dynamic children of `TITLE`, from 9144): 0-1 thinbox rectangles, 2 title graphic, 3
-  title text (b12_full, the title), 4 **close button** (sprite 535, hover 536, 26x23, 12 px from the
-  right, vertically centred: UNIVERSE-relative (W-44, 17); op "Close", script 29). Find them by type
-  and action rather than by index (3.3).
+  title text (b12_full, the title), 4 **close button** (sprite 535, hover 536, 26x23, 12 px from
+  TITLE's right end, vertically centred: UNIVERSE-relative (W-44, 17), its right end at W-18; op
+  "Close", script 29). Find them by type and action rather than by index (3.3).
 
 ### 2.3 Classic menu, group 187 [H]
 
@@ -161,8 +180,14 @@ After proc 219 (called from 217 with 33):
 | 4 | `ROOT_GRAPHIC3` | 12255236 | the slot | (449,36) 26x23 | close button, sprite 537 (538 hover), op "Close", script 29 |
 
 - Entries (proc 218): `LJ_LAYER1` dynamic child i is a text component, x 0 centre-anchored, y = 16*i
-  (top-anchored), width minus 0 (386), height 16 for one line, p12_full colour 0x322805 (0x524825 on
-  hover), centred; text `<col=735a28>K</col>: ` + option.
+  (top-anchored), width minus 0 (386), height absolute 16 for one line, p12_full colour 0x322805
+  (0x524825 on hover), centred both ways (`settextalign` centre/centre, line height 14); text
+  `<col=735a28>K</col>: ` + option. As in 947, the hover script only swaps the colour and a key
+  press only re-texts and recolours the row; nothing resets its size while the menu is open
+  [H, cs2].
+- Better Teleport Menu reads a classic row's height only while 218 runs (to drop a disabled row's
+  height from the list), and its "Expand scroll menu" sizes 187:3 from its scroll height, which a
+  row's height does not change; neither depends on a row's size later [H, its source].
 - 15 entries take 240 px of a 232 px list: the list scrolls by 8 px. When it overflows, 217 calls
   proc 31 `scrollbar_vertical`, which builds the scrollbar's children and sets a mouse-wheel handler
   on 187:3 itself (`if_setonscrollwheel`), so the wheel over the moved row would scroll it out of
@@ -450,20 +475,34 @@ The aim is Fairy Ring Atlas's corner: the **Travel** row in the map's bottom-rig
 **close** button just above it. The slot clips everything, so a layer moved partly outside the slot
 shows only its part inside (2.6). All targets are computed from live layout values
 (`getRelativeX/Y`, `getWidth/Height`, `getScrollX/Y`) after the setup script ran, in slot
-coordinates (`slotW` x `slotH`, 512x334). Margins: `RIGHT = 8`, `BOTTOM = 6`.
+coordinates (`slotW` x `slotH`, 512x334). Margins: `RIGHT = 8`, `BOTTOM = 6`. The **Travel
+button** is `TRAVEL_W` x `TRAVEL_H` = 200x32 (the game's rows are 161x20 and 386x16): the shown row
+is resized to it (hard rule 4's one resize), and both menus give the same corner in a 512x334 slot:
+the **cell** at slot (304,296) 200x32, ending `RIGHT`/`BOTTOM` from the slot's corner, and the
+**close button** at slot (478,261) 26x23, its right end over the cell's and `CLOSE_GAP` = 12 px
+above it, as Fairy Ring Atlas's Teleport (169x36) and close button.
 
 **MODERN (947):**
 1. Let `cs` be CONTENT_SCROLL's position relative to UNIVERSE (sum of the relative positions of
-   CONTENT_SCROLL, CONTENT and CONTENT_FRAME), `csW` its width, and `rw x rh` the size of the rows
-   (TEXT child 0). The **row cell** is the top row of the last column: CONTENT_SCROLL-relative
-   `(scrollX + csW - rw, scrollY)`, i.e. UNIVERSE-relative `(cs.x + csW - rw, cs.y)`.
+   CONTENT_SCROLL, CONTENT and CONTENT_FRAME) and `csW x csH` its size. The button is
+   `cw x ch` = `min(csW, TRAVEL_W) x min(csH, TRAVEL_H)`. Its right end, UNIVERSE-relative, is
+   `right` = the close button's right end (TITLE's relative x + width - 12, i.e. W-18), kept
+   between `cs.x + cw` and `cs.x + csW`. The **row cell** is the top of the scroll area at that
+   right end: CONTENT_SCROLL-relative `(scrollX + right - cs.x - cw, scrollY)`, i.e.
+   UNIVERSE-relative `(right - cw, cs.y)`. Today: `right` = 320 (CONTENT_SCROLL ends at 330), the
+   row at CONTENT_SCROLL (112, 0).
 2. Move UNIVERSE (record its position modes and x/y) to position modes ABSOLUTE_LEFT/ABSOLUTE_TOP,
-   `x = slotW - RIGHT - (cs.x + csW)`, `y = slotH - BOTTOM - (cs.y + rh)`. UNIVERSE now hangs below
-   the slot: only its title strip and the first row line show, in the slot's bottom-right corner, and
-   the close button (UNIVERSE (W-44,17)) sits just above the row cell's right end.
+   `x = slotW - RIGHT - right`, `y = slotH - BOTTOM - (cs.y + ch)`: today (184, 244). UNIVERSE now
+   hangs below and 10 px past the right of the slot: only its title strip and the button show, in
+   the slot's bottom-right corner, and the close button (UNIVERSE (W-44,17)) sits just above the
+   button's right end. The gap between them, 12 px, is the title bar's (close bottom at UNIVERSE
+   y 40, CONTENT_SCROLL top at 52), so the two never overlap.
 3. Hide every row's TEXT child and GRAPHICS child (when not already hidden), except the selected
-   tree's when it is to be shown (4.4); move that one's TEXT and GRAPHICS child to the row cell
-   (record their position modes and x/y; set ABSOLUTE_LEFT/TOP and the cell's x/y).
+   tree's when it is to be shown (4.4); move that one's TEXT and GRAPHICS child to the row cell and
+   resize both to `cw x ch` (record their position modes and x/y, and their size modes and size;
+   set ABSOLUTE_LEFT/TOP and the cell's x/y, absolute size modes and `cw x ch`). The text stays
+   centred both ways in the bigger rectangle, and the GRAPHICS child is its black backing (and
+   hover highlight) at the same size.
 4. Leave FRAME, TITLE and its children, CONTENT_FRAME, SCROLLBAR and KEYLISTENERS alone (they are
    under the map, or hang outside the slot). UNIVERSE is moved, never hidden: it, CONTENT_FRAME and
    CONTENT hold KEYLISTENERS.
@@ -474,18 +513,22 @@ coordinates (`slotW` x `slotH`, 512x334). Margins: `RIGHT = 8`, `BOTTOM = 6`.
    each only when not already hidden (Better Teleport Menu may have hidden the model; then it is not
    ours and is never shown again). **Never `LJ_LAYER2` itself**: it holds `Menu.KEYLISTENERS` (2.3).
    The title (child 1) stays visible under the map, so Better Teleport Menu's title check passes.
-2. Let `rw` = LJ_LAYER1's width (386), `rh` = the row height (16), `cw` = min(`rw`, 170) the
-   visible cell width. Move LJ_LAYER1 (record its modes and x/y) to ABSOLUTE_LEFT/TOP,
-   `x = slotW - RIGHT - cw - (rw - cw)/2`, `y = slotH - BOTTOM - rh`. It hangs below the slot.
+2. Let `rw` = LJ_LAYER1's width (386, the rows' width), `cw` = min(`rw`, `TRAVEL_W`) the visible
+   cell width and `ch` = min(LJ_LAYER1's height, `TRAVEL_H`) the button's height. Move LJ_LAYER1
+   (record its modes and x/y) to ABSOLUTE_LEFT/TOP, `x = slotW - RIGHT - cw - (rw - cw)/2`,
+   `y = slotH - BOTTOM - ch`: today (211, 296). It hangs below the slot.
 3. Hide every row except the selected tree's when shown; move that row to `y = LJ_LAYER1.scrollY`
-   (keep its x and x mode; record its y and y mode; y mode ABSOLUTE_TOP). Its text is centred, so it
-   shows in the middle `cw` px of the row, which is the row cell.
+   (keep its x and x mode; record its y and y mode; y mode ABSOLUTE_TOP) and make it `ch` tall
+   (record its size modes and size; height mode absolute; its width mode, minus, and width, 0, are
+   kept, so it stays 386 wide). Its text is centred both ways, so it shows in the middle `cw` px of
+   the row, half way down: that is the row cell, slot (304, 296) 200x32.
 4. Move the close button `ROOT_GRAPHIC3` (record) to ABSOLUTE_LEFT/TOP
-   `(slotW - RIGHT - 26, slotH - BOTTOM - rh - 4 - 23)`.
+   `(slotW - RIGHT - 26, slotH - BOTTOM - ch - CLOSE_GAP - 23)`: today (478, 261), as in MODERN.
 
 **Both:** the row cell's canvas rect is the slot's bounds plus the cell's slot-relative rect,
 intersected with the row widget's live bounds when it is shown. The close rect is the close button's
-live bounds.
+live bounds. Only the shown row is ever resized: a row that stops being the Travel row gets its
+own place and size back before it is hidden.
 
 **Re-apply** after every `ScriptPostFired` of the setup script (the rows are new: any records of
 dynamic children left are dropped; static components keep theirs), on each `GameTick`, when the
@@ -493,8 +536,9 @@ selection changes, when Map mode comes back and when stepping aside ends. `apply
 differs. A move is recorded again whenever the widget no longer holds what we wrote (the game laid
 it out afresh), so that new place is what a restore puts back.
 **Restore** (exactly what we recorded, only while each widget is the live widget for its id and,
-for hidden ones, still self-hidden; a move only while the widget still holds what we wrote; never
-unhide anything we did not hide) at `ScriptPreFired` of the open style's setup script (3.3), on
+for hidden ones, still self-hidden; a move only while the widget still holds the position we
+wrote, a resize only while it still holds the size we wrote, each judged apart; never unhide
+anything we did not hide) at `ScriptPreFired` of the open style's setup script (3.3), on
 List mode, close (including the per-tick title test failing and a non-spirit-tree menu on the same
 interface), logout and hop (whatever is still live), stepping aside and shutdown (on the client
 thread, after the overlays are removed).
@@ -521,17 +565,26 @@ draws nothing else and takes no input.
 - **`rowShown()`:** a tree is selected, it has a row in the current menu, the row is not grey, it is
   not `here`, and the row text still maps to the selected tree (re-checked every frame from the live
   widget; "Please wait..." keeps the old mapping).
-- **Stand-in.** Otherwise the overlay draws a disabled stand-in over the row cell, consumes its
-  input and says, in one line (RuneScape small font):
-  - nothing selected: "Pick a tree on the map";
-  - the selected tree's row is grey: a padlock and `<lockedHint>`;
-  - the selected tree is `here`: "You are here";
-  - the selected tree has no row: "Not in this tree's list".
+- **Stand-in.** Otherwise the overlay draws a disabled stand-in over the row cell (the same 200x32
+  as the button), consumes its input and says (RuneScape small font, centred):
+  - nothing selected: one line, "Pick a tree on the map" (grey);
+  - a tree selected: two lines, the tree's label (white; the house names its town) over why it
+    cannot travel:
+    - its row is grey: a padlock and `<lockedHint>` (amber);
+    - it is `here`: "You are here" (grey);
+    - it has no row: "Not in this tree's list" (grey).
 
-  The line is never cut while the stand-in may grow up to 24 px left of the cell over the map
+  A cell too short for two lines (a scroll area under 26 px) shows only the reason. Every label,
+  hint and fixed line of today's data fits the 200 px cell (`PainterTest.standInLinesFitTheCell`);
+  the stand-in may still grow up to 24 px left of the cell over the map for a longer line
   (`Scene.standInRect`, which labels and the card keep clear of); "..." only beyond that.
 - **Caption.** A small "Travel" caption sits on the map just above the cell's left end, left of the
-  close button, so the corner reads as a button pair even while the stand-in shows.
+  close button, so the corner reads as a button pair even while the stand-in shows. Where that
+  would hide a marker (the fixed-mode overview has Feldip Hills over the 200 px cell's left end), it
+  slides right along the cell's top, 8 px at a time, to the first place clear of every marker,
+  never under the close button (`ChromePainter.captionRect`; `PainterTest.theFixedModeCardCoversNoMarker`).
+- **Backdrop.** `RowBackdrop` fills the Travel hole as drawn, so it covers the bigger button
+  without change.
 - When the Travel row shows, its frame pulses gently (as Fairy Ring Atlas's Teleport when ready).
 
 ### 4.5 Selection flow
@@ -558,8 +611,39 @@ draws nothing else and takes no input.
   "Gielinor > Prifddinas" (vector triangle), the last trip ("Last: Grand Exchange") when known, and
   buttons on the right: `-`, `+`, `Fit`, `List`, and `Clear` while there is a selection.
 - **Back button:** on the Prifddinas map, a large orange "Back to Gielinor" button at the top-left
-  under the bar.
-- **No side panels.**
+  under the bar, right of the quick-select panel.
+- **Quick-select panel** (from the user's in-game feedback, 2026-10-04: "a quick select menu on the
+  left would be nice"). Fairy Ring Atlas's left panel, with one list:
+  - Inside the map's left edge, 6 px in, below the top bar; `ChromePainter.PANEL_W` (150 px) wide,
+    wider when the longest row (label plus its "You" tag or last-trip badge) needs it, but never past
+    30% of the map (`panelWidth`). Fairy Ring Atlas's look: the same dark translucent fill and bronze
+    rim, a header row with "Destinations" (bold, orange) and a small hide button with a left-pointing
+    triangle. As tall as its rows need (`Scene.panel`).
+  - **One row per destination in menu order** (`TreeRepository.menuOrder`: the live rows' order;
+    trees the menu does not list follow, in `trees.json` order), 18 px tall, 1 px apart: the row's
+    key badge (the live row's key; blank when it has none), a 6.5 px copy of the tree's marker glyph
+    in its state (available, locked with its padlock, not listed hollow), and the tree's `label` (the
+    house names its town), cut with "..." only when it does not fit. The selected row is filled dark
+    orange with a `selectedColor` rim and label; the hovered row is lighter with a white label; locked
+    rows have dimmer text, not-listed rows dimmer still. The tree you are at gets a small red "You"
+    tag and the last trip the return-arrow badge, at the row's right end.
+  - **Closed**, it is a 20 px tab (`TAB_W`) at the same top-left spot with a right-pointing triangle
+    and "Destinations" written down it; clicking the tab or the header's triangle toggles it.
+    Open by default; on maps narrower than 700 px (fixed mode) it starts closed until the player
+    opens it there (Fairy Ring Atlas's rule for its Groups panel). The player's choice holds at any
+    size for the session and is saved in the hidden key `quickSelectOpen` ("false" once closed).
+  - **Off** with the `quickSelect` setting: neither panel nor tab.
+  - **Hits:** `PANEL` for the body (absorbs presses, never pans; not actionable), `ROW` per visible
+    row (tree set, option "Select", target the label), and the `TOGGLE_PANEL` button (header
+    triangle "Hide", or the whole tab "Show", target "Destinations").
+  - **Overflow:** rows outside the panel are clipped, with a small chevron at the top or bottom while
+    there is more; the wheel scrolls them (4.8). The painter reports `panelScrollMax`.
+  - **Keeping clear:** the panel stops above the holes, the Travel cell, its caption and the stand-in
+    (`Scene.standInRect`) when any of them, grown by 8 px for their frames, is in its column (with
+    every real layout they are not: the corner is on the right). Fits keep clear of the open panel or
+    the tab (`SpiritTreeAtlasPlugin.chromeInsets`); the card sits beside the open panel, or below the
+    tab (which is one of its blockers); the panel is a `LabelPlacer` obstacle, and markers under it
+    get no label. Markers under it still draw (beneath the translucent fill) but take no input there.
 - **Info card** for the hovered tree, else the selected one; when neither, a one-line hint
   ("Click a tree to travel there"). Contents: name (the house names its town) and area; status line
   (Available / Locked - <lockedHint> in red / You are here / Not in the list), with the last trip
@@ -568,8 +652,9 @@ draws nothing else and takes no input.
   (red), "Nearby" POIs and notes. Compact by default (name, area, status, next step, first locked
   requirement, two POIs); `fullDetails` shows everything. Placement exactly as Fairy Ring Atlas
   (`ChromePainter.place`: bottom-left first, keeping clear of the holes, the Travel cell and its
-  caption, the top bar and the tree it describes); about 45% of the map wide (at least 220 px), at
-  most 62% of its height (48% on maps under 450 px tall); long text wraps; "..." when cut. While a
+  caption, the top bar, the quick-select panel or tab and the tree it describes); about 45% of the
+  map wide (at least 220 px), at most 62% of its height (48% on maps under 450 px tall); long text
+  wraps; "..." when cut. While a
   right-click menu is open, the card keeps describing the tree it was opened on.
 
 ### 4.7 Markers, labels and the initial view
@@ -603,11 +688,14 @@ draws nothing else and takes no input.
 
 ### 4.8 Navigation, input and menu ownership
 
-Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging:
+Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus its panels and row dragging, plus the
+quick-select panel:
 - Wheel zooms about the cursor (x1.25 per notch, precise rotation, 0.125-16 ppt); left-drag on empty
   map pans; `+`/`-` zoom x1.5 about the centre, animated, compounding from a running animation;
   `Fit` fits all surface markers (or the Prifddinas layer bounds); animations ease out over 250 ms;
-  the view is clamped so the layer cannot be dragged out of sight; fits respect the top bar inset.
+  the view is clamped so the layer cannot be dragged out of sight; fits (the initial view, `Fit`,
+  `Zoom to`, opening a layer, a row's pan) keep clear of the top bar and of the quick-select panel or
+  its tab (`chromeInsets`).
 - `AtlasInput` (a `MouseAdapter` + `MouseWheelListener`, registered with the normal appending calls
   so Stretched Mode translates first) is active only while the menu is open, in Map mode, no menu is
   open, the point is inside the map rect and not in a hole (the wheel: anywhere on the map, 4.4). A
@@ -615,6 +703,19 @@ Exactly Fairy Ring Atlas (its DESIGN 4.6 and 4.7), minus panels and row dragging
   when `onPostMenuSort` built the game's menu for that same hit (`menuKey`), otherwise swallowed.
   Empty-map presses start a pan. Drag and move events are never consumed; release and click are
   consumed until release.
+- **Quick-select panel** (4.6). A left press on a row follows the rule for actionable chrome: it is
+  let through only when `onPostMenuSort` built the game's menu for that same row (`menuKey`: kind,
+  id and tree), so the game runs our "Select"; otherwise it is swallowed and a stale game entry can
+  never run. A press on the panel's body is absorbed (no pan). The wheel over the panel (body or row)
+  scrolls it by two rows a notch while its rows overflow (`panelScrollMax` > 0, fixed mode); otherwise
+  it zooms the map as everywhere else. Right-click a row: `Select` (the left-click entry), `Zoom to`
+  (when the tree is on a map) and `Clear selection` (with a selection), all `MenuAction.RUNELITE`.
+  `Select` (`SpiritTreeAtlasPlugin.showTree`) selects the tree exactly as its marker does (the Travel
+  row or the stand-in updates at once) and, when its marker (on the surface, a Prifddinas tree's
+  stand-in) is not inside the map clear of the chrome (16 px in), animates a pan to it at the current
+  zoom; a surface tree picked on the Prifddinas map brings the surface back first. Hovering a row
+  shows that tree's card and the hover ring on its marker. The panel's scroll is reset on each open
+  that is not a quick reopen.
 - `onPostMenuSort` (menu closed): inside the map and outside the holes, remove every entry but
   CANCEL (no "Walk here" through the map, no hidden rows), then add ours. In List mode only the
   floating Map button owns its rect: its "Show Map" entry, and a left press there is let through
@@ -638,7 +739,7 @@ antialiasing off and vector glyphs instead of Unicode arrows; stretched mode is 
 painters (`AtlasPainter`, `ChromePainter`, `MapRenderer`, `Ink`) never touch `Client`, so
 `MapPreview` renders exactly what the overlay draws.
 
-**Loading the tiles** (deviation 26). The default view (FIT_ALL) of a large resizable map is z=0
+**Loading the tiles** (deviation 27). The default view (FIT_ALL) of a large resizable map is z=0
 (0.75 ppt on a 1738x905 map), which is not bundled: each of its ~60 tiles is derived from 16 z=2
 tiles, about 960 PNG decodes. Smaller maps open on z=-1 (bundled; 1100x600 is 0.46 ppt) or z=-2
 (fixed mode, 0.22 ppt, derived from z=-1).
@@ -737,6 +838,7 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `mapMaxWidth` | int px | 2000, range 512-2000 |
 | `mapMaxHeight` | int px | 1400, range 334-1400 |
 | `openAt` | enum FIT_ALL / AROUND_YOU / REMEMBER | FIT_ALL |
+| `quickSelect` ("Quick select list") | boolean | true: the quick-select panel (4.6); off, neither panel nor tab |
 | `placeLabels` | boolean | true |
 | `mapIcons` | boolean | true |
 | `fullDetails` | boolean | false |
@@ -745,6 +847,9 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `dimLocked` | boolean | false |
 | `availableColor` | Color | `#5BD45B` |
 | `selectedColor` | Color | `#FF981F` |
+
+Hidden (not in the config panel): `quickSelectOpen`, "false" once the player closed the
+quick-select panel (absent or "true": open, 4.6), as Fairy Ring Atlas saves `groupsOpen`.
 
 ---
 
@@ -765,23 +870,34 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `ModalSlot` | Use free space | adapted (root that must fill the slot) |
 | `Scene`, `Hit` | per-frame data and hit regions | adapted |
 | `AtlasPainter` | markers, labels, icons, portals | adapted |
-| `ChromePainter` | frame, top bar, back button, card, stand-in, caption, hole frames | adapted |
+| `ChromePainter` | frame, top bar, quick-select panel, back button, card, stand-in, caption, hole frames | adapted |
 | `AtlasOverlay` | draws everything, publishes hits/holes, List-mode Map button and notices | adapted |
 | `RowBackdrop` | UNDER_WIDGETS backdrop for the Travel hole | new |
-| `AtlasInput` | mouse and wheel | adapted (no rows/panels) |
+| `AtlasInput` | mouse and wheel; the quick-select panel's rows and wheel | adapted (no row dragging) |
 
 Dropped from FRA: `DialMath`, `FavouriteOrder`, `RingGroups`, `TravelLogController`, `RingMenuNames`,
 `ClueHelper`, `UnlockCheck`, `Ring`, `RingRepository`, `groups.json`, `rings.json`.
 
 **Tests** in `src/test/java/com/spirittreeatlas/`: `ComplianceTest` (the full list in rule 1),
 `TreeMenuTest` (row parsing for both menus, grey rows, Better Teleport Menu forms, "Please wait...",
-house prefix, Cancel; the 4.3 geometry for 15 and 12 rows, modern and classic; the changes and
-restores against fake menus parented as in the cache, the tick re-read and rows hidden by others;
-in Map mode no component holding either key-listener layer is hidden), `PluginEventsTest` (the
+house prefix, Cancel; the 4.3 geometry for 15 and 12 rows, modern and classic: the 200x32 button,
+the close button above its right end and clear of it, UNIVERSE / LJ_LAYER1's places; the changes and
+restores against fake menus parented and sized as in the cache, sizes and size modes put back
+exactly and only while they hold ours, only the Travel row ever resized, a rebuild dropping the old
+rows' records, the tick re-read and rows hidden by others; in Map mode no component holding either
+key-listener layer is hidden), `PluginEventsTest` (the
 plugin's event handling against the fake menus: open on the title only, rebuilds put back first,
 another menu on the same interface, a script we do not hook, a missed script, reopen within 3
 ticks, interface moves, logout and hop, stepping aside on and off while open, key rebinds, the
-wheel on the map and List mode's Map button), `MapViewTest`,
+wheel on the map and List mode's Map button; the quick-select panel: a row press with and without
+a menu built for it, the panel's body absorbing a press, the wheel over the panel scrolling only
+while its rows overflow, a row's Select panning only when the marker or stand-in is out of view and
+bringing the surface back, the panel closed on narrow maps and the player's choice kept and saved,
+and the `quickSelect` default), `PainterTest` (holes untouched, markers and buttons, the stand-in,
+the fixed-mode card covering no marker; the quick-select panel: rows in the live menu order with
+unlisted trees last, every row state drawn differently, the tab and the setting off, no overlap with
+the holes, cell, caption or stand-in at 512x334 and 1738x905 for every selection in both styles, and
+stopping above them in its column, the card and labels clear of it, scrolling), `MapViewTest`,
 `LabelPlacerTest`, `ModalSlotTest`, `TileStoreTest`, `TreeDataTest` (the real `trees.json` and
 `index.json`: unique ids and labels, every tree inside its layer, previous values 1-14 unique, house
 portals 1-6, 8, 9, 13, ASCII and length limits, tiles on disk equal the index, every image at most
@@ -793,14 +909,18 @@ coarse cover first, the prefetch), and `PrewarmTest` the Travel click and the tr
 the fake menus. `TileBench` (`gradlew bench`, `-PbenchArgs="rounds prewarmMs"`) times an in-game
 open (4.9).
 
-**Previews** (`gradlew preview`, `MapPreview` into `build/preview/`): full fit, Grand Exchange at
+**Previews** (`gradlew preview`, `MapPreview` into `build/preview/`). Maps 700 px and wider show the
+quick-select panel open, the fixed-mode (512x334) shots its tab, as on a first open. Full fit, Grand Exchange at
 4 ppt, 16 ppt, the Prifddinas layer, fixed mode 512x334 with the modern corner (Travel shown), fixed
-mode with the classic corner (stand-in), fixed mode with the classic Travel row shown
-(`11-fixed-classic-travel`), a locked tree's card, a full-details card (`12-full-card`), every
-marker state at 1/4/8/16 ppt and every stand-in in both cell sizes (`13-marker-states`), an
+mode with the classic corner (a locked tree's two-line stand-in), fixed mode with the classic
+Travel row shown (`11-fixed-classic-travel`), a locked tree's card, a full-details card
+(`12-full-card`), every marker state at 1/4/8/16 ppt and every stand-in and the shown row in both
+menus' 200x32 cells (`13-marker-states`), an
 alignment sheet of every tree at 8 ppt, the free-space size (1738x905), and `icon.png` (the hub
 icon, 48x72: a large selected marker over Varrock at 2 ppt), which the preview writes to the repo
-root. The previews draw the game's own row and close button in the holes, as they look in game.
+root, and `14-fixed-quick-select`: fixed mode with the panel opened, the pointer over Hosidius's
+row (its card and its marker's hover ring), Grand Exchange selected and the "You" tag on the Gnome
+Stronghold. The previews draw the game's own row and close button in the holes, as they look in game.
 
 ---
 
@@ -843,11 +963,24 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
   Use free space (and the slot put back when the bank or another interface opens right after).
 - **Readability.** The classic Travel row on the parchment backdrop; the modern one on its own
   rectangle over the black backdrop.
+- **The 200x32 button.** That the resized row clicks over its whole cell ("Continue" anywhere in
+  it, modern and classic), reads well with its text centred in the taller row, and still turns
+  white (modern) / 0x524825 (classic) on hover, with the modern backing going to transparency
+  240; that the other rows, hidden, keep 161x20 / 16 px when List mode shows the plain menu again;
+  that a key press's "Please wait..." shows in the big button. At 32 px the game may wrap a row's
+  text onto a second line (FRA: line breaking is off only for a text component shorter than about
+  two lines of its font), which today's labels never need at 200 px; a long Better Teleport Menu
+  re-text would wrap within the button rather than be cut [M]. That nothing (the game, Better
+  Teleport Menu) resizes the row back while the map shows; if something did, the next tick's
+  apply writes our size again.
 - **Events.** `ScriptPreFired(9142/217)` fires before the setup script, and the put-back there leaves
   no flicker (2.1); a rebuild while the map shows comes back with the selection kept; the order of
   `WidgetClosed`/`WidgetLoaded` against the scripts; `WidgetClosed` with `isUnload()` false on the
   fixed/resizable switch, with the map staying up across it.
 - **The wheel.** Over the classic Travel row nothing scrolls; elsewhere on the map it zooms.
+- **Quick-select panel.** A row's left click selects (the game runs our Select; no stale entry runs
+  after moving onto the panel from the game view); the tab and the header triangle toggle it, and
+  the choice survives a client restart.
 - **Rows.** What a grey row and the tree you stand at do when clicked; whether grey rows have
   `</col>`; that "Please wait..." after a key press keeps the Travel row in place until the menu
   closes.
@@ -956,9 +1089,12 @@ from the text above.
 22. The stand-in's "Open Prifddinas map" entry is option "Open" with target "Prifddinas map".
 23. The source-size test counts each line end as one byte, so a CRLF checkout measures the same as
     the committed files (rule 7).
-24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes, child creation,
+24. `ComplianceTest` goes further than rule 1: it also forbids widget resizes (but the Travel
+    row's, allowed only in `TreeMenu.writeSize` and checked structurally, item 26), child creation,
     other listeners, widget restyles (`setTextShadowed`, `setFontId` and the like), key managers,
-    network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
+    every other widget setter (the other resizes and layout writes, scroll writes, drag, hold,
+    release and scroll-wheel listeners, click masks and target verbs, model and animation
+    settings), network classes (all of `java.net`), `getScriptEvent` (re-running a game script's
     event) and `setParam0` / `setParam1` / `setIdentifier` (retargeting a game menu entry), and fails
     if any code refers to the key-listener layers. It scans each file with comments stripped and
     whitespace collapsed, matching names as whole words, so method references
@@ -973,9 +1109,21 @@ from the text above.
     hid `LJ_LAYER2` itself, which also hid `Menu.KEYLISTENERS` (its static child) and so the
     game's hotkeys, and tripped Better Teleport Menu's title check.
 
+26. **The Travel row is a 200x32 button (spec updated, 1, 2.2, 2.3, 4.3, 4.4).** The user, testing in
+    game: "the button should be bigger". The shown row's real widgets are resized as well as
+    moved, as Fairy Ring Atlas does for CONFIRM; hard rule 4 now allows exactly that one resize.
+    The modern button's right end sits under the close button's (10 px inside the scroll area's
+    right end, which the first port used), so both menus give the same corner; the classic close
+    button keeps the modern 12 px gap (it was 4). The stand-in uses the taller cell for two lines.
+    The "Travel" caption slides right along the cell's top off a marker (4.4), since the wider cell
+    put its left end under Feldip Hills in the fixed-mode overview. `ComplianceTest` now also
+    forbids every other widget setter that resizes or lays out (`setWidth`, `setHeight`,
+    `setSize`, `setPos`, `setForcedPosition`, the relative position, scroll size and position)
+    and the remaining listener, click-mask and appearance setters (item 24).
+
 **Loading (2026-10-04)**
 
-26. **Tiles load on a small pool, coarse first, ahead of the menu, and the overview stays (spec
+27. **Tiles load on a small pool, coarse first, ahead of the menu, and the overview stays (spec
     updated, 4.9).** The user saw the map take a few seconds to load. Fairy Ring Atlas's design (one
     `MIN_PRIORITY` newest-first worker, every decode under the `ImageIO` class lock, the z=1 tiles
     between a z=0 overview and z=2 kept in the cache, the z=-1 cover queued between the slow z=0

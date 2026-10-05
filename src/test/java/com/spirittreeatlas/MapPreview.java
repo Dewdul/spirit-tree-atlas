@@ -52,12 +52,24 @@ public class MapPreview
 		String here;
 		TreeMenu.Style style = TreeMenu.Style.MODERN;
 		boolean fullDetails;
+		/** The quick-select panel open (as on a first open: on maps 700 px and wider), else its tab. */
+		boolean panelOpen;
+		/** A tree whose quick-select row the pointer is over, or null. */
+		String hoverRow;
 
 		Shot(String name, MapView view)
 		{
 			this.name = name;
 			this.view = view;
+			panelOpen = view.getW() >= SpiritTreeAtlasPlugin.NARROW_MAP;
 		}
+	}
+
+	/** The plugin's chrome insets for a map: the quick-select panel open on wide maps, its tab on narrow ones. */
+	private static java.awt.Insets insets(TreeRepository repo, AtlasPainter painter, Rectangle map, boolean open)
+	{
+		int panel = open ? new ChromePainter(painter.ink()).panelWidth(repo.menuOrder(), repo.getHere(), repo.getLast(), map.width) : ChromePainter.TAB_W;
+		return SpiritTreeAtlasPlugin.chromeInsets(panel);
 	}
 
 	public static void main(String[] args) throws IOException
@@ -73,7 +85,8 @@ public class MapPreview
 		Layer surface = repo.surface();
 		Rectangle big = new Rectangle(30, 30, 1100, 720);
 		Rectangle fixed = new Rectangle(30, 30, 512, 334);
-		java.awt.Insets in = SpiritTreeAtlasPlugin.chromeInsets();
+		java.awt.Insets in = insets(repo, painter, big, true);
+		java.awt.Insets fixedIn = insets(repo, painter, fixed, false);
 
 		Shot fit = new Shot("1-fit", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, big), repo.surfaceMarkers(), in));
 		fit.selected = "GRAND_EXCHANGE";
@@ -96,11 +109,11 @@ public class MapPreview
 		Shot city = new Shot("4-prifddinas", SpiritTreeAtlasPlugin.fitLayer(repo.layer(Layer.PRIFDDINAS), big, in));
 		render(repo, painter, out, city);
 
-		Shot modern = new Shot("5-fixed-modern", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+		Shot modern = new Shot("5-fixed-modern", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		modern.selected = "GRAND_EXCHANGE";
 		render(repo, painter, out, modern);
 
-		Shot classic = new Shot("6-fixed-classic", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+		Shot classic = new Shot("6-fixed-classic", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		classic.selected = "POISON_WASTE";
 		classic.style = TreeMenu.Style.CLASSIC;
 		render(repo, painter, out, classic);
@@ -116,7 +129,8 @@ public class MapPreview
 		// "Use free space" on a 2000x1082 resizable canvas: all of the HUD area but its 6 px inset;
 		// the Farming Guild is not in this menu's list
 		Rectangle free = new Rectangle(30, 30, 1738, 905);
-		Shot space = new Shot("9-free-space", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, free), repo.surfaceMarkers(), in));
+		Shot space = new Shot("9-free-space", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, free), repo.surfaceMarkers(),
+			insets(repo, painter, free, true)));
 		space.selected = ABSENT;
 		space.hovered = "LAGUNA_AURORAE";
 		render(repo, painter, out, space);
@@ -124,19 +138,29 @@ public class MapPreview
 		listAndNotice(painter, out);
 
 		Shot classicTravel = new Shot("11-fixed-classic-travel",
-			SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), in));
+			SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(), fixedIn));
 		classicTravel.selected = "HOSIDIUS";
 		classicTravel.style = TreeMenu.Style.CLASSIC;
 		render(repo, painter, out, classicTravel);
 
 		Tree khazard = repo.tree("BATTLEFIELD_OF_KHAZARD");
-		Shot full = new Shot("12-full-card", MapView.of(surface, fixed).focusOn(khazard.getX() + 0.5, khazard.getY() + 0.5, 2, in));
+		Shot full = new Shot("12-full-card", MapView.of(surface, fixed).focusOn(khazard.getX() + 0.5, khazard.getY() + 0.5, 2, fixedIn));
 		full.selected = "BATTLEFIELD_OF_KHAZARD";
 		full.fullDetails = true;
 		render(repo, painter, out, full);
 
 		markerStates(repo, painter, out);
 		icon(repo, out);
+
+		// fixed mode with the quick-select panel opened, the pointer over Hosidius's row: its card
+		// and its marker's hover ring; Grand Exchange selected (the last trip), standing at the Gnome Stronghold
+		Shot quick = new Shot("14-fixed-quick-select", SpiritTreeAtlasPlugin.fitTrees(MapView.of(surface, fixed), repo.surfaceMarkers(),
+			insets(repo, painter, fixed, true)));
+		quick.panelOpen = true;
+		quick.selected = "GRAND_EXCHANGE";
+		quick.here = "GNOME_STRONGHOLD";
+		quick.hoverRow = "HOSIDIUS";
+		render(repo, painter, out, quick);
 	}
 
 	/**
@@ -180,13 +204,14 @@ public class MapPreview
 		// the map grows from the slot's bottom-right corner, where the Travel row and close button go
 		Rectangle slot = new Rectangle(rect.x + rect.width - 512, rect.y + rect.height - 334, 512, 334);
 		boolean modern = shot.style == TreeMenu.Style.MODERN;
-		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 161, 20, 0, 0) : TreeMenu.classic(512, 334, 386, 16, 0);
+		TreeMenu.Geometry g = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
 		Rectangle cell = new Rectangle(slot.x + g.getCell().x, slot.y + g.getCell().y, g.getCell().width, g.getCell().height);
 		Point c = modern ? new Point(g.getRoot().x + 338 - 44, g.getRoot().y + 17) : g.getClose();
 		Rectangle close = new Rectangle(slot.x + c.x, slot.y + c.y, 26, 23);
 
 		Scene s = scene(repo, v, shot.selected, shot.hovered);
 		s.fullDetails = shot.fullDetails;
+		s.panelOpen = shot.panelOpen;
 		if (shot.here != null)
 		{
 			s.here = shot.here;
@@ -222,6 +247,15 @@ public class MapPreview
 		painter.paintMap(scratch, s);
 		chrome.paint(scratch, s);
 		scratch.dispose();
+		for (Hit h : s.hits)
+		{
+			// the pointer over a quick-select row, as the overlay sees it: the row lit, the tree's card and hover ring
+			if (h.getKind() == Hit.Kind.ROW && h.getTree().getId().equals(shot.hoverRow))
+			{
+				s.mouse = new Point((int) h.getArea().getCenterX(), (int) h.getArea().getCenterY());
+				s.hovered = h.getTree();
+			}
+		}
 		s.hits.clear();
 		chrome.layout(s);
 		chrome.paintShadow(g2, s);
@@ -422,8 +456,8 @@ public class MapPreview
 		int ch = 64;
 		int lw = 140;
 		Ink ink = painter.ink();
-		int stripH = 2 * 40 + 30;
-		BufferedImage img = new BufferedImage(Math.max(lw + ppts.length * (cw + 6) + 6, 140 + 5 * 186), 28 + states.length * (ch + 6) + 6 + stripH, BufferedImage.TYPE_INT_RGB);
+		int stripH = 2 * STAND_IN_ROW + 30;
+		BufferedImage img = new BufferedImage(Math.max(lw + ppts.length * (cw + 6) + 6, 148 + 5 * STAND_IN_STEP), 28 + states.length * (ch + 6) + 6 + stripH, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = img.createGraphics();
 		g.setColor(BACKGROUND);
 		g.fillRect(0, 0, img.getWidth(), img.getHeight());
@@ -474,6 +508,10 @@ public class MapPreview
 		ImageIO.write(img, "png", new File(out, "13-marker-states.png"));
 	}
 
+	/** The stand-in strip: one cell per case across, one menu style per row down. */
+	private static final int STAND_IN_STEP = TreeMenu.TRAVEL_W + 26;
+	private static final int STAND_IN_ROW = TreeMenu.TRAVEL_H + 40;
+
 	/** The stand-in for each case, and the shown row, in both menu styles at their real cell sizes. */
 	private static void standIns(TreeRepository repo, AtlasPainter painter, Graphics2D g, int top)
 	{
@@ -495,15 +533,19 @@ public class MapPreview
 		for (int style = 0; style < 2; style++)
 		{
 			boolean modern = style == 0;
-			int y = top + 18 + style * 40;
-			ink.text(g, modern ? "Modern 161x20" : "Classic 170x16", ink.small, ChromePainter.CREAM, 8, y + 2, Ink.Style.SHADOW);
+			// the cells as Map mode makes them (DESIGN 4.3)
+			TreeMenu.Geometry geo = modern ? TreeMenu.modern(512, 334, 8, 52, 322, 160, 320, 0, 0) : TreeMenu.classic(512, 334, 386, 232, 0);
+			int y = top + 30 + style * STAND_IN_ROW;
+			String size = geo.getCell().width + "x" + geo.getCell().height;
+			ink.text(g, (modern ? "Modern " : "Classic ") + size, ink.small, ChromePainter.CREAM, 8, y + geo.getCell().height / 2 - 6,
+				Ink.Style.SHADOW);
 			for (int i = 0; i < cases.length; i++)
 			{
 				Tree sel = (Tree) cases[i][0];
 				TreeMenu.Row row = (TreeMenu.Row) cases[i][1];
 				String here = (String) cases[i][2];
-				Rectangle cell = new Rectangle(148 + i * 186, y, modern ? 161 : 170, modern ? 20 : 16);
-				Rectangle map = new Rectangle(cell.x - 8, cell.y - 22, cell.width + 16, cell.height + 30);
+				Rectangle cell = new Rectangle(148 + i * STAND_IN_STEP, y, geo.getCell().width, geo.getCell().height);
+				Rectangle map = new Rectangle(cell.x - 8, cell.y - 26, cell.width + 16, cell.height + 34);
 				Scene s = new Scene();
 				s.fromRepository(repo);
 				s.view = MapView.of(repo.surface(), map);

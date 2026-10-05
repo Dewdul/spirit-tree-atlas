@@ -28,6 +28,10 @@ public class Hit
 		BUTTON,
 		/** Solid chrome with no action (top bar, card, the covered Travel cell): absorbs presses, never starts a drag. */
 		BLOCK,
+		/** A row of the quick-select panel; tree is set. */
+		ROW,
+		/** The quick-select panel's body: absorbs presses; the wheel scrolls it while its rows overflow. */
+		PANEL,
 	}
 
 	public static final String ZOOM_IN = "zoomIn";
@@ -40,6 +44,8 @@ public class Hit
 	public static final String BACK = "back";
 	/** List mode's floating button: back to Map mode. */
 	public static final String SHOW_MAP = "map";
+	/** The quick-select panel's show/hide toggle (its header triangle, or the closed tab). */
+	public static final String TOGGLE_PANEL = "panel";
 	/** Id of a MARKER that is a surface stand-in for a tree on another layer. */
 	public static final String STAND_IN = "standIn";
 
@@ -47,13 +53,13 @@ public class Hit
 	Rectangle area;
 	Tree tree;
 	String id;
-	/** Menu option and target of the left-click entry; null for BLOCK. */
+	/** Menu option and target of the left-click entry; null for BLOCK and PANEL. */
 	String option;
 	String target;
 
 	public boolean isActionable()
 	{
-		return kind != Kind.BLOCK;
+		return kind != Kind.BLOCK && kind != Kind.PANEL;
 	}
 
 	public boolean isStandIn()

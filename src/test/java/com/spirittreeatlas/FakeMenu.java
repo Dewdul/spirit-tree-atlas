@@ -15,12 +15,14 @@ import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
+import net.runelite.api.widgets.WidgetSizeMode;
 import net.runelite.api.widgets.WidgetType;
 
 /**
  * Both spirit tree menus as plain-field widgets behind a fake client, laid out the way the cache
  * definitions and the setup scripts lay them out (DESIGN 2.2, 2.3): enough for TreeMenu to
- * recognise, read, change and restore them, and for tests to see every write.
+ * recognise, read, change and restore them, and for tests to see every write (and every resize:
+ * only the Travel row may be resized, DESIGN 1 rule 4).
  */
 final class FakeMenu
 {
@@ -50,6 +52,12 @@ final class FakeMenu
 		int yMode = WidgetPositionMode.ABSOLUTE_TOP;
 		int x;
 		int y;
+		int wMode = WidgetSizeMode.ABSOLUTE;
+		int hMode = WidgetSizeMode.ABSOLUTE;
+		/** The size fields as set (absolute: the size; minus: what is taken off the parent's). */
+		int ow;
+		int oh;
+		/** The size as laid out from the size fields. */
 		int w;
 		int h;
 		int relX;
@@ -60,6 +68,8 @@ final class FakeMenu
 		Rectangle bounds;
 		/** Every setter call made on it. */
 		int writes;
+		/** The size setter calls among them. */
+		int resizes;
 		Widget proxy;
 
 		W(int id, int index, int type)
@@ -69,8 +79,11 @@ final class FakeMenu
 			this.type = type;
 		}
 
+		/** Lays out its size, then its position, against the parent (a widget without one keeps its fields as its size). */
 		void layOut()
 		{
+			w = wMode == WidgetSizeMode.MINUS && parent != null ? parent.w - ow : ow;
+			h = hMode == WidgetSizeMode.MINUS && parent != null ? parent.h - oh : oh;
 			int pw = parent == null ? w : parent.w;
 			int ph = parent == null ? h : parent.h;
 			relX = xMode == WidgetPositionMode.ABSOLUTE_CENTER ? (pw - w) / 2 + x : xMode == WidgetPositionMode.ABSOLUTE_RIGHT ? pw - w - x : x;
@@ -96,6 +109,11 @@ final class FakeMenu
 		{
 			return new int[]{xMode, yMode, x, y};
 		}
+
+		int[] size()
+		{
+			return new int[]{wMode, hMode, ow, oh};
+		}
 	}
 
 	final Map<Integer, W> live = new HashMap<>();
@@ -109,8 +127,8 @@ final class FakeMenu
 	{
 		slot = new W(InterfaceID.ToplevelOsrsStretch.MAINMODAL, -1, WidgetType.LAYER);
 		slot.bounds = new Rectangle(SLOT);
-		slot.w = SLOT.width;
-		slot.h = SLOT.height;
+		slot.w = slot.ow = SLOT.width;
+		slot.h = slot.oh = SLOT.height;
 		proxy(slot);
 		client = (Client) Proxy.newProxyInstance(Client.class.getClassLoader(), new Class<?>[]{Client.class}, (p, m, args) ->
 		{
@@ -152,8 +170,8 @@ final class FakeMenu
 		c.yMode = yMode;
 		c.x = x;
 		c.y = y;
-		c.w = w;
-		c.h = h;
+		c.w = c.ow = w;
+		c.h = c.oh = h;
 		c.layOut();
 		proxy(c);
 		live.put(id, c);
@@ -167,8 +185,8 @@ final class FakeMenu
 		c.parent = parent;
 		c.x = x;
 		c.y = y;
-		c.w = w;
-		c.h = h;
+		c.w = c.ow = w;
+		c.h = c.oh = h;
 		c.text = text;
 		c.layOut();
 		proxy(c);
@@ -249,8 +267,10 @@ final class FakeMenu
 		close.actions = new String[]{"Close"};
 		for (int i = 0; i < options.length; i++)
 		{
-			W row = f.child(list, i, WidgetType.TEXT, 0, 16 * i, 386, 16, classicRow(i, options[i]));
+			// proc 218: centre-anchored, LJ_LAYER1's width minus 0, 16 px tall
+			W row = f.child(list, i, WidgetType.TEXT, 0, 16 * i, 0, 16, classicRow(i, options[i]));
 			row.xMode = WidgetPositionMode.ABSOLUTE_CENTER;
+			row.wMode = WidgetSizeMode.MINUS;
 			row.layOut();
 			f.child(keys, i, WidgetType.RECTANGLE, 0, 0, 0, 0, null);
 		}
@@ -284,8 +304,10 @@ final class FakeMenu
 			layer.children = new W[0];
 			for (W c : fresh.get(id).children)
 			{
-				W row = child(layer, c.index, c.type, c.x, c.y, c.w, c.h, c.text);
+				W row = child(layer, c.index, c.type, c.x, c.y, c.ow, c.oh, c.text);
 				row.xMode = c.xMode;
+				row.wMode = c.wMode;
+				row.hMode = c.hMode;
 				row.layOut();
 			}
 		}
@@ -445,11 +467,41 @@ final class FakeMenu
 				case "getRelativeY":
 					return f.relY;
 				case "getWidth":
-				case "getOriginalWidth":
 					return f.w;
 				case "getHeight":
-				case "getOriginalHeight":
 					return f.h;
+				case "getOriginalWidth":
+					return f.ow;
+				case "getOriginalHeight":
+					return f.oh;
+				case "getWidthMode":
+					return f.wMode;
+				case "getHeightMode":
+					return f.hMode;
+				case "setWidthMode":
+				case "setHeightMode":
+				case "setOriginalWidth":
+				case "setOriginalHeight":
+					f.writes++;
+					f.resizes++;
+					int v = (int) args[0];
+					if (m.getName().equals("setWidthMode"))
+					{
+						f.wMode = v;
+					}
+					else if (m.getName().equals("setHeightMode"))
+					{
+						f.hMode = v;
+					}
+					else if (m.getName().equals("setOriginalWidth"))
+					{
+						f.ow = v;
+					}
+					else
+					{
+						f.oh = v;
+					}
+					return p;
 				case "getScrollX":
 					return f.scrollX;
 				case "getScrollY":
@@ -457,7 +509,7 @@ final class FakeMenu
 				case "getBounds":
 					return f.canvas();
 				default:
-					// any other call (a resize, a re-text, a new listener) would be a hard-rule breach
+					// any other call (a re-text, a restyle, a new listener) would be a hard-rule breach
 					throw new AssertionError("unexpected widget call " + m.getName());
 			}
 		});

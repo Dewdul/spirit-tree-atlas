@@ -71,15 +71,23 @@ public interface SpiritTreeAtlasConfig extends Config
 		return OpenAt.FIT_ALL;
 	}
 
+	@ConfigItem(keyName = "quickSelect", name = "Quick select list",
+		description = "Show a list of every destination down the map's left edge, in the menu's order: click one to select it and bring it into view",
+		section = mapSection, position = 5)
+	default boolean quickSelect()
+	{
+		return true;
+	}
+
 	@ConfigItem(keyName = "placeLabels", name = "Place names",
-		description = "Show world map place names", section = mapSection, position = 5)
+		description = "Show world map place names", section = mapSection, position = 6)
 	default boolean placeLabels()
 	{
 		return true;
 	}
 
 	@ConfigItem(keyName = "mapIcons", name = "Map icons",
-		description = "Show world map icons when zoomed in", section = mapSection, position = 6)
+		description = "Show world map icons when zoomed in", section = mapSection, position = 7)
 	default boolean mapIcons()
 	{
 		return true;
@@ -87,7 +95,7 @@ public interface SpiritTreeAtlasConfig extends Config
 
 	@ConfigItem(keyName = "fullDetails", name = "Full tree details",
 		description = "Show everything about a tree on its card (every requirement, nearby place, danger and note) instead of a short summary",
-		section = mapSection, position = 7)
+		section = mapSection, position = 8)
 	default boolean fullDetails()
 	{
 		return false;

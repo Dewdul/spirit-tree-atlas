@@ -13,6 +13,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -22,7 +23,8 @@ import java.util.Objects;
 
 /**
  * The map's chrome in an OSRS style (DESIGN 4.4, 4.6): dark stone frame, the top bar with
- * breadcrumb, last trip and buttons, the Back button on other layers, the info card, the
+ * breadcrumb, last trip and buttons, the quick-select panel down the left edge (or its closed
+ * tab), the Back button on other layers, the info card, the
  * stand-in over the covered Travel cell with its "Travel" caption, and the frames around the
  * holes left for the real Travel row and close button. Also List mode's floating Map button and
  * the step-aside notice. Needs no game client.
@@ -53,11 +55,28 @@ public class ChromePainter
 	private static final String LOCKED = "Locked: ";
 	/** The padlock and the gap after it. */
 	private static final int LOCK_W = 10;
-	/** How far the stand-in may grow left of the cell to fit its line. */
+	/** How far the stand-in may grow left of the cell to fit its lines. */
 	static final int STAND_IN_GROW = 24;
 	private static final String LAST_TRIP = "last trip";
 	/** The card title's inset, beside the tree glyph. */
 	private static final int TITLE_INDENT = 17;
+	/** The open quick-select panel's width, before it widens for long labels ({@link #panelWidth}). */
+	static final int PANEL_W = 150;
+	/** Width of the closed panel's tab, which has the panel's name written down it. */
+	static final int TAB_W = 20;
+	/** Height of a quick-select row; rows are {@link #ROW_GAP} apart. */
+	static final int ROW_H = 18;
+	static final int ROW_GAP = 1;
+	/** The panel's header row (name and toggle), above the rows. */
+	private static final int PANEL_HEAD = 22;
+	private static final String PANEL_NAME = "Destinations";
+	/** A row's key badge, then its tree glyph (6.5 px radius), then its label. */
+	private static final int KEY_W = 13;
+	private static final int ROW_TEXT_X = 3 + KEY_W + 4 + 13 + 5;
+	/** The last-trip badge at a row's right end, with the gap before it. */
+	private static final int LAST_W = 13;
+	static final Color LOCKED_TEXT = new Color(0x9C968C);
+	static final Color FILL_LIGHT = new Color(52, 44, 32, 235);
 
 	private final Ink ink;
 
@@ -88,17 +107,56 @@ public class ChromePainter
 		s.captionRect = null;
 		if (s.rowCell != null && s.caption != null)
 		{
-			int h = ink.height(ink.small);
-			s.captionRect = new Rectangle(s.rowCell.x - 1, s.rowCell.y - h - 6, ink.width(ink.small, s.caption) + 2, h);
+			s.captionRect = captionRect(s);
 		}
 		s.standInRect = null;
 		if (s.rowCell != null && !s.rowShown)
 		{
-			// the line is never cut while a little more room to the left (over the map) lets it fit
+			// a line is never cut while a little more room to the left (over the map) lets it fit
 			Rectangle c = s.rowCell;
-			int grow = Math.max(0, Math.min(STAND_IN_GROW, standInWidth(standInLine(s), standInLocked(s)) + 6 - c.width));
+			String name = standInName(s);
+			int wide = Math.max(standInWidth(standInLine(s), standInLocked(s)), name == null ? 0 : ink.width(ink.small, name));
+			int grow = Math.max(0, Math.min(STAND_IN_GROW, wide + 6 - c.width));
 			s.standInRect = new Rectangle(c.x - grow, c.y, c.width + grow, c.height);
 		}
+		// after the stand-in: the panel stops above whatever of the corner is in its column
+		s.panel = panelRect(s);
+		if (s.backButton != null && s.panel != null)
+		{
+			s.backButton.x = s.panel.x + s.panel.width + 8;
+		}
+	}
+
+	/**
+	 * The "Travel" caption's box, just above the cell: at its left end, or slid right along the
+	 * cell's top (short of the close button) to the first place clear of every marker, so it never
+	 * hides one (the fixed-mode overview has Feldip Hills over the 200 px cell's left end); at the
+	 * left end when no place is clear.
+	 */
+	private Rectangle captionRect(Scene s)
+	{
+		Rectangle c = s.rowCell;
+		int w = ink.width(ink.small, s.caption) + 2;
+		int h = ink.height(ink.small);
+		int y = c.y - h - 6;
+		int right = c.x + c.width;
+		for (Rectangle hole : s.holes)
+		{
+			if (!hole.intersects(c) && hole.x < right && hole.x + hole.width > c.x && hole.y < c.y && hole.y + hole.height > y)
+			{
+				right = Math.min(right, hole.x - 6);
+			}
+		}
+		List<AtlasPainter.Mark> marks = AtlasPainter.marks(s);
+		for (int x = c.x - 1; x + w <= right; x += SLIDE)
+		{
+			Rectangle r = new Rectangle(x, y, w, h);
+			if (clearOf(marks, r))
+			{
+				return r;
+			}
+		}
+		return new Rectangle(c.x - 1, y, w, h);
 	}
 
 	private static String backLabel(Scene s)
@@ -130,6 +188,7 @@ public class ChromePainter
 			paintTopBar(lg, s);
 			paintBackButton(lg, s);
 			paintStandIn(lg, s);
+			paintPanel(lg, s);
 			paintCard(lg, s);
 			paintFrame(lg, s);
 			lg.dispose();
@@ -161,8 +220,8 @@ public class ChromePainter
 			}
 		}
 		return Objects.hash(v.getX(), v.getY(), v.getW(), v.getH(), v.getLayer(), s.selected, s.hovered, s.states, s.keys,
-			s.here, s.last, s.rowShown, s.standIn, s.rowCell, s.caption, s.notice, hover, s.holes, s.repo.getStateHash(),
-			s.availableColor, s.selectedColor, s.fullDetails, focusCovered(s));
+			s.here, s.last, s.rowShown, s.standIn, s.rowCell, s.caption, s.captionRect, s.notice, hover, s.holes, s.repo.getStateHash(),
+			s.availableColor, s.selectedColor, s.fullDetails, focusCovered(s), s.panel, s.panelScroll, s.menuOrder);
 	}
 
 	/** Drops the map-sized layer while the menu is closed; it is rebuilt on the next paint. */
@@ -305,6 +364,209 @@ public class ChromePainter
 		g.drawRoundRect(p.x, p.y, p.width - 1, p.height - 1, 8, 8);
 	}
 
+	// ------------------------------------------------------------------ quick-select panel
+
+	/**
+	 * The open panel's width on a map this wide: {@link #PANEL_W}, wider so the longest row (label
+	 * and its "You" tag or last-trip badge) fits uncut, but never past 30% of the map (labels are
+	 * cut short with "..." instead).
+	 *
+	 * @param here the tree the player stands at, and {@code last} the last trip's; either may be null
+	 */
+	int panelWidth(List<Tree> trees, String here, String last, int mapWidth)
+	{
+		int need = 0;
+		for (Tree t : trees)
+		{
+			need = Math.max(need, ROW_TEXT_X + ink.width(ink.small, t.getLabel()) + tagsWidth(t, here, last) + 4 + 8);
+		}
+		return Math.max(PANEL_W, Math.min(need, mapWidth * 30 / 100));
+	}
+
+	/** The room a row's "You" tag and last-trip badge take at its right end, gaps included. */
+	private int tagsWidth(Tree t, String here, String last)
+	{
+		return (t.getId().equals(last) ? LAST_W : 0) + (t.getId().equals(here) ? ink.width(ink.small, "You") + 10 : 0);
+	}
+
+	/** The closed tab's height: its triangle, then the panel's name written down it. */
+	private int tabHeight()
+	{
+		return 22 + ink.width(ink.small, PANEL_NAME) + 8;
+	}
+
+	/**
+	 * The panel inside the map's left edge under the top bar, as tall as its rows need, stopping
+	 * above the holes, the Travel cell, its caption and the stand-in when they are in its column;
+	 * or its closed tab; null when it is off.
+	 */
+	private Rectangle panelRect(Scene s)
+	{
+		if (!s.quickSelect || s.menuOrder.isEmpty())
+		{
+			return null;
+		}
+		MapView v = s.view;
+		int x = v.getX() + 6;
+		int top = v.getY() + BAR_H + 6;
+		int w = s.panelOpen ? panelWidth(s.menuOrder, s.here, s.last, v.getW()) : TAB_W;
+		int h = s.panelOpen ? PANEL_HEAD + s.menuOrder.size() * (ROW_H + ROW_GAP) + 3 : tabHeight();
+		int bottom = v.getY() + v.getH() - 6;
+		List<Rectangle> keep = new ArrayList<>(s.blockers());
+		if (s.standInRect != null)
+		{
+			keep.add(s.standInRect);
+		}
+		for (Rectangle b : keep)
+		{
+			// with room for the holes' frames and shadow
+			Rectangle gb = AtlasPainter.grow(b, 8);
+			if (gb.x < x + w && gb.x + gb.width > x && gb.y < bottom && gb.y + gb.height > top)
+			{
+				bottom = Math.min(bottom, gb.y);
+			}
+		}
+		return new Rectangle(x, top, w, Math.max(0, Math.min(h, bottom - top)));
+	}
+
+	/** Largest useful panel scroll of the last paint, for the input handler to clamp to. */
+	volatile int panelScrollMax;
+
+	/**
+	 * The quick-select panel: a header (name and hide triangle) over one row per destination in
+	 * the menu's order. Closed, a slim tab with its name written down it.
+	 */
+	private void paintPanel(Graphics2D g, Scene s)
+	{
+		Rectangle p = s.panel;
+		if (p == null)
+		{
+			panelScrollMax = 0;
+			return;
+		}
+		boolean hover = s.mouse != null && p.contains(s.mouse);
+		panelBox(g, p);
+		if (!s.panelOpen)
+		{
+			panelScrollMax = 0;
+			s.hits.add(new Hit(Hit.Kind.BUTTON, p, null, Hit.TOGGLE_PANEL, "Show", PANEL_NAME));
+			if (hover)
+			{
+				g.setColor(BRONZE_LIGHT);
+				g.drawRoundRect(p.x, p.y, p.width - 1, p.height - 1, 8, 8);
+			}
+			triangle(g, p.x + p.width / 2.0, p.y + 12, 4, true, hover ? Color.WHITE : CREAM);
+			Graphics2D tg = (Graphics2D) g.create();
+			tg.translate(p.x + (p.width + ink.height(ink.small)) / 2, p.y + 22);
+			tg.rotate(Math.PI / 2);
+			ink.text(tg, PANEL_NAME, ink.small, hover ? Color.WHITE : CREAM, 0, 0, Ink.Style.SHADOW);
+			tg.dispose();
+			return;
+		}
+		s.hits.add(new Hit(Hit.Kind.PANEL, p, null, null, null, null));
+		Rectangle toggle = new Rectangle(p.x + p.width - 20, p.y + 3, 16, 15);
+		ink.text(g, ink.fit(PANEL_NAME, ink.bold, toggle.x - 4 - (p.x + 6)), ink.bold, TITLE, p.x + 6, p.y + 4, Ink.Style.SHADOW);
+		button(g, s, toggle, "", Hit.TOGGLE_PANEL, "Hide", PANEL_NAME);
+		triangle(g, toggle.x + 8, toggle.y + 7.5, 3.5, false, CREAM);
+
+		Rectangle content = new Rectangle(p.x + 4, p.y + PANEL_HEAD, p.width - 8, Math.max(0, p.height - PANEL_HEAD - 3));
+		Shape oldClip = g.getClip();
+		g.clip(content);
+		int y = content.y - s.panelScroll;
+		for (Tree t : s.menuOrder)
+		{
+			Rectangle row = new Rectangle(content.x, y, content.width, ROW_H);
+			if (content.intersects(row))
+			{
+				paintRow(g, s, t, row, content);
+				s.hits.add(new Hit(Hit.Kind.ROW, row.intersection(content), t, null, "Select", t.getLabel()));
+			}
+			y += ROW_H + ROW_GAP;
+		}
+		g.setClip(oldClip);
+		int overflow = y - ROW_GAP + s.panelScroll - (content.y + content.height);
+		if (s.panelScroll > 0)
+		{
+			chevron(g, p.x + p.width / 2.0, content.y + 3, -1);
+		}
+		if (overflow > s.panelScroll)
+		{
+			chevron(g, p.x + p.width / 2.0, content.y + content.height - 3, 1);
+		}
+		panelScrollMax = Math.max(0, overflow);
+	}
+
+	/**
+	 * One destination: its key badge (blank without a key), a small copy of its map glyph in its
+	 * state, its label, and a "You" tag or the last-trip badge at the right end. The selected row
+	 * is outlined in the selected colour, the hovered one lighter; locked rows are dimmer.
+	 */
+	private void paintRow(Graphics2D g, Scene s, Tree t, Rectangle row, Rectangle content)
+	{
+		boolean sel = t.getId().equals(s.selected);
+		boolean hover = s.mouse != null && row.contains(s.mouse) && content.contains(s.mouse);
+		Tree.Status status = s.status(t);
+		if (sel || hover)
+		{
+			g.setColor(sel ? AtlasPainter.withAlpha(AtlasPainter.shade(s.selectedColor, 0.32), 240) : FILL_LIGHT);
+			g.fillRoundRect(row.x, row.y, row.width, row.height, 6, 6);
+			g.setColor(sel ? s.selectedColor : BRONZE_LIGHT);
+			g.setStroke(new BasicStroke(1f));
+			g.drawRoundRect(row.x, row.y, row.width - 1, row.height - 1, 6, 6);
+		}
+		int sh = ink.height(ink.small);
+		double cy = row.y + row.height / 2.0;
+		String key = s.key(t);
+		if (key != null)
+		{
+			Rectangle kb = new Rectangle(row.x + 3, row.y + (row.height - sh - 1) / 2, KEY_W, sh + 1);
+			g.setColor(new Color(16, 13, 9, 230));
+			g.fillRoundRect(kb.x, kb.y, kb.width, kb.height, 4, 4);
+			g.setColor(BRONZE);
+			g.setStroke(new BasicStroke(1f));
+			g.drawRoundRect(kb.x, kb.y, kb.width - 1, kb.height - 1, 4, 4);
+			String k = ink.fit(key, ink.small, KEY_W - 2);
+			ink.text(g, k, ink.small, Color.WHITE, kb.x + (kb.width - ink.width(ink.small, k) + 1) / 2, kb.y + 1, Ink.Style.PLAIN);
+		}
+		int glyph = AtlasPainter.flags(s, t) & (AtlasPainter.AVAILABLE | AtlasPainter.LOCKED);
+		AtlasPainter.drawMarker(g, row.x + 3 + KEY_W + 4 + 6.5, cy, 6.5, glyph, s);
+
+		int right = row.x + row.width - 4;
+		if (t.getId().equals(s.last))
+		{
+			AtlasPainter.drawLastBadge(g, right - 4.5, cy, 4.2);
+			right -= LAST_W;
+		}
+		if (t.getId().equals(s.here))
+		{
+			int w = ink.width(ink.small, "You") + 6;
+			Rectangle tag = new Rectangle(right - w, row.y + (row.height - sh - 1) / 2, w, sh + 1);
+			g.setColor(new Color(0xF04A3C));
+			g.fillRoundRect(tag.x, tag.y, tag.width, tag.height, 5, 5);
+			g.setColor(Ink.DARK);
+			g.setStroke(new BasicStroke(1f));
+			g.drawRoundRect(tag.x, tag.y, tag.width - 1, tag.height - 1, 5, 5);
+			ink.text(g, "You", ink.small, Color.WHITE, tag.x + 3, tag.y + 1, Ink.Style.PLAIN);
+			right = tag.x - 4;
+		}
+		int tx = row.x + ROW_TEXT_X;
+		Color c = sel ? s.selectedColor : hover ? Color.WHITE : status == Tree.Status.LOCKED ? LOCKED_TEXT
+			: status == Tree.Status.ABSENT ? AtlasPainter.shade(AtlasPainter.ABSENT, 0.72) : CREAM;
+		ink.text(g, ink.fit(t.getLabel(), ink.small, right - tx), ink.small, c, tx, row.y + (row.height - sh) / 2, Ink.Style.SHADOW);
+	}
+
+	/** A small up (dir -1) or down (dir 1) scroll hint. */
+	private static void chevron(Graphics2D g, double cx, double cy, int dir)
+	{
+		Path2D p = new Path2D.Double();
+		p.moveTo(cx, cy + 2 * dir);
+		p.lineTo(cx + 4, cy - 2 * dir);
+		p.lineTo(cx - 4, cy - 2 * dir);
+		p.closePath();
+		g.setColor(CREAM);
+		g.fill(p);
+	}
+
 	// ------------------------------------------------------------------ info card
 
 	/** One laid-out card line. */
@@ -342,7 +604,8 @@ public class ChromePainter
 	{
 		Tree tree = s.hovered != null ? s.hovered : s.tree(s.selected);
 		MapView v = s.view;
-		int left = v.getX() + 6;
+		// beside the open panel; the closed tab is only kept clear of (the card may sit below it)
+		int left = s.panel != null && s.panelOpen ? s.panel.x + s.panel.width + 6 : v.getX() + 6;
 		int right = v.getX() + v.getW() - 6;
 		int maxW = Math.min(Math.min(s.fullDetails ? CARD_W : CARD_W_COMPACT, Math.max(220, v.getW() * 45 / 100)), right - left);
 		// on a small (fixed mode) map the card keeps to under half the height so the map stays usable
@@ -584,7 +847,8 @@ public class ChromePainter
 
 	/**
 	 * Finds a spot for a card: bottom-left, else bottom-right, top-right or top-left, clear of the
-	 * holes, the Travel cell and its caption, the Back button and the tree it describes, and
+	 * holes, the Travel cell and its caption, the Back button, the quick-select panel or its tab
+	 * and the tree it describes, and
 	 * covering no marker; else the first such spot along the bottom edge, then the top, the left
 	 * and the right (in {@link #SLIDE} px steps); else a corner that may cover other markers.
 	 * Failing that, it slides a corner spot off them, shrinking to at least minH.
@@ -606,6 +870,10 @@ public class ChromePainter
 		if (s.backButton != null)
 		{
 			blockers.add(s.backButton);
+		}
+		if (s.panel != null)
+		{
+			blockers.add(s.panel);
 		}
 		int[][] spots = {{left, 1}, {right - w, 1}, {right - w, 0}, {left, 0}};
 		// a corner that covers no marker at all first; then the first spot along the bottom edge,
@@ -715,8 +983,10 @@ public class ChromePainter
 	// ------------------------------------------------------------------ Travel cell, frame and holes
 
 	/**
-	 * The "Travel" caption over the cell's left end and, while the real row is covered, a disabled
-	 * stand-in in its place that says why in one line and owns its clicks (DESIGN 4.4).
+	 * The "Travel" caption above the cell and, while the real row is covered, a disabled
+	 * stand-in in its place that owns its clicks (DESIGN 4.4): for a selected tree, its name over
+	 * why it cannot travel (the padlock and its hint, "You are here", "Not in this tree's list");
+	 * with nothing selected, one line. A cell too short for two lines shows only the reason.
 	 */
 	void paintStandIn(Graphics2D g, Scene s)
 	{
@@ -744,17 +1014,34 @@ public class ChromePainter
 		g.setColor(BRONZE);
 		g.drawRect(box.x - 3, box.y - 3, box.width + 5, box.height + 5);
 		boolean locked = standInLocked(s);
-		// "..." only when even the widened box is too narrow
+		int lh = ink.height(ink.small);
+		String name = standInName(s);
+		name = name != null && box.height >= 2 * lh + 2 ? name : null;
+		// the lines as a block, centred; "..." only when even the widened box is too narrow
+		int y = box.y + (box.height - (name == null ? lh : 2 * lh)) / 2;
+		if (name != null)
+		{
+			String n = ink.fit(name, ink.small, box.width - 6);
+			ink.text(g, n, ink.small, Color.WHITE, box.x + (box.width - ink.width(ink.small, n) + 1) / 2, y, Ink.Style.SHADOW);
+			y += lh;
+		}
 		String t = ink.fit(standInLine(s), ink.small, box.width - 6 - (locked ? LOCK_W : 0));
-		Color c = s.selected == null ? GREY : locked ? AMBER : CREAM;
+		Color c = s.selected == null ? GREY : locked ? AMBER : name != null ? GREY : CREAM;
 		int x = box.x + (box.width - standInWidth(t, locked) + 1) / 2;
 		if (locked)
 		{
-			AtlasPainter.drawPadlock(g, x + 3.5, box.y + box.height / 2.0, 7, AMBER);
+			AtlasPainter.drawPadlock(g, x + 3.5, y + lh / 2.0, 7, AMBER);
 			x += LOCK_W;
 		}
-		ink.text(g, t, ink.small, c, x, box.y + (box.height - ink.height(ink.small)) / 2, Ink.Style.SHADOW);
+		ink.text(g, t, ink.small, c, x, y, Ink.Style.SHADOW);
 		s.hits.add(new Hit(Hit.Kind.BLOCK, AtlasPainter.grow(box, 3), null, null, null, null));
+	}
+
+	/** The stand-in's first line: the selected tree's label (the house names its town), or null. */
+	private static String standInName(Scene s)
+	{
+		Tree sel = s.tree(s.selected);
+		return sel == null ? null : sel.getLabel();
 	}
 
 	/** The stand-in's line: {@link Scene#standIn}, a grey row's hint without its "Locked: " (the padlock says it). */

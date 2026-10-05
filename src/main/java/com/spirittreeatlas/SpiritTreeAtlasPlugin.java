@@ -102,6 +102,14 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	static final String REOPEN_NOTICE = "Close and reopen the spirit tree menu to use Spirit Tree Atlas";
 	/** {@link #menuFor} while the game's menu holds List mode's "Show Map" entry. */
 	private static final String MAP_BUTTON = "mapButton";
+	/** Hidden config key: whether the player last left the quick-select panel open. */
+	static final String KEY_PANEL_OPEN = "quickSelectOpen";
+	/** Maps narrower than this (fixed mode) start with the quick-select panel closed. */
+	static final int NARROW_MAP = 700;
+	/** How far one wheel notch scrolls the quick-select panel: two rows. */
+	static final int PANEL_WHEEL_STEP = 2 * (ChromePainter.ROW_H + ChromePainter.ROW_GAP);
+	/** A tree's marker counts as in view only this far (px) inside the map's free area. */
+	private static final int IN_VIEW_MARGIN = 16;
 
 	enum Mode
 	{
@@ -169,6 +177,16 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private volatile Rectangle travelHole;
 	/** What the game's current menu was built for (see {@link #menuKey(Hit)}); null when not ours. */
 	private volatile String menuFor;
+	/** How far the quick-select panel's rows are scrolled, and the most that is useful (last frame). */
+	@Getter
+	private volatile int panelScroll;
+	private volatile int panelScrollMax;
+	/** Whether the quick-select panel is open on the map as last laid out; see {@link #isPanelOpen(int)}. */
+	private volatile boolean panelOpenNow;
+	/** The player's open or close as saved ({@link #KEY_PANEL_OPEN}; open until they close it). */
+	private boolean panelOpenSaved = true;
+	/** The player's open or close this session; null until they choose (then narrow maps start closed). */
+	private Boolean panelChoice;
 
 	// --- client thread state
 	/**
@@ -355,8 +373,10 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		if (!reopen)
 		{
 			selected = null;
+			panelScroll = 0;
 			needsInitialView = true;
 		}
+		panelOpenSaved = !"false".equals(hiddenSetting(KEY_PANEL_OPEN));
 		menu.open(s);
 		repo.placeHouse(client.getVarbitValue(VarbitID.POH_HOUSE_LOCATION));
 		repo.setLast(client.getVarbitValue(VarbitID.SPIRIT_TREE_PREVIOUS));
@@ -815,7 +835,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	/** DESIGN 4.7: fit every surface marker, centre on where you are, or the session's last view. */
 	private MapView initialView(Rectangle rect)
 	{
-		Insets in = chromeInsets();
+		Insets in = insets(rect);
 		Tree here = repo.tree(repo.getHere());
 		boolean hereMapped = here != null && here.isMapped();
 		switch (config.openAt())
@@ -847,10 +867,21 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		return fitTrees(MapView.of(repo.surface(), rect), repo.surfaceMarkers(), in);
 	}
 
-	/** Screen space the chrome takes from the map: the top bar. */
-	static Insets chromeInsets()
+	/**
+	 * Screen space the chrome takes from the map: the top bar and, down the left edge, the
+	 * quick-select panel or its tab.
+	 *
+	 * @param panel the panel's (or tab's) width; 0 when it is off
+	 */
+	static Insets chromeInsets(int panel)
 	{
-		return new Insets(ChromePainter.BAR_H, 0, 0, 0);
+		return new Insets(ChromePainter.BAR_H, panel > 0 ? 6 + panel : 0, 0, 0);
+	}
+
+	/** The chrome's insets on a map this wide, with the quick-select panel as it is now. */
+	private Insets insets(Rectangle rect)
+	{
+		return chromeInsets(!config.quickSelect() ? 0 : isPanelOpen(rect.width) ? overlay.panelWidth(rect.width) : ChromePainter.TAB_W);
 	}
 
 	/** A layer's view fitted to its bounds, clear of the chrome. */
@@ -953,7 +984,66 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		}
 		openLayer(t.getLayer());
 		MapView v = view;
-		animateTo(v.focusOn(t.getX() + 0.5, t.getY() + 0.5, Math.max(v.getPpt() * 2, 4), chromeInsets()));
+		animateTo(v.focusOn(t.getX() + 0.5, t.getY() + 0.5, Math.max(v.getPpt() * 2, 4), insets(v.rect())));
+	}
+
+	/**
+	 * A quick-select row: select the tree, exactly as a click on its marker does, and when its
+	 * marker (on the surface, a Prifddinas tree's stand-in) is not in view clear of the chrome,
+	 * pan there at the current zoom. A tree on another layer than the one shown, with no stand-in
+	 * here, opens its layer.
+	 */
+	void showTree(String id)
+	{
+		Tree t = repo.tree(id);
+		if (t == null)
+		{
+			return;
+		}
+		select(id);
+		MapView v = view;
+		if (v == null || !t.isMapped())
+		{
+			return;
+		}
+		Point2D at = onScreen(v, t);
+		if (at == null)
+		{
+			openLayer(t.getLayer());
+			v = view;
+			at = onScreen(v, t);
+			if (at == null)
+			{
+				return;
+			}
+		}
+		Insets in = insets(v.rect());
+		Rectangle free = new Rectangle(v.getX() + in.left + IN_VIEW_MARGIN, v.getY() + in.top + IN_VIEW_MARGIN,
+			v.getW() - in.left - in.right - 2 * IN_VIEW_MARGIN, v.getH() - in.top - in.bottom - 2 * IN_VIEW_MARGIN);
+		if (!free.contains(at))
+		{
+			animateTo(v.focusOn(v.worldX(at.getX()), v.worldY(at.getY()), v.getPpt(), in));
+		}
+	}
+
+	/** Where a tree shows on this view: its marker on its own layer, its stand-in on the surface; else null. */
+	private Point2D onScreen(MapView v, Tree t)
+	{
+		if (v.getLayer().equals(t.getLayer()))
+		{
+			return new Point2D.Double(v.screenX(t.getX() + 0.5), v.screenY(t.getY() + 0.5));
+		}
+		if (Layer.SURFACE.equals(v.getLayer()))
+		{
+			for (TreeRepository.StandIn si : repo.standIns())
+			{
+				if (si.getTree() == t)
+				{
+					return new Point2D.Double(si.screenX(v), si.screenY(v));
+				}
+			}
+		}
+		return null;
 	}
 
 	/** Fit: every surface marker on the surface, the layer's bounds elsewhere. */
@@ -962,8 +1052,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		MapView v = view;
 		if (v != null)
 		{
-			animateTo(Layer.SURFACE.equals(v.getLayer()) ? fitTrees(v, repo.surfaceMarkers(), chromeInsets())
-				: v.fit(v.getBx0(), v.getBy0(), v.getBx1(), v.getBy1(), 12, chromeInsets()));
+			Insets in = insets(v.rect());
+			animateTo(Layer.SURFACE.equals(v.getLayer()) ? fitTrees(v, repo.surfaceMarkers(), in)
+				: v.fit(v.getBx0(), v.getBy0(), v.getBx1(), v.getBy1(), 12, in));
 		}
 	}
 
@@ -974,7 +1065,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		MapView v = view;
 		if (l != null && v != null && !l.isSurface() && l.getId().equals(v.getLayer()))
 		{
-			animateTo(fitLayer(l, v.rect(), chromeInsets()));
+			animateTo(fitLayer(l, v.rect(), insets(v.rect())));
 			return;
 		}
 		openLayer(id);
@@ -991,7 +1082,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		}
 		layerViews.put(v.getLayer(), v);
 		MapView saved = Layer.SURFACE.equals(id) ? layerViews.get(id) : null;
-		setView(saved != null ? saved.withRect(v.rect()) : fitLayer(l, v.rect(), chromeInsets()));
+		setView(saved != null ? saved.withRect(v.rect()) : fitLayer(l, v.rect(), insets(v.rect())));
 	}
 
 	/**
@@ -1019,13 +1110,69 @@ public class SpiritTreeAtlasPlugin extends Plugin
 
 	// ------------------------------------------------------------------ hit testing (input thread safe)
 
-	/** The overlay's results of a frame: hits and holes in Map mode, the Map button in List mode, the Travel hole. */
-	void publish(List<Hit> newHits, List<Rectangle> newHoles, Rectangle newMapButton, Rectangle newTravelHole)
+	/**
+	 * The overlay's results of a frame: hits and holes in Map mode, the Map button in List mode,
+	 * the Travel hole, and how far the quick-select panel can scroll.
+	 */
+	void publish(List<Hit> newHits, List<Rectangle> newHoles, Rectangle newMapButton, Rectangle newTravelHole, int newPanelScrollMax)
 	{
 		hits = newHits;
 		holes = newHoles;
 		mapButton = newMapButton;
 		travelHole = newTravelHole;
+		panelScrollMax = newPanelScrollMax;
+		if (panelScroll > newPanelScrollMax)
+		{
+			panelScroll = newPanelScrollMax;
+		}
+	}
+
+	// ------------------------------------------------------------------ quick-select panel
+
+	/** Whether the quick-select panel's rows overflow it, so the wheel scrolls them rather than zooming. */
+	boolean canScrollPanel()
+	{
+		return panelScrollMax > 0;
+	}
+
+	/** Input thread: scroll the quick-select panel. */
+	void scrollPanel(int dy)
+	{
+		panelScroll = Math.max(0, Math.min(panelScrollMax, panelScroll + dy));
+	}
+
+	/**
+	 * Whether the quick-select panel is open on a map this wide: as the player last left it, but
+	 * closed on a narrow (fixed mode) map until they open it there; a choice made this session
+	 * holds at any size.
+	 */
+	boolean isPanelOpen(int mapWidth)
+	{
+		panelOpenNow = panelChoice != null ? panelChoice : panelOpenSaved && mapWidth >= NARROW_MAP;
+		return panelOpenNow;
+	}
+
+	/** Client thread: the player opened or closed the panel; kept for the session and saved. */
+	void setPanelOpen(boolean show)
+	{
+		panelChoice = show;
+		panelOpenNow = show;
+		if (panelOpenSaved != show)
+		{
+			panelOpenSaved = show;
+			saveHiddenSetting(KEY_PANEL_OPEN, String.valueOf(show));
+		}
+	}
+
+	/** One of our hidden settings (not in the config panel), or null. */
+	String hiddenSetting(String key)
+	{
+		return configManager.getConfiguration(SpiritTreeAtlasConfig.GROUP, key);
+	}
+
+	void saveHiddenSetting(String key, String value)
+	{
+		configManager.setConfiguration(SpiritTreeAtlasConfig.GROUP, key, value);
 	}
 
 	Hit hitAt(int x, int y)
@@ -1140,6 +1287,19 @@ public class SpiritTreeAtlasPlugin extends Plugin
 				}
 				add(entries, "Select", hit.getTarget(), m -> select(t.getId()));
 				break;
+			case ROW:
+				Tree rt = hit.getTree();
+				if (clear)
+				{
+					add(entries, "Clear selection", "", m -> clearSelection());
+				}
+				if (rt.isMapped())
+				{
+					add(entries, "Zoom to", hit.getTarget(), m -> zoomTo(rt));
+				}
+				// the left-click entry: a left press on the row is let through only for this menu
+				add(entries, "Select", hit.getTarget(), m -> showTree(rt.getId()));
+				break;
 			case PORTAL:
 				add(entries, hit.getOption(), hit.getTarget(), m -> openLayerFitted(hit.getId()));
 				break;
@@ -1224,6 +1384,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 				break;
 			case Hit.BACK:
 				openLayer(Layer.SURFACE);
+				break;
+			case Hit.TOGGLE_PANEL:
+				setPanelOpen(!panelOpenNow);
 				break;
 			default:
 				break;
