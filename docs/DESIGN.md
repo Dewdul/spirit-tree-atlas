@@ -791,6 +791,12 @@ in brackets):
 | 1100x600, z=-1 | 34 / 34 / 34 | 34 / 34 / 34 | 4 / 4 |
 | 512x334, z=-2 | 32 / 48 / 48 | 31 / 31 / 31 | 1 / 1 |
 
+A second, independent run on the same machine (the old store patched only with the bench's
+counters) measured less for the old code: 1738x905 at 30 / 770 / 785 (fresh JVM 89-112 / 1041-1094 /
+1041-1124, 37-38 rebuilds), 512x334 at 31 / 31 / 32; and the same for the new one: 39 / 39 / 224
+(fresh JVM 107-131 / 131-144 / 514-521). So complete on the large map is about 3.5x faster (785 to
+224 ms) rather than 4x; covered is about 20x faster either way.
+
 A 1738x905 open decodes 959 z=2 tiles either way (and derives 60 z=0 tiles through 240 z=1 ones);
 after it the cache holds 18.8 MB instead of 47.8 MB. With the Travel click one tick ahead, every size
 opens complete on its first frame (10 / 4 / 1 ms, the rebuild itself). A cold 1738x905 load now
