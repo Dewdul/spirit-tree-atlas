@@ -674,7 +674,8 @@ tiles, about 960 PNG decodes. Smaller maps open on z=-1 (bundled; 1100x600 is 0.
 - **Trimming.** 50 ticks after the menu closes (or after such a click) the tiles finer than z=0 and
   the map-sized buffers are released; the **overview** (z <= 0, what FIT_ALL opens on) stays for 500
   ticks (5 minutes), so the next tree of a farming run opens at once; the login screen still releases
-  everything. The overview held is what the last views drew at z <= 0: 18.8 MB after a 1738x905
+  everything, the queued tiles included (else a logout mid-load would leave what loads after it
+  cached until the menu next closes). The overview held is what the last views drew at z <= 0: 18.8 MB after a 1738x905
   open (60 z=0 tiles and the z=-1 cover), 4.5 MB at 1100x600, 3.0 MB in fixed mode; at most the
   LRU's soft cap.
 

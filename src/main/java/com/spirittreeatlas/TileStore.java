@@ -234,6 +234,10 @@ public class TileStore
 	/** Drops every decoded tile (the interface has been closed a while); the store stays usable. */
 	public void trim()
 	{
+		// and the queued ones: loaded after the trim (a logout mid-load), they would stay until the
+		// menu is next opened and closed; at most the tiles being loaded right now still come in
+		queue.clear();
+		pending.clear();
 		synchronized (lru)
 		{
 			lru.clear();

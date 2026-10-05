@@ -317,6 +317,28 @@ public class TileStoreTest
 	}
 
 	@Test
+	public void aTrimDropsTheQueuedTilesToo()
+	{
+		List<Runnable> queue = new ArrayList<>();
+		TileStore t = new TileStore(repo.getIndex(), repo.getLayers(), FIXTURES, queue::add);
+		t.request(2, 40, 50);
+		t.request(0, 10, 12);
+		// the login screen comes before the workers get to them
+		t.trim();
+		assertTrue(t.idle());
+		while (!queue.isEmpty())
+		{
+			queue.remove(0).run();
+		}
+		assertEquals(0, t.decodes.get());
+		assertEquals(0, t.cachedBytes());
+		// asking again after the trim loads as usual
+		assertNull(t.request(2, 40, 50));
+		queue.remove(0).run();
+		assertNotNull(t.get(2, 40, 50));
+	}
+
+	@Test
 	public void trimmingToTheOverviewKeepsItsLevels()
 	{
 		TileStore t = new TileStore(repo.getIndex(), repo.getLayers(), FIXTURES, Runnable::run);
