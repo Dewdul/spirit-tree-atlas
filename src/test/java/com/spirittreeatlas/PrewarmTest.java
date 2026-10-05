@@ -7,6 +7,7 @@ package com.spirittreeatlas;
 
 import com.google.gson.Gson;
 import java.awt.Color;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
@@ -19,6 +20,8 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
+import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.ObjectID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
@@ -48,23 +51,30 @@ public class PrewarmTest
 
 	public PrewarmTest() throws Exception
 	{
-		TreeRepository repo = TreeRepository.load(new Gson(), "/fixtures/");
+		tiles = wire(plugin, f, "/fixtures/");
+		// the interface holds another menu, so the ticks below do not open ours
+		f.title().text = "Minecart rides";
+	}
+
+	/** Gives the plugin the fake client, the data and a store (decoding on the caller) under base. */
+	private static TileStore wire(SpiritTreeAtlasPlugin plugin, FakeMenu f, String base) throws Exception
+	{
+		TreeRepository repo = TreeRepository.load(new Gson(), base);
 		ClientThread clientThread = new ClientThread();
 		set(ClientThread.class, clientThread, "client", f.client);
 		SpiritTreeAtlasConfig config = new SpiritTreeAtlasConfig()
 		{
 		};
-		tiles = new TileStore(repo.getIndex(), repo.getLayers(), "/fixtures/", Runnable::run);
+		TileStore store = new TileStore(repo.getIndex(), repo.getLayers(), base, Runnable::run);
 		set(SpiritTreeAtlasPlugin.class, plugin, "client", f.client);
 		set(SpiritTreeAtlasPlugin.class, plugin, "clientThread", clientThread);
 		set(SpiritTreeAtlasPlugin.class, plugin, "config", config);
 		set(SpiritTreeAtlasPlugin.class, plugin, "input", new AtlasInput(plugin));
 		set(SpiritTreeAtlasPlugin.class, plugin, "repo", repo);
 		set(SpiritTreeAtlasPlugin.class, plugin, "menu", new TreeMenu(f.client));
-		set(SpiritTreeAtlasPlugin.class, plugin, "tiles", tiles);
+		set(SpiritTreeAtlasPlugin.class, plugin, "tiles", store);
 		set(SpiritTreeAtlasPlugin.class, plugin, "overlay", new AtlasOverlay(f.client, plugin, config, null));
-		// the interface holds another menu, so the ticks below do not open ours
-		f.title().text = "Minecart rides";
+		return store;
 	}
 
 	private static void set(Class<?> type, Object target, String field, Object value) throws Exception
@@ -252,6 +262,66 @@ public class PrewarmTest
 		assertNotNull(tiles.get(1, 20, 25));
 		ticks(1);
 		assertEquals(0, tiles.cachedBytes());
+	}
+
+	/**
+	 * On a wide map the quick-select panel's width moves the view's centre, and the tree you are
+	 * at widens it (its "You" tag): the click must see the panel as the open will, with "here" the
+	 * clicked tree, not the last one, and the panel open or folded as saved (these widths put the
+	 * difference across a tile edge on the real map).
+	 */
+	@Test
+	public void travelSeesThePanelAsTheOpenWill() throws Exception
+	{
+		String[][] trips = {{"BATTLEFIELD_OF_KHAZARD", "GRAND_EXCHANGE", "1253"}, {"GRAND_EXCHANGE", "BATTLEFIELD_OF_KHAZARD", "1345"},
+			{"GRAND_EXCHANGE", "BATTLEFIELD_OF_KHAZARD", "1851"}, {null, "GRAND_EXCHANGE", "1253"}, {null, "BATTLEFIELD_OF_KHAZARD", "1345"}};
+		for (String[] trip : trips)
+		{
+			// the panel folded as saved: read before the first open too
+			String panelSaved = trip[0] == null ? "false" : null;
+			SpiritTreeAtlasPlugin p = new SpiritTreeAtlasPlugin()
+			{
+				@Override
+				String hiddenSetting(String key)
+				{
+					return SpiritTreeAtlasPlugin.KEY_PANEL_OPEN.equals(key) ? panelSaved : null;
+				}
+			};
+			FakeMenu m = FakeMenu.modern(FakeMenu.OPTIONS);
+			TileStore store = wire(p, m, SpiritTreeAtlasPlugin.RESOURCES);
+			Rectangle wide = new Rectangle(0, 0, Integer.parseInt(trip[2]), 905);
+			Tree to = p.getRepo().tree(trip[1]);
+			m.title().text = FakeMenu.TITLE;
+			if (trip[0] != null)
+			{
+				// opened (and the map laid out) at the first tree, then closed
+				Tree from = p.getRepo().tree(trip[0]);
+				m.player = new WorldPoint((int) from.getX(), (int) from.getY(), 0);
+				p.onScriptPreFired(new ScriptPreFired(9142));
+				p.onScriptPostFired(new ScriptPostFired(9142));
+				p.frameView(wide);
+				p.onWidgetClosed(new WidgetClosed(InterfaceID.MENU_NEW, 0, true));
+			}
+			else
+			{
+				// not opened yet this session: the layout gives this rect
+				set(SpiritTreeAtlasPlugin.class, p, "view", MapView.of(p.getRepo().surface(), wide));
+			}
+			m.tick += 20;
+			m.baseX = (int) to.getX() - 52;
+			m.baseY = (int) to.getY() - 52;
+			p.onMenuOptionClicked(click(MenuAction.GAME_OBJECT_FIRST_OPTION, ObjectID.SPIRITTREE_SMALL, "Travel", "Spirit tree", 52, 52));
+			m.player = new WorldPoint((int) to.getX(), (int) to.getY(), 0);
+			p.onScriptPreFired(new ScriptPreFired(9142));
+			p.onScriptPostFired(new ScriptPostFired(9142));
+			assertEquals(trip[1], p.getRepo().getHere());
+			MapView v = p.frameView(wide);
+			int decodes = store.decodes.get();
+			int derived = store.derived.get();
+			assertTrue(MapRenderer.render(new BufferedImage(v.getW(), v.getH(), BufferedImage.TYPE_INT_RGB), v, store, Color.BLACK));
+			assertEquals(String.join(" ", trip), decodes, store.decodes.get());
+			assertEquals(String.join(" ", trip), derived, store.derived.get());
+		}
 	}
 
 	@Test

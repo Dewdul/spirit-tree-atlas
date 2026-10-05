@@ -783,10 +783,13 @@ or z=-2 (fixed mode, 0.22 ppt, derived from z=-1).
   rect, or before the first open on the rect the layout would give now (fixed: 512x334; resizable:
   `MapLayout.compute` around the slot where Use free space would put it), **as seen from the clicked
   tree**, where the player will stand when the menu opens: its world tile is the entry's scene tile
-  (`param0`, `param1`) plus the top-level world view's base, and `TreeRepository.treeAt` finds the
-  tree "here" there without changing the repository; in an instance (a house's tree) the view is the
-  house portal's (the house placement is read again first). It reads only our own resources and
-  leaves the click alone. Ids (gameval `ObjectID`): the travel locs 26260, 26261, 26263, 35950, 49595, 8355, POH
+  (`param0`, `param1`) plus the top-level world view's base, where `TreeRepository.locate` sets the
+  tree "here" as the open will (none in an instance, where the view is the house portal's). The
+  house placement, the last trip and the panel's saved open or folded state are read again first:
+  the panel (open or its tab, and its width, which the "You" tag and the last-trip badge can widen)
+  moves the view's centre, so a stale one could put a column of tiles just outside the loaded
+  view (`travelSeesThePanelAsTheOpenWill`). It reads only our own resources and leaves the click
+  alone. Ids (gameval `ObjectID`): the travel locs 26260, 26261, 26263, 35950, 49595, 8355, POH
   29227, 44936, 40778, and the world trees' multiloc parents 1293, 1294, 1295, 37329, 49598, 8338,
   8382, 8383, 27116, 33733 (a menu entry carries the parent's id); spiritual fairy trees 29229,
   27097, 40779. Walking to the tree gives seconds of head start; next to it, one tick (600 ms) is
@@ -960,7 +963,8 @@ decoded twice at once, a consistent cache under many workers, sources not kept, 
 coarse cover first, the prefetch), and `PrewarmTest` the Travel click and the trim clock against
 the fake menus: the click loads the view around the clicked tree, not around the player, so the
 menu's first frame needs no decode (`travelLoadsTheViewAroundTheClickedTree`), in a house the view
-around its portal (`travelInAHouseLoadsTheViewAroundItsPortal`), and the open view's level outlasts
+around its portal (`travelInAHouseLoadsTheViewAroundItsPortal`), with the panel as the open will
+lay it out (`travelSeesThePanelAsTheOpenWill`, on the real map), and the open view's level outlasts
 the finer ones (`theOpenViewsLevelOutlastsTheRest`). `TileBench` (`gradlew bench`,
 `-PbenchArgs="rounds prewarmMs view"`, view `around` (default), `fit` or `run`) times an in-game open
 (4.9); `run` opens one tree after another on one store and reports the memory held.

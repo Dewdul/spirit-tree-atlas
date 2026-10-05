@@ -515,7 +515,11 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		MapView last = view;
 		Rectangle rect = last != null ? last.rect() : expectedRect();
 		WorldView wv = client.getTopLevelWorldView();
+		// what the open reads too: the panel (open or its tab; its width, which the "You" tag and
+		// the last-trip badge can widen) moves the view's centre, so it must be the open's
 		repo.placeHouse(client.getVarbitValue(VarbitID.POH_HOUSE_LOCATION));
+		repo.setLast(client.getVarbitValue(VarbitID.SPIRIT_TREE_PREVIOUS));
+		panelOpenSaved = !"false".equals(hiddenSetting(KEY_PANEL_OPEN));
 		MapView v;
 		if (wv == null)
 		{
@@ -527,7 +531,9 @@ public class SpiritTreeAtlasPlugin extends Plugin
 			boolean instance = wv.isInstance();
 			int x = instance ? NOWHERE : wv.getBaseX() + sceneX;
 			int y = instance ? NOWHERE : wv.getBaseY() + sceneY;
-			v = initialView(config.openOn(), repo, repo.tree(repo.treeAt(x, y, wv.getPlane())), x, y, instance, sessionView, rect, insets(rect));
+			// "here" as the open will find it: the player at the clicked tree (none in an instance)
+			repo.locate(x, y, instance ? -1 : wv.getPlane());
+			v = initialView(config.openOn(), repo, repo.tree(repo.getHere()), x, y, instance, sessionView, rect, insets(rect));
 		}
 		MapRenderer.prefetch(v, tiles);
 		keep(v);
