@@ -21,9 +21,13 @@ import java.util.concurrent.locks.LockSupport;
  * Times an in-game open of the map offline (DESIGN 4.9): the real {@link TileStore} on the
  * plugin's own executor, rebuilt by {@link MapRenderer} the way {@link AtlasOverlay} does (at 50
  * frames a second, whenever the tile generation changes, and every 250 ms while incomplete), on
- * the default FIT_ALL view. Run with {@code ./gradlew bench}. Each map size is opened cold (a
- * fresh store) and then warm (the same store, a fresh base-map cache: a second open within the
- * trim window); the first round also warms the JIT and is reported apart.
+ * the default view (around you, at the Grand Exchange tree; {@code fit} for FIT_ALL). Run with
+ * {@code ./gradlew bench} ({@code -PbenchArgs="rounds prewarmMs view"}, view {@code around},
+ * {@code fit} or {@code run}). Each map size is opened cold (a fresh store) and then warm (the
+ * same store, a fresh base-map cache: a second open within the trim window); the first round
+ * also warms the JIT and is reported apart. {@code run} opens around one tree after another on
+ * one store, as on a farming run, trimming between them as the plugin does 50 ticks after a
+ * close, and reports the memory held.
  */
 public class TileBench
 {
@@ -55,14 +59,26 @@ public class TileBench
 		long bytes;
 	}
 
+	/** A farming run, then every other surface tree and back: one tree after another (DESIGN 4.9). */
+	static final String[] RUN = {"GRAND_EXCHANGE", "PORT_SARIM", "BRIMHAVEN", "ETCETERIA", "HOSIDIUS", "FARMING_GUILD",
+		"TREE_GNOME_VILLAGE", "GNOME_STRONGHOLD", "BATTLEFIELD_OF_KHAZARD", "FELDIP_HILLS", "POISON_WASTE", "LAGUNA_AURORAE",
+		"GRAND_EXCHANGE", "PORT_SARIM"};
+
 	public static void main(String[] args)
 	{
 		int rounds = args.length > 0 ? Integer.parseInt(args[0]) : 3;
 		long prewarmMs = args.length > 1 ? Long.parseLong(args[1]) : -1;
+		String kind = args.length > 2 ? args[2] : "around";
 		TreeRepository repo = TreeRepository.load(new Gson(), BASE);
 		repo.placeHouse(1);
-		System.out.printf(Locale.ROOT, "cores=%d java=%s prewarm=%s%n", Runtime.getRuntime().availableProcessors(),
-			System.getProperty("java.version"), prewarmMs < 0 ? "off" : prewarmMs + " ms");
+		System.out.printf(Locale.ROOT, "cores=%d java=%s prewarm=%s view=%s%n", Runtime.getRuntime().availableProcessors(),
+			System.getProperty("java.version"), prewarmMs < 0 ? "off" : prewarmMs + " ms", kind);
+		if ("run".equals(kind))
+		{
+			run(repo, SIZES[0], prewarmMs);
+			return;
+		}
+		boolean fit = "fit".equals(kind);
 		System.out.println("round kind size       ppt   z tiles | first  cover complete | decodes derived rebuilds render(ms tot/max) | MB");
 		for (int round = 1; round <= rounds; round++)
 		{
@@ -72,7 +88,7 @@ public class TileBench
 				try
 				{
 					TileStore store = new TileStore(repo.getIndex(), repo.getLayers(), BASE, ex);
-					MapView v = view(repo, r);
+					MapView v = fit ? view(repo, r) : around(repo, repo.tree("GRAND_EXCHANGE"), r);
 					if (prewarmMs >= 0)
 					{
 						// the player clicked Travel this long before the menu opened
@@ -93,6 +109,47 @@ public class TileBench
 	static MapView view(TreeRepository repo, Rectangle r)
 	{
 		return SpiritTreeAtlasPlugin.fitTrees(MapView.of(repo.surface(), r), repo.surfaceMarkers(), new Insets(ChromePainter.BAR_H, 0, 0, 0));
+	}
+
+	/** The plugin's default view standing at this tree, clear of the top bar and the quick-select panel (its tab when narrow). */
+	static MapView around(TreeRepository repo, Tree at, Rectangle r)
+	{
+		repo.locate((int) at.getX(), (int) at.getY(), at.getPlane());
+		int panel = r.width >= SpiritTreeAtlasPlugin.NARROW_MAP
+			? new ChromePainter(new AtlasPainter().ink()).panelWidth(repo.menuOrder(), repo.getHere(), repo.getLast(), r.width) : ChromePainter.TAB_W;
+		return SpiritTreeAtlasPlugin.initialView(SpiritTreeAtlasConfig.OpenAt.AROUND_YOU, repo, at, at.getX(), at.getY(), false, null, r,
+			SpiritTreeAtlasPlugin.chromeInsets(panel));
+	}
+
+	/**
+	 * One tree after another on one store: the Travel click (prewarmMs ahead, when given), the
+	 * open, and the trim 50 ticks after the close, which keeps the open view's level and coarser.
+	 */
+	static void run(TreeRepository repo, Rectangle r, long prewarmMs)
+	{
+		System.out.println("tree                   ppt   z | first  cover complete | decodes derived | MB open / kept");
+		ExecutorService ex = TileStore.newExecutor();
+		try
+		{
+			TileStore store = new TileStore(repo.getIndex(), repo.getLayers(), BASE, ex);
+			for (String id : RUN)
+			{
+				MapView v = around(repo, repo.tree(id), r);
+				if (prewarmMs >= 0)
+				{
+					MapRenderer.prefetch(v, store);
+					sleepMs(prewarmMs);
+				}
+				Result x = open(repo, store, v);
+				store.trimFinerThan(Math.max(0, store.levelFor(v.getPpt())));
+				System.out.printf(Locale.ROOT, "%-22s %5.3f %2d | %5s %6s %8s | %7d %7d | %5.1f / %5.1f%n", id, x.ppt, x.z,
+					ms(x.firstImagery), ms(x.covered), ms(x.complete), x.decodes, x.derived, x.bytes / 1048576.0, store.cachedBytes() / 1048576.0);
+			}
+		}
+		finally
+		{
+			ex.shutdownNow();
+		}
 	}
 
 	/** One open: rebuilds as the overlay does until the frame is complete at the wanted level. */

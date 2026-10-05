@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.JPanel;
 import net.runelite.api.GameState;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.events.ConfigChanged;
@@ -76,6 +78,8 @@ public class PluginEventsTest
 	}
 
 	private final Plugin plugin = new Plugin();
+	/** The "Open at" setting; null for its default. */
+	private SpiritTreeAtlasConfig.OpenAt openOn;
 	private FakeMenu f;
 	private List<String> pristine;
 	private AtlasInput input;
@@ -90,6 +94,11 @@ public class PluginEventsTest
 		input = new AtlasInput(plugin);
 		SpiritTreeAtlasConfig config = new SpiritTreeAtlasConfig()
 		{
+			@Override
+			public OpenAt openOn()
+			{
+				return openOn != null ? openOn : SpiritTreeAtlasConfig.super.openOn();
+			}
 		};
 		set(SpiritTreeAtlasPlugin.class, plugin, "client", f.client);
 		set(SpiritTreeAtlasPlugin.class, plugin, "clientThread", clientThread);
@@ -608,6 +617,185 @@ public class PluginEventsTest
 		assertEquals("Quick select list", item.name());
 		assertEquals(SpiritTreeAtlasConfig.mapSection, item.section());
 		assertFalse(item.hidden());
+	}
+
+	/** The menu opens with the player on this tile; returns the view it opens on (fixed mode: the tab, not the panel). */
+	private MapView openAt(int x, int y, int plane) throws Exception
+	{
+		if (f == null)
+		{
+			start(FakeMenu.modern(FakeMenu.OPTIONS));
+		}
+		f.player = new WorldPoint(x, y, plane);
+		f.tick += 10;
+		script(MODERN_SCRIPT);
+		assertTrue(plugin.isOpen());
+		return plugin.frameView(FakeMenu.SLOT);
+	}
+
+	private void close()
+	{
+		plugin.onWidgetClosed(new WidgetClosed(InterfaceID.MENU_NEW, 0, true));
+		assertFalse(plugin.isOpen());
+	}
+
+	/** At 2 ppt on this layer, with this world point in the middle of the map clear of the top bar and the tab. */
+	private static void assertAround(MapView v, String layer, double wx, double wy)
+	{
+		java.awt.Insets in = SpiritTreeAtlasPlugin.chromeInsets(ChromePainter.TAB_W);
+		assertEquals(layer, v.getLayer());
+		assertEquals(SpiritTreeAtlasPlugin.AROUND_PPT, v.getPpt(), 1e-9);
+		assertEquals(v.getX() + in.left + (v.getW() - in.left) / 2.0, v.screenX(wx), 1e-6);
+		assertEquals(v.getY() + in.top + (v.getH() - in.top) / 2.0, v.screenY(wy), 1e-6);
+	}
+
+	/** Every surface marker fitted, clear of the chrome: Fit all, and where around you cannot apply. */
+	private MapView fitAll()
+	{
+		return SpiritTreeAtlasPlugin.fitTrees(MapView.of(plugin.getRepo().surface(), FakeMenu.SLOT), plugin.getRepo().surfaceMarkers(),
+			SpiritTreeAtlasPlugin.chromeInsets(ChromePainter.TAB_W));
+	}
+
+	/** DESIGN 4.7 (the user, 2026-10-04): the map opens around the tree you are at. */
+	@Test
+	public void opensAroundTheTreeYouAreAt() throws Exception
+	{
+		// a few tiles from the Tree Gnome Village tree: centred on the tree, not on the player
+		MapView v = openAt(2541, 3172, 0);
+		assertEquals("TREE_GNOME_VILLAGE", plugin.getRepo().getHere());
+		Tree village = plugin.getRepo().tree("TREE_GNOME_VILLAGE");
+		assertAround(v, Layer.SURFACE, village.getX() + 0.5, village.getY() + 0.5);
+		// on a wide map the open panel is kept clear too
+		Rectangle wide = new Rectangle(0, 0, 1600, 900);
+		close();
+		f.tick += 10;
+		script(MODERN_SCRIPT);
+		v = plugin.frameView(wide);
+		java.awt.Insets in = SpiritTreeAtlasPlugin.chromeInsets(((AtlasOverlay) get(SpiritTreeAtlasPlugin.class, plugin, "overlay")).panelWidth(1600));
+		assertTrue(in.left > ChromePainter.TAB_W + 6);
+		assertEquals(in.left + (1600 - in.left) / 2.0, v.screenX(village.getX() + 0.5), 1e-6);
+		assertEquals(in.top + (900 - in.top) / 2.0, v.screenY(village.getY() + 0.5), 1e-6);
+	}
+
+	@Test
+	public void opensOnThePrifddinasMapAtItsTree() throws Exception
+	{
+		MapView v = openAt(3272, 6121, 0);
+		assertEquals("PRIFDDINAS", plugin.getRepo().getHere());
+		Tree prif = plugin.getRepo().tree("PRIFDDINAS");
+		assertAround(v, Layer.PRIFDDINAS, prif.getX() + 0.5, prif.getY() + 0.5);
+		// elsewhere in the city: centred on the player, still on its map
+		close();
+		v = openAt(3200, 6000, 0);
+		assertNull(plugin.getRepo().getHere());
+		assertAround(v, Layer.PRIFDDINAS, 3200.5, 6000.5);
+	}
+
+	@Test
+	public void opensAroundThePlayerAwayFromEveryTree() throws Exception
+	{
+		MapView v = openAt(2700, 3300, 0);
+		assertNull(plugin.getRepo().getHere());
+		assertAround(v, Layer.SURFACE, 2700.5, 3300.5);
+		// off every map (a dungeon): every tree fitted
+		close();
+		assertEquals(fitAll(), openAt(2700, 9700, 0));
+	}
+
+	/**
+	 * In an instance (your house, a friend's, any other) the tiles are not the world's: the map
+	 * opens on your house's portal when the house is placed, as a view only (the house is never
+	 * "here", so no "You" pin), else fitted.
+	 */
+	@Test
+	public void inAnInstanceItOpensOnYourHouse() throws Exception
+	{
+		start(FakeMenu.modern(FakeMenu.OPTIONS));
+		f.instance = true;
+		// a house in Prifddinas: its map, centred on the portal; the instance tile would be "here" outside one
+		f.varbits.put(VarbitID.POH_HOUSE_LOCATION, 9);
+		MapView v = openAt(2544, 3169, 0);
+		assertNull(plugin.getRepo().getHere());
+		Tree house = plugin.getRepo().house();
+		assertEquals(3239, house.getX(), 1e-9);
+		assertAround(v, Layer.PRIFDDINAS, house.getX() + 0.5, house.getY() + 0.5);
+		// a house on the surface (Rimmington, outside the fixture's land: the view is clamped to it)
+		close();
+		f.varbits.put(VarbitID.POH_HOUSE_LOCATION, 1);
+		v = openAt(2544, 3169, 0);
+		assertNull(plugin.getRepo().getHere());
+		assertEquals(Layer.SURFACE, v.getLayer());
+		assertEquals(SpiritTreeAtlasPlugin.AROUND_PPT, v.getPpt(), 1e-9);
+		// no house placed: every tree fitted
+		close();
+		f.varbits.put(VarbitID.POH_HOUSE_LOCATION, 0);
+		assertEquals(fitAll(), openAt(2544, 3169, 0));
+		// the other settings still apply in a house
+		close();
+		openOn = SpiritTreeAtlasConfig.OpenAt.FIT_ALL;
+		f.varbits.put(VarbitID.POH_HOUSE_LOCATION, 9);
+		assertEquals(fitAll(), openAt(2544, 3169, 0));
+	}
+
+	@Test
+	public void fitAllAndRememberStayAvailable() throws Exception
+	{
+		start(FakeMenu.modern(FakeMenu.OPTIONS));
+		openOn = SpiritTreeAtlasConfig.OpenAt.FIT_ALL;
+		assertEquals(fitAll(), openAt(2541, 3172, 0));
+		close();
+		// at the Prifddinas tree, Fit all opens that layer fitted
+		MapView v = openAt(3272, 6121, 0);
+		assertEquals(SpiritTreeAtlasPlugin.fitLayer(plugin.getRepo().layer(Layer.PRIFDDINAS), FakeMenu.SLOT,
+			SpiritTreeAtlasPlugin.chromeInsets(ChromePainter.TAB_W)), v);
+		// Remember: the view the menu last closed on
+		MapView left = fitAll().focusOn(2600, 3200, 8, null);
+		plugin.setView(left);
+		close();
+		openOn = SpiritTreeAtlasConfig.OpenAt.REMEMBER;
+		assertEquals(left, openAt(2541, 3172, 0));
+	}
+
+	/** DESIGN 4.1: a reopen within 3 ticks keeps the view; a later one opens around you again. */
+	@Test
+	public void aQuickReopenKeepsTheViewALaterOneOpensAroundYou() throws Exception
+	{
+		openAt(2541, 3172, 0);
+		MapView moved = fitAll().focusOn(2700, 3300, 8, null);
+		plugin.setView(moved);
+		close();
+		f.player = new WorldPoint(2700, 3200, 0);
+		f.tick += 3;
+		script(MODERN_SCRIPT);
+		assertEquals(moved, plugin.frameView(FakeMenu.SLOT));
+		close();
+		f.tick += 4;
+		script(MODERN_SCRIPT);
+		assertAround(plugin.frameView(FakeMenu.SLOT), Layer.SURFACE, 2700.5, 3200.5);
+	}
+
+	/**
+	 * DESIGN 4.11: "Open at" defaults to around you under a new key: RuneLite had already written
+	 * the old key's FIT_ALL into every profile, which a new default would never have reached.
+	 */
+	@Test
+	public void openAtDefaultsToAroundYouUnderANewKey() throws Exception
+	{
+		SpiritTreeAtlasConfig config = new SpiritTreeAtlasConfig()
+		{
+		};
+		assertEquals(SpiritTreeAtlasConfig.OpenAt.AROUND_YOU, config.openOn());
+		net.runelite.client.config.ConfigItem item = SpiritTreeAtlasConfig.class.getMethod("openOn")
+			.getAnnotation(net.runelite.client.config.ConfigItem.class);
+		assertEquals("openOn", item.keyName());
+		assertEquals("Open at", item.name());
+		assertEquals(SpiritTreeAtlasConfig.mapSection, item.section());
+		assertFalse(item.hidden());
+		for (java.lang.reflect.Method m : SpiritTreeAtlasConfig.class.getMethods())
+		{
+			net.runelite.client.config.ConfigItem ci = m.getAnnotation(net.runelite.client.config.ConfigItem.class);
+			assertTrue(ci == null || !"openAt".equals(ci.keyName()));
+		}
 	}
 
 	private static MouseWheelEvent wheel(int x, int y)

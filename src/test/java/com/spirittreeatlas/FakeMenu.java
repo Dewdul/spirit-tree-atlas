@@ -12,6 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.runelite.api.Client;
+import net.runelite.api.Player;
+import net.runelite.api.WorldView;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
@@ -122,6 +125,48 @@ final class FakeMenu
 	/** What the fake client reports for the plugin: the tick count and the game's mouse-over text. */
 	int tick = 100;
 	boolean mouseover = true;
+	/** Where the local player stands (null: no player), and whether the scene is an instance. */
+	WorldPoint player;
+	boolean instance;
+	/** The scene's south-west world tile: a menu entry's scene tile plus this is its world tile. */
+	int baseX;
+	int baseY;
+	/** Varbit values; absent ones read 0. */
+	final Map<Integer, Integer> varbits = new HashMap<>();
+	private final WorldView worldView = (WorldView) Proxy.newProxyInstance(WorldView.class.getClassLoader(), new Class<?>[]{WorldView.class}, (p, m, args) ->
+	{
+		switch (m.getName())
+		{
+			case "isInstance":
+				return instance;
+			case "getBaseX":
+				return baseX;
+			case "getBaseY":
+				return baseY;
+			case "getPlane":
+				return player == null ? 0 : player.getPlane();
+			case "equals":
+				return p == args[0];
+			case "hashCode":
+				return System.identityHashCode(p);
+			default:
+				return null;
+		}
+	});
+	private final Player localPlayer = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(), new Class<?>[]{Player.class}, (p, m, args) ->
+	{
+		switch (m.getName())
+		{
+			case "getWorldLocation":
+				return player;
+			case "equals":
+				return p == args[0];
+			case "hashCode":
+				return System.identityHashCode(p);
+			default:
+				return null;
+		}
+	});
 
 	FakeMenu()
 	{
@@ -142,7 +187,11 @@ final class FakeMenu
 				case "getTickCount":
 					return tick;
 				case "getVarbitValue":
-					return 0;
+					return varbits.getOrDefault((int) args[0], 0);
+				case "getLocalPlayer":
+					return player == null ? null : localPlayer;
+				case "getTopLevelWorldView":
+					return worldView;
 				case "isResized":
 				case "isMenuOpen":
 					return false;

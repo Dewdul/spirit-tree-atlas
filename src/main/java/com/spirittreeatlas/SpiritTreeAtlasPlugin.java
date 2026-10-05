@@ -28,6 +28,7 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
+import net.runelite.api.WorldView;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
@@ -75,8 +76,15 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private static final int TRIM_TICKS = 50;
 	/** Except the overview tiles it opens on: they stay about 5 minutes, for the next tree of a run. */
 	private static final int OVERVIEW_TICKS = 500;
-	/** Levels z <= this are the overview the menu opens on (FIT_ALL is z=0 at most). */
+	/**
+	 * Levels z <= this always count as the overview the menu opens on (FIT_ALL is z=0 at most);
+	 * the level of the last view it opened on (z=1 around you) is kept too, see {@link #keepLevel}.
+	 */
 	private static final int OVERVIEW_LEVEL = 0;
+	/** Around you (DESIGN 4.7): the zoom the map opens at, centred on where you are. */
+	static final double AROUND_PPT = 2;
+	/** A world tile no layer holds: where the player is when we cannot tell (no player, an instance). */
+	private static final int NOWHERE = Integer.MIN_VALUE / 2;
 	/**
 	 * Objects whose "Travel" opens the menu: the travel locs, and the world trees whose menu
 	 * entries name them by their multiloc parent (an entry carries the parent's id).
@@ -195,8 +203,15 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	 */
 	private boolean claimed;
 	private boolean needsInitialView;
-	private int playerX;
-	private int playerY;
+	private int playerX = NOWHERE;
+	private int playerY = NOWHERE;
+	/** Whether the player was in an instance (a house) when the menu opened. */
+	private boolean inInstance;
+	/**
+	 * The coarsest level kept longest after a close: that of the last view the menu opened on (or
+	 * was loaded ahead for), at least the overview's (DESIGN 4.9).
+	 */
+	private int keepLevel = OVERVIEW_LEVEL;
 	private int closedTick = -100;
 	private Mode closedMode = Mode.MAP;
 	private MapView sessionView;
@@ -446,7 +461,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		else if (!fineTrimmed && since >= TRIM_TICKS)
 		{
 			fineTrimmed = true;
-			tiles.trimFinerThan(OVERVIEW_LEVEL);
+			tiles.trimFinerThan(keepLevel);
 			overlay.releaseCaches();
 		}
 	}
@@ -461,7 +476,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	{
 		if (!open && config.openInMapMode() && opensTreeMenu(e.getMenuAction(), e.getId(), e.getMenuOption(), e.getMenuTarget()))
 		{
-			prewarm();
+			prewarm(e.getParam0(), e.getParam1());
 		}
 	}
 
@@ -485,9 +500,13 @@ public class SpiritTreeAtlasPlugin extends Plugin
 
 	/**
 	 * Queues the tiles of the view the menu will open on: the initial view (4.7) on the last map
-	 * rect of the session or, before the first open, the rect the layout would give now.
+	 * rect of the session or, before the first open, the rect the layout would give now, as seen
+	 * from the clicked tree, where the player will stand.
+	 *
+	 * @param sceneX the clicked object's scene tile (the menu entry's param0)
+	 * @param sceneY its param1
 	 */
-	private void prewarm()
+	private void prewarm(int sceneX, int sceneY)
 	{
 		if (!tiles.hasImagery())
 		{
@@ -495,11 +514,35 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		}
 		MapView last = view;
 		Rectangle rect = last != null ? last.rect() : expectedRect();
-		locatePlayer();
-		MapRenderer.prefetch(initialView(rect), tiles);
+		WorldView wv = client.getTopLevelWorldView();
+		repo.placeHouse(client.getVarbitValue(VarbitID.POH_HOUSE_LOCATION));
+		MapView v;
+		if (wv == null)
+		{
+			locatePlayer();
+			v = initialView(rect);
+		}
+		else
+		{
+			boolean instance = wv.isInstance();
+			int x = instance ? NOWHERE : wv.getBaseX() + sceneX;
+			int y = instance ? NOWHERE : wv.getBaseY() + sceneY;
+			v = initialView(config.openOn(), repo, repo.tree(repo.treeAt(x, y, wv.getPlane())), x, y, instance, sessionView, rect, insets(rect));
+		}
+		MapRenderer.prefetch(v, tiles);
+		keep(v);
 		trimmed = false;
 		fineTrimmed = false;
 		warmTick = client.getTickCount();
+	}
+
+	/** The tiles of the level this view opens on (and coarser) stay longest after a close (DESIGN 4.9). */
+	private void keep(MapView v)
+	{
+		if (tiles != null)
+		{
+			keepLevel = Math.max(OVERVIEW_LEVEL, tiles.levelFor(v.getPpt()));
+		}
 	}
 
 	/** The map rect before the first open: the slot in fixed mode; else the free space as the caps and the layout allow. */
@@ -524,9 +567,14 @@ public class SpiritTreeAtlasPlugin extends Plugin
 	private void locatePlayer()
 	{
 		Player p = client.getLocalPlayer();
-		if (p == null)
+		WorldView wv = client.getTopLevelWorldView();
+		inInstance = wv != null && wv.isInstance();
+		if (p == null || inInstance)
 		{
-			repo.locate(Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, -1);
+			// an instance's tiles are not the world's: no tree is "here" in a house (3.4)
+			playerX = NOWHERE;
+			playerY = NOWHERE;
+			repo.locate(NOWHERE, NOWHERE, -1);
 			return;
 		}
 		WorldPoint wp = p.getWorldLocation();
@@ -814,6 +862,7 @@ public class SpiritTreeAtlasPlugin extends Plugin
 			{
 				view = initialView(rect);
 				needsInitialView = false;
+				keep(view);
 			}
 			if (animTo != null)
 			{
@@ -832,28 +881,53 @@ public class SpiritTreeAtlasPlugin extends Plugin
 		}
 	}
 
-	/** DESIGN 4.7: fit every surface marker, centre on where you are, or the session's last view. */
+	/** DESIGN 4.7: the view the menu opens on, from where the player stood when it opened. */
 	private MapView initialView(Rectangle rect)
 	{
-		Insets in = insets(rect);
-		Tree here = repo.tree(repo.getHere());
+		return initialView(config.openOn(), repo, repo.tree(repo.getHere()), playerX, playerY, inInstance, sessionView, rect, insets(rect));
+	}
+
+	/**
+	 * DESIGN 4.7: the view the menu opens on. Around you: centred at {@link #AROUND_PPT} on the
+	 * tree you are at, else on your own tile when a layer holds it, on that tree's or tile's layer
+	 * (Prifddinas too); in an instance, on your house's portal when the house is placed. Fit all:
+	 * every surface marker, or the Prifddinas layer when you are at its tree. Remember: the
+	 * session's last view. Whatever does not apply fits every surface marker.
+	 *
+	 * @param here     the tree the player is at, or null (never the house)
+	 * @param x        the player's world tile, or a tile no layer holds when unknown
+	 * @param instance the player is in an instance (a house; whose, the client cannot tell)
+	 */
+	static MapView initialView(SpiritTreeAtlasConfig.OpenAt openAt, TreeRepository repo, Tree here, double x, double y,
+		boolean instance, MapView remembered, Rectangle rect, Insets in)
+	{
 		boolean hereMapped = here != null && here.isMapped();
-		switch (config.openAt())
+		switch (openAt)
 		{
 			case REMEMBER:
-				Layer l = sessionView == null ? null : repo.layer(sessionView.getLayer());
+				Layer l = remembered == null ? null : repo.layer(remembered.getLayer());
 				if (l != null)
 				{
-					return sessionView.withRect(rect).withLayer(l);
+					return remembered.withRect(rect).withLayer(l);
 				}
 				break;
 			case AROUND_YOU:
-				double x = hereMapped ? here.getX() : playerX;
-				double y = hereMapped ? here.getY() : playerY;
-				Layer at = hereMapped ? repo.layer(here.getLayer()) : repo.layerAt(playerX + 0.5, playerY + 0.5);
+				// in a house, its portal: the view only; the house is never "here" (3.4)
+				Tree at = instance ? repo.house() : hereMapped ? here : null;
+				Layer on;
 				if (at != null)
 				{
-					return MapView.of(at, rect).focusOn(x + 0.5, y + 0.5, 2, in);
+					on = at.isMapped() ? repo.layer(at.getLayer()) : null;
+					x = at.getX();
+					y = at.getY();
+				}
+				else
+				{
+					on = instance ? null : repo.layerAt(x + 0.5, y + 0.5);
+				}
+				if (on != null)
+				{
+					return MapView.of(on, rect).focusOn(x + 0.5, y + 0.5, AROUND_PPT, in);
 				}
 				break;
 			default:

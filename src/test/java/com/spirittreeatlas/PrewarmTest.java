@@ -6,15 +6,21 @@
 package com.spirittreeatlas;
 
 import com.google.gson.Gson;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.gameval.ObjectID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,7 +35,14 @@ import org.junit.Test;
  */
 public class PrewarmTest
 {
-	private final SpiritTreeAtlasPlugin plugin = new SpiritTreeAtlasPlugin();
+	private final SpiritTreeAtlasPlugin plugin = new SpiritTreeAtlasPlugin()
+	{
+		@Override
+		String hiddenSetting(String key)
+		{
+			return null;
+		}
+	};
 	private final FakeMenu f = FakeMenu.modern(FakeMenu.OPTIONS);
 	private final TileStore tiles;
 
@@ -63,6 +76,12 @@ public class PrewarmTest
 
 	private static MenuOptionClicked click(MenuAction action, int id, String option, String target)
 	{
+		return click(action, id, option, target, 0, 0);
+	}
+
+	/** A click on an object at this scene tile (a game object entry's param0 and param1). */
+	private static MenuOptionClicked click(MenuAction action, int id, String option, String target, int sceneX, int sceneY)
+	{
 		MenuEntry entry = (MenuEntry) Proxy.newProxyInstance(MenuEntry.class.getClassLoader(), new Class<?>[]{MenuEntry.class}, (p, m, args) ->
 		{
 			switch (m.getName())
@@ -76,7 +95,9 @@ public class PrewarmTest
 				case "getTarget":
 					return target;
 				case "getParam0":
+					return sceneX;
 				case "getParam1":
+					return sceneY;
 				case "getItemId":
 				case "getItemOp":
 					return 0;
@@ -157,6 +178,78 @@ public class PrewarmTest
 		ticks(499);
 		assertNotNull(tiles.get(0, 10, 12));
 		// about 5 minutes after, everything goes
+		ticks(1);
+		assertEquals(0, tiles.cachedBytes());
+	}
+
+	/** Travel on the tree at this world tile, the player still elsewhere (the scene starts at the surface's corner). */
+	private void travelTo(double treeX, double treeY)
+	{
+		f.baseX = 2496;
+		f.baseY = 3136;
+		plugin.onMenuOptionClicked(click(MenuAction.GAME_OBJECT_FIRST_OPTION, ObjectID.SPIRITTREE_SMALL, "Travel", "Spirit tree",
+			(int) treeX - f.baseX, (int) treeY - f.baseY));
+	}
+
+	/** The player arrives here and the menu opens: whether its first frame needed any tile not loaded ahead. */
+	private boolean opensWarm(int x, int y)
+	{
+		f.player = new WorldPoint(x, y, 0);
+		f.title().text = FakeMenu.TITLE;
+		plugin.onScriptPreFired(new ScriptPreFired(9142));
+		plugin.onScriptPostFired(new ScriptPostFired(9142));
+		assertTrue(plugin.isOpen());
+		MapView v = plugin.frameView(FakeMenu.SLOT);
+		int decodes = tiles.decodes.get();
+		int derived = tiles.derived.get();
+		BufferedImage img = new BufferedImage(v.getW(), v.getH(), BufferedImage.TYPE_INT_RGB);
+		boolean complete = MapRenderer.render(img, v, tiles, Color.BLACK);
+		return complete && decodes == tiles.decodes.get() && derived == tiles.derived.get();
+	}
+
+	/**
+	 * DESIGN 4.9: the click loads the view the menu will open on, around the clicked tree (where
+	 * the player will be), not around where the player clicked from.
+	 */
+	@Test
+	public void travelLoadsTheViewAroundTheClickedTree()
+	{
+		f.player = new WorldPoint(2700, 3300, 0);
+		travelTo(2544.5, 3169.5);
+		assertTrue(tiles.fullTiles() > 0);
+		// around you opens at 2 ppt: z=1, derived from z=2
+		assertNotNull(tiles.get(1, 20, 25));
+		assertTrue(opensWarm(2545, 3171));
+		assertEquals("TREE_GNOME_VILLAGE", plugin.getRepo().getHere());
+	}
+
+	@Test
+	public void travelInAHouseLoadsTheViewAroundItsPortal()
+	{
+		f.instance = true;
+		// a house in Yanille, just south of the fixture's land: the view is clamped to its edge
+		f.varbits.put(VarbitID.POH_HOUSE_LOCATION, 6);
+		plugin.onMenuOptionClicked(click(MenuAction.GAME_OBJECT_FIRST_OPTION, ObjectID.POH_SPIRIT_TREE, "Travel", "Spirit tree", 30, 40));
+		assertNotNull(tiles.get(1, 20, 25));
+		assertTrue(opensWarm(1900, 5700));
+		MapView v = plugin.frameView(FakeMenu.SLOT);
+		assertEquals(Layer.SURFACE, v.getLayer());
+		assertEquals(SpiritTreeAtlasPlugin.AROUND_PPT, v.getPpt(), 1e-9);
+	}
+
+	/** The tiles of the level the menu opened on (z=1 around you) and coarser outlast the rest. */
+	@Test
+	public void theOpenViewsLevelOutlastsTheRest()
+	{
+		travelTo(2544.5, 3169.5);
+		assertNotNull(tiles.request(2, 40, 50));
+		assertNotNull(tiles.get(1, 20, 25));
+		ticks(50);
+		assertNull(tiles.get(2, 40, 50));
+		assertNotNull(tiles.get(1, 20, 25));
+		assertTrue(tiles.consistent());
+		ticks(449);
+		assertNotNull(tiles.get(1, 20, 25));
 		ticks(1);
 		assertEquals(0, tiles.cachedBytes());
 	}

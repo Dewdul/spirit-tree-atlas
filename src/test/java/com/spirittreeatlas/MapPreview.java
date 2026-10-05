@@ -161,6 +161,15 @@ public class MapPreview
 		quick.here = "GNOME_STRONGHOLD";
 		quick.hoverRow = "HOSIDIUS";
 		render(repo, painter, out, quick);
+
+		// the default open (around you, DESIGN 4.7): standing at the Grand Exchange tree, nothing
+		// selected, the quick-select panel open; the "You" tag widens the panel
+		repo.locate((int) ge.getX(), (int) ge.getY(), ge.getPlane());
+		Shot around = new Shot("15-around-you", SpiritTreeAtlasPlugin.initialView(SpiritTreeAtlasConfig.OpenAt.AROUND_YOU, repo, ge,
+			ge.getX(), ge.getY(), false, null, big, insets(repo, painter, big, true)));
+		around.here = "GRAND_EXCHANGE";
+		render(repo, painter, out, around);
+		repo.locate(0, 0, 0);
 	}
 
 	/**
@@ -617,6 +626,6 @@ public class MapPreview
 	{
 		return Arrays.asList("1-fit", "2-grand-exchange-4ppt", "3-16ppt", "4-prifddinas", "5-fixed-modern", "6-fixed-classic",
 			"7-locked-card", "8-checks", "9-free-space", "10-list-and-notice", "11-fixed-classic-travel", "12-full-card",
-			"13-marker-states", "icon");
+			"13-marker-states", "14-fixed-quick-select", "15-around-you", "icon");
 	}
 }

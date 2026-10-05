@@ -353,7 +353,14 @@ public class TreeRepository
 	 */
 	public void locate(int x, int y, int plane)
 	{
-		here = null;
+		here = treeAt(x, y, plane);
+		rehash();
+	}
+
+	/** The tree "here" for a player on this tile (see {@link #locate}), or null; changes nothing. */
+	public String treeAt(int x, int y, int plane)
+	{
+		String at = null;
 		double best = Double.MAX_VALUE;
 		for (Tree t : trees)
 		{
@@ -361,10 +368,10 @@ public class TreeRepository
 			if (!t.isHouse() && t.isMapped() && t.getPlane() == plane && d <= HERE_TILES && d < best)
 			{
 				best = d;
-				here = t.getId();
+				at = t.getId();
 			}
 		}
-		rehash();
+		return at;
 	}
 
 	/** The last trip from SPIRIT_TREE_PREVIOUS: the tree with that previous value; none for 0. */

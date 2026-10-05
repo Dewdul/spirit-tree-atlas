@@ -409,8 +409,9 @@ Loads `trees.json` and `map/index.json` with the injected Gson (the bundled Rune
   using the host's spirit tree or spiritual fairy tree) the "Your house (<town>)" row still means
   the player's own house, a real destination, so marking it "here" would put the "You" pin on the
   wrong house and hide its Travel row. In the player's own house, the row shows as Travel too and
-  clicking it only asks the server, which decides. So with `FIT_ALL`, using the tree in a house
-  in Prifddinas opens the surface overview, not the Prifddinas layer (4.7).
+  clicking it only asks the server, which decides. The map still opens on the house's portal in
+  an instance (4.7), as a view only: no "You" pin, the row stays a Travel row. With `FIT_ALL`, using
+  the tree in a house in Prifddinas opens the surface overview, not the Prifddinas layer.
 - **last:** the tree whose `previousValue` equals `SPIRIT_TREE_PREVIOUS`, when non-zero.
 - **The house:** `placeHouse(value)` puts the `house` tree at `housePortals[value]` (and its layer);
   unknown values leave it unplaced (not drawn). Read at start-up when logged in, on every open, and
@@ -680,11 +681,23 @@ draws nothing else and takes no input.
 - **Place labels and map icons** from `index.json`, as Fairy Ring Atlas (`placeLabels`, `mapIcons`).
 - **Portal:** on the surface, the Prifddinas portal point shows the surface stand-ins (3.4) plus a
   small map-link glyph; `Zoom to` / `Open Prifddinas map` opens the Prifddinas layer fitted.
-- **Initial view** (`openAt`): `FIT_ALL` (default) fits every surface marker (stand-ins included),
-  clear of the chrome; `AROUND_YOU` centres on `here` (or the player) at 2 ppt; `REMEMBER` restores
-  the last view of the session. With `FIT_ALL` and `here` on the Prifddinas layer, open that layer.
-  (Fairy Ring Atlas opens around you; with only 14 destinations spread over the whole map, fitting
-  them all is the useful start here.)
+- **Initial view** (`openOn`, "Open at"; `SpiritTreeAtlasPlugin.initialView`). The user, in game
+  on 2026-10-04: "When opening the map could it open to where we are currently at please?" So the
+  default is now `AROUND_YOU`, as in Fairy Ring Atlas (its `openAt` AROUND_YOU):
+  - `AROUND_YOU` (default): centred at 2 ppt (`AROUND_PPT`) on the tree you are at (`here`), else on
+    the player's own tile when a layer holds it (the surface or Prifddinas), on that tree's or tile's
+    layer: at the Prifddinas tree, or anywhere in the city, the Prifddinas layer opens centred there.
+    The point sits in the middle of the map clear of the chrome (the top bar and the quick-select
+    panel or its tab, `chromeInsets`). **In an instance** (your house, a friend's house, any other
+    instance; `WorldView.isInstance()`) the player's tile is not a world tile: the map opens on your
+    house's portal when the house is placed (`POH_HOUSE_LOCATION`), on the portal's layer, as a view
+    only (the house is still never "here", 3.4: no "You" pin); with no house placed it fits all.
+    Off every layer (a dungeon, no player) it fits all too.
+  - `FIT_ALL`: fits every surface marker (stand-ins included), clear of the chrome; with `here` on
+    the Prifddinas layer, that layer fitted.
+  - `REMEMBER`: the last view of the session (else fit all).
+  A reopen within 3 ticks keeps the view whatever the setting (4.1). The Travel-click prefetch (4.9)
+  estimates the same view through the same method.
 
 ### 4.8 Navigation, input and menu ownership
 
@@ -739,10 +752,12 @@ antialiasing off and vector glyphs instead of Unicode arrows; stretched mode is 
 painters (`AtlasPainter`, `ChromePainter`, `MapRenderer`, `Ink`) never touch `Client`, so
 `MapPreview` renders exactly what the overlay draws.
 
-**Loading the tiles** (deviation 27). The default view (FIT_ALL) of a large resizable map is z=0
-(0.75 ppt on a 1738x905 map), which is not bundled: each of its ~60 tiles is derived from 16 z=2
-tiles, about 960 PNG decodes. Smaller maps open on z=-1 (bundled; 1100x600 is 0.46 ppt) or z=-2
-(fixed mode, 0.22 ppt, derived from z=-1).
+**Loading the tiles** (deviations 27, 28). The default view (around you, 4.7) is 2 ppt at any map
+size: z=1, which is not bundled; each z=1 tile is derived from 4 z=2 tiles (35 tiles and 144 PNG
+decodes on a 1738x905 map, 15 / 64 at 1100x600, 9 / 40 at 512x334). FIT_ALL of a large resizable
+map is z=0 (0.75 ppt on a 1738x905 map), also not bundled: each of its ~60 tiles is derived from 16
+z=2 tiles, about 960 PNG decodes. Smaller fitted maps open on z=-1 (bundled; 1100x600 is 0.46 ppt)
+or z=-2 (fixed mode, 0.22 ppt, derived from z=-1).
 - **Workers.** `TileStore.newExecutor()`: min(3, cores - 1) daemon threads (at least one) at
   `NORM_PRIORITY - 1`, ending after 30 s idle. The store keeps its own queue: every request hands
   the executor one run, and each run takes the **newest** queued tile, so the current view comes
@@ -764,26 +779,50 @@ tiles, about 960 PNG decodes. Smaller maps open on z=-1 (bundled; 1100x600 is 0.
 - **Ahead of the menu.** `onMenuOptionClicked`: "Travel" on a spirit tree, or "Tree" on a spiritual
   fairy tree (game object ops only; ids below, or the target "Spirit tree" / "Spiritual Fairy Tree"),
   with the menu closed and Map mode the default, queues the tiles of the view the menu will open on
-  (`MapRenderer.prefetch`): the initial view (4.7) on the session's last map rect, or before the first
-  open on the rect the layout would give now (fixed: 512x334; resizable: `MapLayout.compute` around
-  the slot where Use free space would put it). It reads only our own resources and leaves the click
-  alone. Ids (gameval `ObjectID`): the travel locs 26260, 26261, 26263, 35950, 49595, 8355, POH
+  (`MapRenderer.prefetch`): the initial view (4.7, the same `initialView`) on the session's last map
+  rect, or before the first open on the rect the layout would give now (fixed: 512x334; resizable:
+  `MapLayout.compute` around the slot where Use free space would put it), **as seen from the clicked
+  tree**, where the player will stand when the menu opens: its world tile is the entry's scene tile
+  (`param0`, `param1`) plus the top-level world view's base, and `TreeRepository.treeAt` finds the
+  tree "here" there without changing the repository; in an instance (a house's tree) the view is the
+  house portal's (the house placement is read again first). It reads only our own resources and
+  leaves the click alone. Ids (gameval `ObjectID`): the travel locs 26260, 26261, 26263, 35950, 49595, 8355, POH
   29227, 44936, 40778, and the world trees' multiloc parents 1293, 1294, 1295, 37329, 49598, 8338,
   8382, 8383, 27116, 33733 (a menu entry carries the parent's id); spiritual fairy trees 29229,
   27097, 40779. Walking to the tree gives seconds of head start; next to it, one tick (600 ms) is
   enough for the whole 1738x905 view on the bench machine.
-- **Trimming.** 50 ticks after the menu closes (or after such a click) the tiles finer than z=0 and
-  the map-sized buffers are released; the **overview** (z <= 0, what FIT_ALL opens on) stays for 500
-  ticks (5 minutes), so the next tree of a farming run opens at once; the login screen still releases
-  everything, the queued tiles included (else a logout mid-load would leave what loads after it
-  cached until the menu next closes). The overview held is what the last views drew at z <= 0: 18.8 MB after a 1738x905
-  open (60 z=0 tiles and the z=-1 cover), 4.5 MB at 1100x600, 3.0 MB in fixed mode; at most the
-  LRU's soft cap.
+- **Trimming.** 50 ticks after the menu closes (or after such a click) the tiles finer than the
+  **kept level** and the map-sized buffers are released. The kept level is that of the last view the
+  menu opened on (or was loaded ahead for), at least z=0 (`keepLevel`): z=1 around you, z=0 or
+  coarser fitted. Those tiles and coarser stay for 500 ticks (5 minutes), so a tree visited again
+  soon (back and forth on a farming run) opens at once; the login screen still releases everything,
+  the queued tiles included (else a logout mid-load would leave what loads after it cached until
+  the menu next closes). Held after one 1738x905 open around you: 9.8 MB (4.8 MB at 1100x600, 3.3 MB
+  in fixed mode; FIT_ALL: 18.8, 4.5 and 3.0 MB). After one tree after another on one store
+  (`gradlew bench -PbenchArgs="1 -1 run"`, 1738x905: the farming trees, then every other surface
+  tree, then the Grand Exchange and Port Sarim again) it grows by the new area each time, 9.8, 14.5,
+  17.0, 23.8, 34.3, 39.3, 40.8, 41.5 MB, and stops at the LRU's 48 MB soft cap (47.8 MB from the
+  tenth tree on; the oldest trees' tiles are evicted and decoded again on a later visit).
 
-**Measured** with `./gradlew bench` (`TileBench`: the real store and executor, rebuilt as the overlay
-does at 50 fps, FIT_ALL; AMD Ryzen 9 9900X, 12 cores / 24 threads, JDK 21; milliseconds from the
-first frame, JIT warm (the median of the rounds after the first); the very first open in a fresh JVM
-in brackets):
+**Measured, around you** (the default since deviation 28) with `./gradlew bench -PbenchArgs=5`
+(`TileBench`: the real store and executor, rebuilt as the overlay does at 50 fps, standing at the
+Grand Exchange tree, the quick-select panel open on maps 700 px and wider, its tab below; same
+machine and units as below; `-PbenchArgs="5 600"` for the Travel click one tick ahead):
+
+| Map, z=1 at 2 ppt | Cold: first imagery / covered / complete | Warm (second open) | Travel click one tick ahead |
+|---|---|---|---|
+| 1738x905, 35 tiles, 144 decodes | 31 / 31 / 45 (52 / 52 / 121) | 1 / 1 / 1 | 1 / 1 / 1 |
+| 1100x600, 15 tiles, 64 decodes | 31 / 31 / 31 (31 / 31 / 45) | 0 / 0 / 0 | 0 / 0 / 0 |
+| 512x334, 9 tiles, 40 decodes | 30 / 30 / 30 (30 / 30 / 30) | 0 / 0 / 0 | 0 / 0 / 0 |
+
+The first ~30 ms is the bench's first rebuilds (20 ms frames) while the coarse cover and the first
+z=1 tiles come in; with the click one tick ahead every size opens complete on its first frame (the
+rebuild itself, at most 1.4 ms). Opening around you does about a seventh of FIT_ALL's decoding on the
+large map, so a cold large open completes in about 45 ms instead of about 224.
+
+**Measured, FIT_ALL** (the default until deviation 28) with `./gradlew bench -PbenchArgs="3 -1 fit"`
+(FIT_ALL; AMD Ryzen 9 9900X, 12 cores / 24 threads, JDK 21; milliseconds from the first frame, JIT
+warm (the median of the rounds after the first); the very first open in a fresh JVM in brackets):
 
 | Map | Before: first imagery / covered / complete | After | Warm (second open) before / after |
 |---|---|---|---|
@@ -843,7 +882,7 @@ Group `spirittreeatlas`. Sections: Map, Markers.
 | `useFreeSpace` | boolean | true (resizable only) |
 | `mapMaxWidth` | int px | 2000, range 512-2000 |
 | `mapMaxHeight` | int px | 1400, range 334-1400 |
-| `openAt` | enum FIT_ALL / AROUND_YOU / REMEMBER | FIT_ALL |
+| `openOn` ("Open at") | enum FIT_ALL / AROUND_YOU / REMEMBER | AROUND_YOU (4.7). Was `openAt`, default FIT_ALL: RuneLite writes a default into the profile on first start, so a new default needs a new key (as Fairy Ring Atlas did for its max width and height); the old key is left unread |
 | `quickSelect` ("Quick select list") | boolean | true: the quick-select panel (4.6); off, neither panel nor tab |
 | `placeLabels` | boolean | true |
 | `mapIcons` | boolean | true |
@@ -899,7 +938,14 @@ wheel on the map and List mode's Map button; the quick-select panel: a row press
 a menu built for it, the panel's body absorbing a press, the wheel over the panel scrolling only
 while its rows overflow, a row's Select panning only when the marker or stand-in is out of view and
 bringing the surface back, the panel closed on narrow maps and the player's choice kept and saved,
-and the `quickSelect` default), `PainterTest` (holes untouched, markers and buttons, the stand-in,
+and the `quickSelect` default; the initial view (4.7): around the tree you are at, clear of the tab
+and of the open panel (`opensAroundTheTreeYouAreAt`), on the Prifddinas layer at its tree and in the
+city (`opensOnThePrifddinasMapAtItsTree`), around the player away from every tree and fitted off
+every layer (`opensAroundThePlayerAwayFromEveryTree`), in an instance on a placed house's portal
+(Prifddinas and surface), never "here", and fitted with no house (`inAnInstanceItOpensOnYourHouse`),
+FIT_ALL and REMEMBER (`fitAllAndRememberStayAvailable`), the reopen rule
+(`aQuickReopenKeepsTheViewALaterOneOpensAroundYou`) and the renamed key's default
+(`openAtDefaultsToAroundYouUnderANewKey`)), `PainterTest` (holes untouched, markers and buttons, the stand-in,
 the fixed-mode card covering no marker; the quick-select panel: rows in the live menu order with
 unlisted trees last, every row state drawn differently, the tab and the setting off, no overlap with
 the holes, cell, caption or stand-in at 512x334 and 1738x905 for every selection in both styles, and
@@ -912,8 +958,12 @@ size), `EventBusRegistrationTest`, `MapPreviewTest`, and the launcher `SpiritTre
 `TileStoreTest` also covers the loading of 4.9 (newest first, stale requests dropped, no tile
 decoded twice at once, a consistent cache under many workers, sources not kept, the trims, the
 coarse cover first, the prefetch), and `PrewarmTest` the Travel click and the trim clock against
-the fake menus. `TileBench` (`gradlew bench`, `-PbenchArgs="rounds prewarmMs"`) times an in-game
-open (4.9).
+the fake menus: the click loads the view around the clicked tree, not around the player, so the
+menu's first frame needs no decode (`travelLoadsTheViewAroundTheClickedTree`), in a house the view
+around its portal (`travelInAHouseLoadsTheViewAroundItsPortal`), and the open view's level outlasts
+the finer ones (`theOpenViewsLevelOutlastsTheRest`). `TileBench` (`gradlew bench`,
+`-PbenchArgs="rounds prewarmMs view"`, view `around` (default), `fit` or `run`) times an in-game open
+(4.9); `run` opens one tree after another on one store and reports the memory held.
 
 **Previews** (`gradlew preview`, `MapPreview` into `build/preview/`). Maps 700 px and wider show the
 quick-select panel open, the fixed-mode (512x334) shots its tab, as on a first open. Full fit, Grand Exchange at
@@ -926,7 +976,9 @@ alignment sheet of every tree at 8 ppt, the free-space size (1738x905), and `ico
 icon, 48x72: a large selected marker over Varrock at 2 ppt), which the preview writes to the repo
 root, and `14-fixed-quick-select`: fixed mode with the panel opened, the pointer over Hosidius's
 row (its card and its marker's hover ring), Grand Exchange selected and the "You" tag on the Gnome
-Stronghold. The previews draw the game's own row and close button in the holes, as they look in game.
+Stronghold, and `15-around-you`: the default open (1100x720) standing at the Grand Exchange tree, the
+quick-select panel open with its "You" tag, the tree in the middle of the map right of the panel.
+The previews draw the game's own row and close button in the holes, as they look in game.
 
 ---
 
@@ -1011,6 +1063,13 @@ the injected client's bytecode, other plugins' sources and fake widgets in the t
 - **Data.** Every arrival tile; the Poison Waste stage-38 question; Laguna Aurorae's first-visit
   gate; the last-destination values; what the "Your house" row does when clicked inside your own
   house, and whether a guest at a house party sees it (3.4).
+- **Opening around you (4.7).** That the map opens centred on the tree you are at (on the
+  Prifddinas map at the Prifddinas tree), and on your house's portal in your own house and in a
+  friend's (that `WorldView.isInstance()` is true in a house); that a Travel click on a world tree's
+  menu entry carries its scene tile in `param0`/`param1`, so the prefetch warms the view the menu
+  then opens on (a bigger or smaller tree, or a multiloc parent's entry, still lands within the
+  6-tile "here" range); that the setting shows "Around you" after the update for a player whose
+  profile held the old `openAt`.
 - **Loading (4.9).** How long the first open takes in game now, on a slower machine too; that a
   "Travel" click on each kind of tree (world trees by their multiloc parent ids, farming trees, POH
   trees) and "Tree" on a spiritual fairy tree start the prefetch (the ids and option texts come from
@@ -1138,3 +1197,17 @@ from the text above.
     only the reader lookup under the lock, sources read for a derivation not kept, the coarse cover
     queued last (so served first), a prefetch on "Travel" / "Tree", and the overview (z <= 0) kept
     500 ticks. Previews are pixel-identical (hashes of every `build/preview` image compared).
+
+**Opening around you (2026-10-04)**
+
+28. **The map opens around you (spec updated, 3.4, 4.7, 4.9, 4.11).** The user, in game: "When
+    opening the map could it open to where we are currently at please?" The spec opened on
+    FIT_ALL (with only 14 destinations, fitting them all seemed the useful start). Now, as in Fairy
+    Ring Atlas, the default centres on the tree you are at, else on you, at 2 ppt, on the Prifddinas
+    layer there; in an instance on your house's portal (the first port's "in an instance, the house"
+    rule, deviation 15, comes back for the view only: the house is still never "here"). The setting
+    moved to a new key, `openOn`, because RuneLite had already written `openAt`=FIT_ALL into
+    profiles. The Travel-click prefetch now estimates the view from the clicked tree (it used the
+    player's tile at the click, which is wherever they clicked from), and the trim keeps the open
+    view's level (z=1 around you) and coarser instead of only z <= 0, so up to the 48 MB soft cap
+    (not 18.8 MB) may stay for 5 minutes after one tree after another.

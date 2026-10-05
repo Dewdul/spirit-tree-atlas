@@ -4,7 +4,7 @@ Spirit Tree Atlas covers the spirit tree travel menu with a map of every spirit 
 
 ## Features
 
-- **Map of every spirit tree.** All 14 destinations are on one map: the five trees that need only Tree Gnome Village, the five farming patches (Port Sarim, Etceteria, Brimhaven, Hosidius and the Farming Guild), Prifddinas, Poison Waste, Laguna Aurorae and your house. The map opens fitted to all of them. You can zoom from that overview down to individual buildings: scroll to zoom and drag to pan.
+- **Map of every spirit tree.** All 14 destinations are on one map: the five trees that need only Tree Gnome Village, the five farming patches (Port Sarim, Etceteria, Brimhaven, Hosidius and the Farming Guild), Prifddinas, Poison Waste, Laguna Aurorae and your house. The map opens around you, centred on the tree you are standing at; *Fit* shows them all. You can zoom from that overview down to individual buildings: scroll to zoom and drag to pan.
 - **Both menu styles.** The game has two looks for this menu: the classic scroll, and the newer menu you get with the *Modern menu interface* setting. The plugin works with either, and the Travel button is the real row of whichever one you use.
 - **The Travel button.** The selected tree's real menu row sits in the map's bottom-right corner, with the menu's own close button just above it. Until you pick a tree you can travel to, the Travel spot says why it is empty: *Pick a tree on the map*, *Locked* and the reason, *You are here*, or *Not in this tree's list*.
 - **Quick select list.** Down the map's left edge, every destination is listed in the menu's own order, with its key, a small marker showing whether you can go there, and its name. Click one to select it: the map pans to it if it is out of view. The tree you are standing at says *You*, and your last trip has the arrow badge. Click the small triangle to fold the list into a slim tab, and the tab to open it again. In fixed mode, where the map is small, it starts folded.
@@ -16,7 +16,7 @@ Spirit Tree Atlas covers the spirit tree travel menu with a map of every spirit 
 
 ## How to use it
 
-1. Use a spirit tree's *Travel* option (or a spiritual fairy tree's *Tree* option). The map opens over the travel menu, fitted to every spirit tree. In resizable mode it fills the free space above the chatbox and left of the side panel, up to the Max width and height. The menu's close button and the Travel spot sit in the map's bottom-right corner.
+1. Use a spirit tree's *Travel* option (or a spiritual fairy tree's *Tree* option). The map opens over the travel menu, centred on the tree you are standing at (on the Prifddinas map at the Prifddinas tree, and on your house's portal when you are in a house). Click *Fit* to see every spirit tree, or change *Open at* in the settings. In resizable mode it fills the free space above the chatbox and left of the side panel, up to the Max width and height. The menu's close button and the Travel spot sit in the map's bottom-right corner.
 2. **Click a tree** to select it, on the map or in the *Destinations* list on the left. Its card says what to do next:
    - **You can travel there.** The tree's own menu row appears in the Travel spot, and its frame pulses. Click it, or press the key shown on the marker (the key the menu shows for that row). The menu then closes and the game takes you there as usual.
    - **It is locked.** The menu lists it in grey. The Travel spot and the card say what the tree needs, such as *Needs Song of the Elves*.
@@ -47,7 +47,7 @@ While the map shows, the plugin changes the spirit tree menu only by hiding its 
 | Map | Open as map | on | Start with the map rather than the plain list |
 | | Use free space | on | In resizable mode, move the spirit tree menu into the corner of the free screen space while the map shows, so the map can fill it (see the notes) |
 | | Max width / Max height | 2000 / 1400 | Largest map size in resizable mode. With Use free space, a smaller map is centred in the free space |
-| | Open at | Fit all | Fit every spirit tree (*Fit all*), centre on where you are (*Around you*), or *Remember* the last view this session |
+| | Open at | Around you | Centre on the tree you are at, or on you (*Around you*), fit every spirit tree (*Fit all*), or *Remember* the last view this session |
 | | Quick select list | on | The *Destinations* list down the map's left edge (see Features). Turn it off to hide the list and its tab |
 | | Place names / Map icons | on | World map place names, and icons when zoomed in |
 | | Full tree details | off | Show everything about a tree on its card (every requirement, nearby place, danger and note) instead of a short summary |
@@ -64,7 +64,7 @@ While the map shows, the plugin changes the spirit tree menu only by hiding its 
 - **Teleport Maps.** Teleport Maps can also replace this menu with a map. While its *Spirit Tree Map* option is on, Spirit Tree Atlas changes nothing and shows a one-line notice above the menu instead. Turn that option off in Teleport Maps to use this map; its other maps are not affected. If you turn it off while the menu is open, close and reopen the menu.
 - **Spirit Tree Menu.** That plugin rearranges the classic menu. While it is on, Spirit Tree Atlas leaves the classic menu to it and shows a notice; the modern menu is not affected.
 - **Better Teleport Menu.** The two work together. Keys you set in Better Teleport Menu show on the markers, and its *Set Hotkey* option is on the Travel button. Rows it hides count as not in the list. Its *Expand scroll menu* option makes the classic menu's area taller, so Use free space then leaves the classic menu where it is.
-- **Memory.** About 30 seconds after you close the menu, the plugin frees its decoded map tiles and image buffers.
+- **Memory.** About 30 seconds after you close the menu, the plugin frees most of its decoded map tiles and its image buffers. The tiles at the zoom the map opens on stay for about 5 minutes (about 10 MB for one tree on a large map, never more than about 48 MB), so a tree you come back to soon opens at once. Clicking *Travel* on a spirit tree also starts loading the map for that tree before the menu appears.
 
 ## Data sources
 

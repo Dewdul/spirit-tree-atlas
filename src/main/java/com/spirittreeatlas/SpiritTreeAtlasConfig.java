@@ -63,12 +63,16 @@ public interface SpiritTreeAtlasConfig extends Config
 		return 1400;
 	}
 
-	@ConfigItem(keyName = "openAt", name = "Open at",
-		description = "Fit every spirit tree, centre the map on where you are, or remember the last view this session",
+	/**
+	 * Was "openAt", default FIT_ALL, which RuneLite wrote into every profile on first start: a new
+	 * key, so the new default (around you, DESIGN 4.7) reaches them.
+	 */
+	@ConfigItem(keyName = "openOn", name = "Open at",
+		description = "Centre the map on the tree you are at (or on you), fit every spirit tree, or remember the last view this session",
 		section = mapSection, position = 4)
-	default OpenAt openAt()
+	default OpenAt openOn()
 	{
-		return OpenAt.FIT_ALL;
+		return OpenAt.AROUND_YOU;
 	}
 
 	@ConfigItem(keyName = "quickSelect", name = "Quick select list",
