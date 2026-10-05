@@ -1182,7 +1182,7 @@
  ],
  "housePortalSources": [
   "research/reconcile/walkcheck.txt (cache placements of each portal loc)",
-  "C:/Users/scott/FairyRingAtlas/src/main/java/com/fairyringatlas/RingRepository.java lines 89-97 (value -> town, from Shortest Path)",
+  "github.com/Dewdul/fairy-ring-atlas src/main/java/com/fairyringatlas/RingRepository.java lines 89-97 (value -> town, from Shortest Path)",
   "research/destinations/mb_HouseLocation.java (Microbot HouseLocation enum: same values)",
   "game cache 2727 enum 252 (POH location id -> town name: 1 Rimmington, 2 Taverley, 3 Pollnivneach, 4 Rellekka, 5 Brimhaven, 6 Yanille, 8 Hosidius, 9 Prifddinas, 13 Aldarin; used by cs2 [proc,script5909] line 102). No other values exist, so this list is complete."
  ],

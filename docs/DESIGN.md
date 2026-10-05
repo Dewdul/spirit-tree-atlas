@@ -5,7 +5,7 @@ menu with a high-resolution, pannable and zoomable map of every spirit tree dest
 a tree on the map; the real menu row for that tree then sits in the map's bottom-right corner as the
 **Travel** button, and you click it (or press the row's own key) to travel.
 
-It is a sibling of **Fairy Ring Atlas** (`C:\Users\scott\FairyRingAtlas`, github.com/Dewdul/fairy-ring-atlas,
+It is a sibling of **Fairy Ring Atlas** (github.com/Dewdul/fairy-ring-atlas,
 live on the Hub) and reuses its map engine: the cache-rendered tiles, `MapView`, `TileStore`,
 `MapRenderer`, `LabelPlacer`, `Ink`, the layout that grows the map from the interface's bottom-right
 corner, "Use free space", the input and menu ownership, the cached chrome, the previews and the
@@ -1016,8 +1016,11 @@ The previews draw the game's own row and close button in the holes, as they look
 
 ## 8. Not verified without the game (test in game)
 
-Nothing below has been seen in the game yet. Everything was built from the cache, the decoded cs2,
-the injected client's bytecode, other plugins' sources and fake widgets in the tests.
+The author has used the plugin in game (2026-10-04: the first build, then the build with the
+quick-select list, the bigger Travel button and the faster loading), with no plugin errors in the
+client log; the requests that came out of it are recorded in 4.6, 4.4, 4.7 and 4.9. The items below
+have not each been confirmed one by one. They were built from the cache, the decoded cs2, the
+injected client's bytecode, other plugins' sources and fake widgets in the tests.
 
 - **Layout.** The hanging UNIVERSE (modern) and LJ_LAYER1 (classic) show only their part inside the
   slot; the moved row and close button click normally ("Continue" travels, "Close" closes); the
