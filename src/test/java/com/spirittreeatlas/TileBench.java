@@ -71,7 +71,7 @@ public class TileBench
 		String kind = args.length > 2 ? args[2] : "around";
 		TreeRepository repo = TreeRepository.load(new Gson(), BASE);
 		repo.placeHouse(1);
-		System.out.printf(Locale.ROOT, "cores=%d java=%s prewarm=%s view=%s%n", Runtime.getRuntime().availableProcessors(),
+		System.out.printf(Locale.ROOT, "workers=%d java=%s prewarm=%s view=%s%n", TileStore.WORKERS,
 			System.getProperty("java.version"), prewarmMs < 0 ? "off" : prewarmMs + " ms", kind);
 		if ("run".equals(kind))
 		{

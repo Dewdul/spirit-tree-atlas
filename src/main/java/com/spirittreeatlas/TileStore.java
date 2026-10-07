@@ -64,7 +64,7 @@ public class TileStore
 	 * player has left.
 	 */
 	private static final int STALE_FRAMES = 1;
-	static final int MAX_WORKERS = 3;
+	static final int WORKERS = 2;
 
 	private final String base;
 	private final Executor executor;
@@ -92,14 +92,14 @@ public class TileStore
 	final AtomicInteger derived = new AtomicInteger();
 
 	/**
-	 * The decoding workers: a few daemon threads just below normal priority (one fewer than the
-	 * cores, at most {@link #MAX_WORKERS}), which end after a while idle. Which tile each one takes
-	 * is the store's choice (the newest request), not the executor's.
+	 * The decoding workers: {@link #WORKERS} daemon threads just below normal priority, which end
+	 * after a while idle. A fixed count: the Plugin Hub does not allow java.lang.Runtime, so the
+	 * cores are not counted. Which tile each one takes is the store's choice (the newest request),
+	 * not the executor's.
 	 */
 	public static ExecutorService newExecutor()
 	{
-		int n = Math.min(MAX_WORKERS, Math.max(1, Runtime.getRuntime().availableProcessors() - 1));
-		ThreadPoolExecutor ex = new ThreadPoolExecutor(n, n, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r ->
+		ThreadPoolExecutor ex = new ThreadPoolExecutor(WORKERS, WORKERS, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r ->
 		{
 			Thread t = new Thread(r, "spirit-tree-atlas-tiles");
 			t.setDaemon(true);

@@ -41,6 +41,7 @@ sources and the Plugin Hub. Confidence is marked [H]igh, [M]edium or [L]ow where
 1. **The plugin never sends a game action.** It never calls `client.menuAction`, `client.runScript`,
    `createScriptEventBuilder`, `ScriptEvent.setCanSendPackets`, `setVarbit`, `setVarbitValue`,
    `setVarcIntValue`, `setVarcStrValue`, `java.awt.Robot`, `dispatchEvent`, `KeyboardFocusManager`,
+   `java.lang.Runtime` and `ProcessBuilder` (not allowed on the Plugin Hub),
    reflection (`setAccessible`, `getDeclaredField`, `getDeclaredMethod`), and never adds widget ops,
    listeners or text (`setAction`, `setOnOpListener`, `setOnKeyListener`, `setOnClickListener`,
    `setOnMouseOverListener`, `setText`, `setTextColor`). Teleport Maps and Better Teleport Menu travel
@@ -758,8 +759,10 @@ decodes on a 1738x905 map, 15 / 64 at 1100x600, 9 / 40 at 512x334). FIT_ALL of a
 map is z=0 (0.75 ppt on a 1738x905 map), also not bundled: each of its ~60 tiles is derived from 16
 z=2 tiles, about 960 PNG decodes. Smaller fitted maps open on z=-1 (bundled; 1100x600 is 0.46 ppt)
 or z=-2 (fixed mode, 0.22 ppt, derived from z=-1).
-- **Workers.** `TileStore.newExecutor()`: min(3, cores - 1) daemon threads (at least one) at
-  `NORM_PRIORITY - 1`, ending after 30 s idle. The store keeps its own queue: every request hands
+- **Workers.** `TileStore.newExecutor()`: 2 daemon threads at `NORM_PRIORITY - 1`, ending after
+  30 s idle. A fixed count, because the Plugin Hub does not allow `java.lang.Runtime` (a reviewer on
+  runelite/plugin-hub#17836, 2026-10-07), so the plugin cannot ask for the core count; the numbers
+  below were measured with min(3, cores - 1) = 3 workers. The store keeps its own queue: every request hands
   the executor one run, and each run takes the **newest** queued tile, so the current view comes
   first whatever order the executor keeps. A request the latest rebuild did not repeat is dropped,
   as before. The LRU and its byte count are guarded by one lock; the queue and the requests are

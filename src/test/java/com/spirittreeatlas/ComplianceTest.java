@@ -56,6 +56,8 @@ public class ComplianceTest
 		"KeyListener", "registerKeyListener", "KeyManager",
 		"OkHttpClient", "HttpURLConnection", "openConnection", "java.net", "java.net.URL", "java.net.Socket",
 		"hopToWorld", "invokeMenuAction",
+		// not allowed on the Plugin Hub (reviewer, runelite/plugin-hub#17836): no process or JVM control
+		"Runtime", "java.lang.Runtime", "ProcessBuilder", "System.exit",
 		// a game script's event re-run, or a game menu entry retargeted: nothing here needs either
 		"getScriptEvent", "setParam0", "setParam1", "setIdentifier",
 		// the other ways to resize or lay out a widget (only the Travel row is resized, through RESIZE in
